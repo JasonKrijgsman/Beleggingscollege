@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-open-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Merkkleuren uit "Website Resources Collection" (2023):
+     primair Pantone 285C #0072CE, secundair Pantone 349C #006546,
+     logo-navy #0033A0, bodytekst Cool Gray 11C #53565A */
+
+  --color-brand-50: #f0f7fe;
+  --color-brand-100: #dcecfb;
+  --color-brand-200: #c0def8;
+  --color-brand-300: #92c8f2;
+  --color-brand-400: #5da9e9;
+  --color-brand-500: #2f8cdd;
+  --color-brand-600: #0072ce;
+  --color-brand-700: #005cab;
+  --color-brand-800: #004d8d;
+  --color-brand-900: #064174;
+
+  --color-groen-50: #effaf4;
+  --color-groen-100: #d7f2e3;
+  --color-groen-200: #b2e5ca;
+  --color-groen-300: #7fd0a9;
+  --color-groen-400: #48b483;
+  --color-groen-500: #239a67;
+  --color-groen-600: #006546;
+  --color-groen-700: #00573d;
+  --color-groen-800: #054633;
+  --color-groen-900: #073a2b;
+
+  --color-navy-50: #eef2fc;
+  --color-navy-100: #dae3f8;
+  --color-navy-200: #bccbf2;
+  --color-navy-300: #90a8e8;
+  --color-navy-400: #5f7edb;
+  --color-navy-500: #3c5ccd;
+  --color-navy-600: #0033a0;
+  --color-navy-700: #082b83;
+  --color-navy-800: #0b2469;
+  --color-navy-900: #0b1d50;
+  --color-navy-950: #081337;
+
+  --color-goud-100: #fdf3d7;
+  --color-goud-200: #fae3a3;
+  --color-goud-300: #f4cf6d;
+  --color-goud-400: #ecb93f;
+  --color-goud-500: #dda221;
+  --color-goud-600: #b98214;
+
+  --color-paars-50: #f5f2fd;
+  --color-paars-100: #e9e2fa;
+  --color-paars-200: #d5c8f5;
+  --color-paars-400: #9b78e0;
+  --color-paars-600: #6d3fc4;
+  --color-paars-700: #5a32a3;
+  --color-paars-900: #3b2268;
+
+  --color-ink: #0d1b2e;
+  --color-body: #53565a;
+  --color-mist: #f6f8fb;
+  --color-lijn: #e3e8f0;
+
+  --shadow-card: 0 1px 2px rgb(11 29 80 / 0.06), 0 10px 28px -10px rgb(11 29 80 / 0.14);
+  --shadow-pop: 0 16px 48px -14px rgb(11 29 80 / 0.3);
+}
+
+body {
+  background-color: var(--color-mist);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-brand-200);
+}
+
+/* Animaties */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop-in {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.06); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0.85; }
+}
+@keyframes flame-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.anim-fade-up { animation: fade-up 0.55s ease both; }
+.anim-pop-in { animation: pop-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.anim-flame { animation: flame-pulse 1.6s ease-in-out infinite; }
+.anim-float { animation: float-slow 5s ease-in-out infinite; }
+
+/* Printstijl voor certificaten */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; }
+  .print-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+}

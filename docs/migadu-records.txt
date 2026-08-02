@@ -1,0 +1,6 @@
+beleggingscollege.nl. 300 IN MX 20 aspmx2.migadu.com.
+beleggingscollege.nl. 300 IN TXT "hosted-email-verify=ejcexff3"
+beleggingscollege.nl. 300 IN TXT "v=spf1 include:spf.migadu.com -all"
+key1._domainkey.beleggingscollege.nl. 300 IN CNAME key1.beleggingscollege.nl._domainkey.migadu.com.
+key2._domainkey.beleggingscollege.nl. 300 IN CNAME key2.beleggingscollege.nl._domainkey.migadu.com.
+key3._domainkey.beleggingscollege.nl. 300 IN CNAME key3.beleggingscollege.nl._domainkey.migadu.com.

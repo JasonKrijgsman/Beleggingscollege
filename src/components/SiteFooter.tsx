@@ -1,0 +1,57 @@
+import Link from "next/link";
+import Logo from "./Logo";
+
+export default function SiteFooter() {
+  return (
+    <footer className="no-print mt-20 border-t border-lijn bg-white">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3">
+        <div className="space-y-3">
+          <Logo />
+          <p className="text-sm leading-relaxed text-body">
+            Eerlijk beleggingsonderwijs, geworteld in de beste boeken ooit
+            geschreven over de beurs. Geen beloftes, wel begrip.
+          </p>
+        </div>
+        <div>
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink">
+            Leren
+          </h3>
+          <ul className="space-y-2 text-sm text-body">
+            <li>
+              <Link className="hover:text-brand-700" href="/cursussen">
+                Alle cursussen
+              </Link>
+            </li>
+            <li>
+              <Link
+                className="hover:text-brand-700"
+                href="/cursussen/beleggen-voor-beginners"
+              >
+                Gratis beginnerscursus
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-brand-700" href="/leerpad">
+                Mijn leerpad
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink">
+            Goed om te weten
+          </h3>
+          <p className="text-sm leading-relaxed text-body">
+            Beleggen brengt risico&apos;s met zich mee. Je kunt (een deel van)
+            je inleg verliezen. Beleggingscollege geeft onderwijs — geen
+            persoonlijk beleggingsadvies.
+          </p>
+        </div>
+      </div>
+      <div className="border-t border-lijn py-5 text-center text-xs text-body">
+        © {new Date().getFullYear()} Beleggingscollege (KVK 71856633) ·
+        beleggingscollege.nl
+      </div>
+    </footer>
+  );
+}
