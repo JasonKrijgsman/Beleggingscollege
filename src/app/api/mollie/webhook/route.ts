@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { purchases } from "@/db/schema";
 import { bedragNaarCenten, mollie, mollieIsGeconfigureerd } from "@/lib/mollie";
+import { stuurOrderbevestiging } from "@/lib/orderbevestiging";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,6 +84,13 @@ export async function POST(request: Request) {
         .update(purchases)
         .set({ status: "paid", paidAt: new Date() })
         .where(eq(purchases.molliePaymentId, paymentId));
+
+      // De wettelijk verplichte bevestiging. Bewust ná het vrijgeven van de
+      // toegang, en bewust een functie die nooit gooit: gaat het versturen mis,
+      // dan mag dat deze webhook niet laten falen. Anders herhaalt Mollie tien
+      // keer over 26 uur terwijl de aankoop allang goed staat. De functie
+      // bewaakt zelf dat er maar één mail per aankoop uitgaat.
+      await stuurOrderbevestiging(paymentId);
 
       return new Response("OK", { status: 200 });
     }

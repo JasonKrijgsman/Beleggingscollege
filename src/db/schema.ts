@@ -127,6 +127,16 @@ export const purchases = pgTable(
 
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
     paidAt: timestamp("paid_at", { mode: "date" }),
+
+    /* Wanneer de orderbevestiging is verstuurd. Mollie roept de webhook
+     * gegarandeerd meerdere keren aan voor dezelfde betaling, dus zonder dit
+     * veld krijgt een klant tien identieke mails. Tegelijk is dit het bewijs
+     * dát de wettelijk verplichte bevestiging is verzonden. */
+    confirmationSentAt: timestamp("confirmation_sent_at", { mode: "date" }),
+
+    /** Volgnummer voor op de bevestiging, bijv. BC-2026-0001. Doorlopend en
+     *  zonder gaten, want dat eist de Belastingdienst. */
+    orderNumber: text("order_number").unique(),
   },
   (t) => [
     index("purchases_user_idx").on(t.userId),
