@@ -60,6 +60,7 @@ Accounts, aankopen en voortgang hangen aan gebruikers-id's, niet aan een URL. Bi
 - **Zodra de .nl verhuisd is**: `NEXT_PUBLIC_SITE_URL` in Vercel op `https://beleggingscollege.nl` zetten en een permanente redirect `.com` → `.nl` toevoegen. Verder hoeft er niets in de code.
 - **Kosten en de Vercel-valkuil rond commercieel gebruik**: `docs/hosting-en-kosten.md`. Kort: Vercel Hobby is alleen voor niet-commercieel gebruik; zodra er betaald kan worden is Pro (~$20/mnd) verplicht.
 - Gered materiaal van de oude WordPress-site: `docs/salvage/`.
+- Jasons eigen ideeën (gebouwd, nog niet gebouwd, afgevallen): `docs/ideeen.md`. Wat de winkel nog mist en waarom: `docs/wat-de-winkel-mist.md`.
 
 ## SEO-huisregels
 
@@ -90,6 +91,14 @@ Dit merk verkoopt zichzelf als de eerlijke tegenhanger van get-rich-quick-aanbie
 
 1. **De prijs komt uit onze eigen catalogus, nooit uit het verzoek.** Anders bepaalt de klant wat hij betaalt.
 2. **De webhook gelooft niets uit de payload behalve het id.** Mollie stuurt alleen `id=tr_…`; het endpoint is publiek, dus de status halen we zelf op en we controleren bedrag én valuta tegen wat wij hadden vastgelegd.
+
+## E-mail
+
+- **Verzenden en ontvangen zijn twee losse dingen.** Een postbus ontvangt; transactionele mail versturen we via een API en dat heeft géén postbus nodig. Dit wachtte dus nooit op de verhuizing bij Strato — een misvatting die ons een tijd heeft opgehouden.
+- Verzenden via **Resend** (`src/lib/mail.ts`), ontvangen op de bestaande Strato-postbus `beheer@beleggingscollege.nl`. Zelfde adres, dus de klant kan gewoon antwoorden.
+- **Valkuil die stil misgaat:** het domein publiceert `p=reject` zónder SPF. Uitgaande post slaagt nu alleen doordat Strato met DKIM ondertekent. Gaat Resend versturen zonder eigen DKIM-records, dan wordt élke bevestigingsmail geweigerd — niet in spam, geweigerd. Eerst de records, dan pas de key. Zie `docs/e-mail-versturen.md`.
+- `verstuurMail()` **gooit nooit**: hij draait in de Mollie-webhook nadat de aankoop al op `paid` staat, en een mislukte mail mag daar geen 500 van maken (Mollie herhaalt dan tien keer over 26 uur).
+- `purchases.confirmationSentAt` voorkomt tien identieke mails bij herhaalde webhooks en is tegelijk het bewijs dát de verplichte bevestiging is verstuurd.
 
 ## Toegang tot betaalde content
 

@@ -51,16 +51,23 @@ straks je eerste omzetcijfers. Opruimen met een `delete` op die rij.
 Deze punten zijn niet "later netjes maken". Zonder deze dingen verkoop je iets wat je
 juridisch niet mag verkopen, of kun je een geschil niet winnen.
 
-- [ ] **Vercel Pro nemen (~$20/mnd).** Het Hobby-plan verbiedt commercieel gebruik
-      uitdrukkelijk, en de winkel staat al open. Zie `docs/hosting-en-kosten.md`.
-- [ ] **Bevestiging op een duurzame gegevensdrager.** De klant krijgt nu niets: geen mail,
-      geen bon, geen factuur. Voor de afstandsverkoop is een bevestiging verplicht, en
-      zonder die bevestiging is het afstand doen van het herroepingsrecht waarschijnlijk
-      niet rechtsgeldig — precies het bewijs dat je bij een geschil nodig hebt.
-- [ ] **Factuur en btw.** 21% btw, factuurnummering, en bewijs van waar de klant zit.
-      Nu wordt er nergens btw uitgesplitst en bestaat er geen nummering.
-- [ ] **Vestigingsadres en btw-nummer op de site.** Het KVK-nummer staat er (71856633),
-      een geografisch adres en het btw-identificatienummer niet. Beide zijn verplicht.
+- [ ] **Vercel Pro nemen ($20/mnd).** Het Hobby-plan verbiedt commercieel gebruik
+      uitdrukkelijk, en de winkel staat al open. Prijs geverifieerd op vercel.com/pricing op
+      2 aug 2026: $20 per maand per zitplaats, inclusief $20 aan verbruikstegoed — bij dit
+      verkeer dus effectief een vast bedrag. Zie `docs/hosting-en-kosten.md`.
+- [x] **Bevestiging op een duurzame gegevensdrager.** Gebouwd op 2 aug 2026 (commit
+      `0a5ba8e`): `src/lib/mail.ts`, `src/lib/mailteksten.ts`, `src/lib/orderbevestiging.ts`,
+      afgevuurd vanuit de Mollie-webhook. **Staat nog uit** tot `RESEND_API_KEY` gezet is en
+      de DNS-records bij Strato staan — zie `docs/e-mail-versturen.md`.
+- [ ] **Drie gegevens die Jason moet aanleveren voordat die mail de deur uit mag:**
+      - Zit je in de **kleineondernemersregeling**? Zo ja, dan mag er géén btw-bedrag in de
+        mail staan maar de KOR-zin. Zet `KOR = true` in `src/lib/mailteksten.ts`. Zo nee, dan
+        klopt de huidige 21%-regel.
+      - **Vestigingsadres** — verplicht op de bevestiging, staat nu op `null`.
+      - **Btw-identificatienummer** — idem.
+- [ ] **Echte factuur.** De bevestiging is geen factuur. Nummering is er nu wel
+      (`purchases.order_number`, reeks `BC-2026-0001`), btw-uitsplitsing ook, maar bewijs van
+      waar de klant zit nog niet.
 - [ ] **Een werkende weg om een herroeping af te handelen.** Terugbetalen trekt de toegang
       nu niet in; er is geen knop en geen procedure. De wettelijke termijn is 14 dagen.
 - [ ] **Juridische pagina's door een jurist.** `/voorwaarden`, `/privacy` en
