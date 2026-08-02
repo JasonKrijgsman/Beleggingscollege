@@ -1,6 +1,89 @@
-beleggingscollege.nl. 300 IN MX 20 aspmx2.migadu.com.
-beleggingscollege.nl. 300 IN TXT "hosted-email-verify=ejcexff3"
-beleggingscollege.nl. 300 IN TXT "v=spf1 include:spf.migadu.com -all"
-key1._domainkey.beleggingscollege.nl. 300 IN CNAME key1.beleggingscollege.nl._domainkey.migadu.com.
-key2._domainkey.beleggingscollege.nl. 300 IN CNAME key2.beleggingscollege.nl._domainkey.migadu.com.
-key3._domainkey.beleggingscollege.nl. 300 IN CNAME key3.beleggingscollege.nl._domainkey.migadu.com.
+Migadu DNS-records voor beleggingscollege.nl
+Opgehaald uit Migadu's eigen "DNS Setup Instructions", 2 augustus 2026.
+Domein-id bij Migadu: 237789. Verificatiecode: ejcexff3.
+
+LEES DIT EERST: DIT IS GEEN SPOEDKLUS
+-------------------------------------
+De mail van beleggingscollege.nl WERKT op dit moment gewoon, via Strato.
+Deze records zijn bedoeld voor NA de domeinverhuizing, niet daarvoor.
+
+Op 2 augustus 2026 in het Strato-paneel geverifieerd:
+- De postbus beheer@beleggingscollege.nl BESTAAT en bevat 120,58 KB aan mail.
+- info@beleggingscollege.nl bestaat ook (216,50 KB), plus backup_0001@ en
+  webmaster@ (die laatste met 2 aliassen) op alle domeinen.
+- De MX wijst naar smtp.rzone.de, dus post komt daadwerkelijk aan.
+- Strato ondertekent uitgaande mail met DKIM: de selectors strato-dkim-0002
+  (RSA) en strato-dkim-0003 (ed25519) staan gepubliceerd in de zone.
+- Er is geen SPF-record. Dat is niet erg: DMARC slaagt op SPF ÓF DKIM, en de
+  DKIM-ondertekening dekt het af. Antwoorden vanuit beheer@ komen dus aan.
+
+Migadu's diagnostiek meldt "No mails can reach us then" — dat gaat uitsluitend
+over Migadu. Het betekent niet dat het adres onbereikbaar is. Het domein staat
+bij Migadu op Inactive omdat het DNS nog volledig bij Strato ligt.
+
+WAT WEL AANDACHT VRAAGT
+-----------------------
+Niet techniek maar gewoonte: er kijkt niemand in die postbus. Op /contact staat
+"antwoord binnen twee werkdagen", en /herroepingsrecht en /privacy noemen
+beheer@ als het adres voor respectievelijk ontbinding van de koop en
+AVG-verzoeken. Zolang niemand meeleest is die belofte niet waargemaakt, ook al
+komt de post netjes binnen. Zet de postbus op een telefoon of laat hem
+doorsturen naar een adres dat wel gelezen wordt.
+
+WANNEER DEZE RECORDS WEL AAN DE BEURT ZIJN
+------------------------------------------
+Bij de verhuizing naar Cloudflare. Op dat moment verdwijnt de Strato-DNS en
+daarmee ook de Strato-mail, en moet Migadu het overnemen. Volgorde:
+1. Eerst de bestaande mail uit de Strato-postbussen halen (IMAP-export of
+   Migadu's importfunctie). Zonder dat ben je de inhoud kwijt.
+2. Pas daarna de records hieronder in Cloudflare zetten.
+3. Migadu → Rerun Checks, wachten tot het domein Active wordt.
+4. Testen: mail sturen naar beheer@ én vanaf beheer@, beide kanten op.
+
+STATUS DNSSEC (de reden dat de verhuizing stilstond)
+----------------------------------------------------
+In het Strato-paneel onder Domeinen → beleggingscollege.nl → DNS → DNSSEC staat
+per 2 augustus 2026: "DNSSEC: Wordt gedeactiveerd". Het loopt dus, het is geen
+vergeten verzoek. De badge bovenaan zegt nog "DNSSEC: Actief" en het DS-record
+(keytag 43361, algoritme 8) staat nog bij de registry — gecontroleerd via vier
+onafhankelijke resolvers (1.1.1.1, 8.8.8.8, 9.9.9.9, 208.67.222.222).
+Er is geen knop om iets te versnellen; dit is wachten tot Strato het afrondt.
+Controleren kan met:  Resolve-DnsName -Name beleggingscollege.nl -Type DS -Server 1.1.1.1
+Zodra dat niets meer teruggeeft, kan de naamserverwissel door.
+
+DE RECORDS (voor Cloudflare, ná de verhuizing)
+----------------------------------------------
+1) Verificatie — bewijst dat het domein van ons is. Moet blijven staan.
+   TXT   @        hosted-email-verify=ejcexff3
+
+2) Ontvangen — verwijder eerst alle bestaande MX-records.
+   MX    @   10   aspmx1.migadu.com
+   MX    @   20   aspmx2.migadu.com
+
+3) Ondertekenen (DKIM/ARC) — alle drie plaatsen, Migadu roteert ertussen.
+   Let op: sommige DNS-editors weigeren de underscore in de bestemming. Probeer
+   eerst mét, en laat hem anders weg (…beleggingscollege.nl.domainkey…).
+   CNAME key1._domainkey    key1.beleggingscollege.nl._domainkey.migadu.com.
+   CNAME key2._domainkey    key2.beleggingscollege.nl._domainkey.migadu.com.
+   CNAME key3._domainkey    key3.beleggingscollege.nl._domainkey.migadu.com.
+
+4) Verzenden (SPF) — type TXT, niet het verouderde type SPF.
+   TXT   @        v=spf1 include:spf.migadu.com -all
+
+5) DMARC — nu staat Strato's standaardregel er (v=DMARC1;p=reject;). Zet hem bij
+   de overzetting tijdelijk op quarantine tot verzenden via Migadu bewezen werkt,
+   en draai daarna terug naar reject.
+   TXT   _dmarc   v=DMARC1; p=quarantine;
+
+STAND VAN ZAKEN IN MIGADU (2 aug 2026)
+--------------------------------------
+Domein            beleggingscollege.nl — status Inactive (verwacht: DNS ligt bij Strato)
+Naamservers       docks14.rzone.de / shades19.rzone.de — OK, gedelegeerd
+Verificatie       Fail — record ontbreekt
+MX                Fail — wijst naar Strato
+DKIM key1/2/3     Fail — niet gedelegeerd
+SPF               Fail — geen SPF-waarde
+DMARC             OK — Strato's standaardregel, p=reject
+
+Abonnement: Micro / yearly. bliep.org en jasonkrijgsman.com staan op hetzelfde
+account wél op Active.
