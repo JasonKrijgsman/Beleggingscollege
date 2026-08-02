@@ -56,7 +56,10 @@ export type Course = {
   accent: CourseAccent;
   icon: CourseIcon;
   free?: boolean;
-  price?: string; // bijv. "€14,99"
+  // Eenmalige aanschafprijs van deze losse cursus (levenslange toegang).
+  // Elke betaalde cursus zit óók in het College+-abonnement; zie PRICING in
+  // src/lib/pricing.ts voor de abonnementsprijs en de voordelen per optie.
+  price?: string; // bijv. "€29"
   heroQuote?: { text: string; source: string };
   learnPoints: string[]; // "Wat je leert" (4-6 punten)
   modules: Module[];

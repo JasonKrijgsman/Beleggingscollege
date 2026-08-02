@@ -20,6 +20,11 @@ import {
 } from "@/content";
 import CourseCard from "@/components/CourseCard";
 import { LEVELS } from "@/lib/levels";
+import {
+  COLLEGE_PLUS_VOORDELEN,
+  LOSSE_CURSUS_VOORDELEN,
+  PRICING,
+} from "@/lib/pricing";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -310,12 +315,20 @@ export default function HomePage() {
       {/* Prijzen */}
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
         <h2 className="text-center text-3xl font-extrabold text-ink">
-          Begin gratis, groei op je eigen tempo
+          Begin gratis, kies daarna zelf
         </h2>
-        <div className="mx-auto mt-8 grid max-w-3xl gap-6 md:grid-cols-2">
+        <p className="mx-auto mt-3 max-w-xl text-center text-body">
+          Eén cursus die je interesseert? Koop hem los en houd hem voor altijd.
+          Wil je alles volgen? Dan is College+ al snel voordeliger.
+        </p>
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          {/* Gratis */}
           <div className="rounded-2xl border border-lijn bg-white p-8 shadow-card">
             <h3 className="text-lg font-bold text-ink">Gratis</h3>
             <div className="mt-2 text-3xl font-extrabold text-ink">€0</div>
+            <p className="mt-1 text-sm font-semibold text-body">
+              Om te proeven
+            </p>
             <ul className="mt-5 space-y-2.5 text-sm text-body">
               {[
                 "Volledige cursus Beleggen voor Beginners",
@@ -329,28 +342,54 @@ export default function HomePage() {
               ))}
             </ul>
             <Link
-              href="/cursussen/beleggen-voor-beginners"
+              href={`/cursussen/${PRICING.gratisCursusSlug}`}
               className="mt-6 block rounded-full bg-groen-600 py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-groen-700"
             >
               Start nu gratis
             </Link>
           </div>
+
+          {/* Losse cursus */}
+          <div className="rounded-2xl border border-lijn bg-white p-8 shadow-card">
+            <h3 className="text-lg font-bold text-ink">Losse cursus</h3>
+            <div className="mt-2 text-3xl font-extrabold text-ink">
+              {PRICING.losseCursus}
+              <span className="text-sm font-semibold text-body"> eenmalig</span>
+            </div>
+            <p className="mt-1 text-sm font-semibold text-body">
+              Voor één onderwerp
+            </p>
+            <ul className="mt-5 space-y-2.5 text-sm text-body">
+              {LOSSE_CURSUS_VOORDELEN.map((f) => (
+                <li key={f} className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-navy-600" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/cursussen"
+              className="mt-6 block rounded-full border-2 border-navy-600 py-2.5 text-center text-sm font-bold text-navy-700 transition-colors hover:bg-navy-50"
+            >
+              Bekijk de cursussen
+            </Link>
+          </div>
+
+          {/* College+ */}
           <div className="relative rounded-2xl border-2 border-brand-600 bg-white p-8 shadow-pop">
             <span className="absolute -top-3 right-6 rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white">
-              Binnenkort
+              Meest gekozen
             </span>
             <h3 className="text-lg font-bold text-ink">College+</h3>
             <div className="mt-2 text-3xl font-extrabold text-ink">
-              €14,99
+              {PRICING.abonnementMaand}
               <span className="text-sm font-semibold text-body"> / maand</span>
             </div>
+            <p className="mt-1 text-sm font-semibold text-body">
+              Voor wie doorleert
+            </p>
             <ul className="mt-5 space-y-2.5 text-sm text-body">
-              {[
-                "Alle cursussen, ook nieuwe releases",
-                "Interactieve tools en rekenmachines",
-                "Vragen stellen aan de AI-studiecoach",
-                "Certificaten voor elke afgeronde cursus",
-              ].map((f) => (
+              {COLLEGE_PLUS_VOORDELEN.map((f) => (
                 <li key={f} className="flex items-start gap-2">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
                   {f}
@@ -362,6 +401,11 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+        <p className="mx-auto mt-6 max-w-2xl text-center text-xs leading-relaxed text-body">
+          Alle bedragen zijn inclusief btw. Een losse cursus houd je voor altijd;
+          College+ is maandelijks opzegbaar en geeft toegang zolang je abonnement
+          loopt.
+        </p>
       </section>
 
       {/* Slot-CTA */}

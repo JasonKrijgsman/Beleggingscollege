@@ -20,6 +20,7 @@ import {
   flatLessons,
 } from "@/content";
 import { ACCENTS } from "@/lib/accent";
+import { PRICING } from "@/lib/pricing";
 import { useProgress } from "@/lib/progress";
 import CourseIcon from "./CourseIcon";
 
@@ -83,7 +84,9 @@ export default function CourseDetail({ course }: { course: Course }) {
               </span>
               <span className="text-xs font-bold uppercase tracking-widest text-white/80">
                 {course.level} ·{" "}
-                {course.free ? "Gratis" : course.price ?? "College+"}
+                {course.free
+                  ? "Gratis"
+                  : `${course.price ?? PRICING.losseCursus} eenmalig`}
               </span>
             </div>
             <h1 className="mt-4 text-4xl font-extrabold leading-tight">
@@ -131,6 +134,13 @@ export default function CourseDetail({ course }: { course: Course }) {
                 </Link>
               )}
             </div>
+            {!course.free && (
+              <p className="mt-4 text-sm text-white/70">
+                {course.price ?? PRICING.losseCursus} eenmalig — daarna
+                levenslang toegang. Of volg deze cursus samen met alle andere
+                voor {PRICING.abonnementMaand} per maand met College+.
+              </p>
+            )}
             {ready && done > 0 && (
               <div className="mt-6 max-w-md">
                 <div className="flex justify-between text-xs font-semibold text-white/80">
