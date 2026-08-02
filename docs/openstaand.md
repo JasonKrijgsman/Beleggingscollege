@@ -55,21 +55,27 @@ juridisch niet mag verkopen, of kun je een geschil niet winnen.
       uitdrukkelijk, en de winkel staat al open. Prijs geverifieerd op vercel.com/pricing op
       2 aug 2026: $20 per maand per zitplaats, inclusief $20 aan verbruikstegoed — bij dit
       verkeer dus effectief een vast bedrag. Zie `docs/hosting-en-kosten.md`.
-- [x] **Bevestiging op een duurzame gegevensdrager.** Gebouwd op 2 aug 2026 (commit
-      `0a5ba8e`): `src/lib/mail.ts`, `src/lib/mailteksten.ts`, `src/lib/orderbevestiging.ts`,
-      afgevuurd vanuit de Mollie-webhook. **Staat nog uit** tot `RESEND_API_KEY` gezet is en
-      de DNS-records bij Strato staan — zie `docs/e-mail-versturen.md`.
+- [x] **Bevestiging op een duurzame gegevensdrager.** Gebouwd op 2 aug 2026 (commits `0a5ba8e`
+      en `70a0621`): `src/lib/mail.ts`, `src/lib/mailteksten.ts`, `src/lib/orderbevestiging.ts`,
+      afgevuurd vanuit de Mollie-webhook. Bevat wat de wet eist, mét de onderbouwing in
+      `docs/juridisch-orderbevestiging.md`.
+      **Staat bewust nog uit.** Verzendkeuze is Migadu (niet Resend) en we wachten op de
+      verhuizing van de `.nl`, omdat er toch geen echt geld binnen kan komen. Ontsnappingsroute
+      als Strato treuzelt, plus de hele afweging: `docs/e-mail-versturen.md`.
+- [ ] **`src/lib/mail.ts` omzetten van de Resend-API naar Migadu SMTP.** De rest van de keten
+      raakt dat niet; alleen die ene functie.
 - [ ] **Twee gegevens die er nog niet zijn (KOR is beantwoord):**
       - ~~KOR?~~ **Beantwoord op 2 aug 2026: geen KOR.** De 21%-regel in de mail klopt dus.
       - **Vestigingsadres.** Jason wil zijn woonadres niet op internet. Onderzoek naar de
         opties (postbus, virtueel bedrijfsadres, adres van de boekhouder) loopt. Tot er
         gekozen is: het adres komt uit de omgevingsvariabele `BEDRIJF_ADRES` en staat bewust
         nérgens in de repo. **Schrijf het woonadres ook niet in documentatie.**
-      - **Btw-identificatienummer.** Staat nergens opgeslagen — óók niet bij Mollie (veld is
-        leeg, gecontroleerd 2 aug 2026). Het is een Belastingdienst-nummer, geen KVK-nummer:
-        op te halen via Mijn Belastingdienst Zakelijk (DigiD) of van een oude
-        Visual Future-factuur. Daarna: omgevingsvariabele `BEDRIJF_BTW_NUMMER` invullen,
-        het veld bij Mollie invullen, en het nummer in de sitefooter zetten (art. 3:15d BW).
+      - ~~Btw-identificatienummer~~ **Opgelost op 2 aug 2026: `NL004813328B30`.** Staat in de
+        voettekst en in de orderbevestiging. **Let op:** Jason heeft twee nummers. Het
+        omzetbelastingnummer (`214739879B02`) is afgeleid van zijn BSN en mag nergens
+        gepubliceerd worden — niet in code, niet in een mail, niet in documentatie.
+- [ ] **Btw-nummer nog invullen bij Mollie.** Het veld daar is leeg (gecontroleerd 2 aug 2026):
+      Instellingen → Bedrijfsgegevens → Btw informatie.
 - [ ] **Echte factuur.** Bij B2C is een volledige factuur níét wettelijk verplicht (art. 34c
       Wet OB geldt alleen B2B) — een bon volstaat. Maar `/voorwaarden` belooft er wél een, en
       die eigen toezegging bindt. Nummering is er nu (`purchases.order_number`), btw-uitsplitsing

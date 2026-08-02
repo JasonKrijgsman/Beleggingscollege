@@ -82,8 +82,11 @@ export default function SiteFooter() {
             Herroepingsrecht
           </Link>
         </div>
-        © {new Date().getFullYear()} Beleggingscollege (KVK 71856633) ·
-        beleggingscollege.nl
+        {/* Het btw-id (NL...B30) is het nummer dat je hoort te publiceren
+            (art. 3:15d BW). Het omzetbelastingnummer is een ánder nummer, is
+            afgeleid van Jasons BSN en mag hier nooit staan. */}
+        © {new Date().getFullYear()} Beleggingscollege (KVK 71856633 · btw
+        NL004813328B30) · beleggingscollege.nl
       </div>
     </footer>
   );

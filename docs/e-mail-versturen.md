@@ -2,92 +2,159 @@
 
 Laatst bijgewerkt: 2 augustus 2026.
 
+## Waar we geland zijn
+
+**Migadu, en we wachten op de verhuizing van de `.nl`.** De code is af en staat live; er gaat
+alleen nog niets de deur uit omdat de omgevingsvariabelen leeg zijn.
+
+Dat "wachten" is een bewuste keuze en geen vergeten actie. Onderbouwing hieronder, inclusief
+wat we níét doen en waarom — zodat niemand dit over drie weken opnieuw gaat uitzoeken.
+
 ## Het misverstand dat dit document uit de wereld helpt
 
 **Verzenden en ontvangen zijn twee losse dingen.** Een postbus ontvangt post. Transactionele
-mail — een orderbevestiging — versturen we via een API, en daar is geen postbus voor nodig.
+mail — een orderbevestiging — versturen we via een server of API, en daar is geen postbus voor
+nodig. Dit heeft dus nooit gewacht op Strato, ook al leek dat zo.
 
-Dit wacht dus **niet** op de verhuizing bij Strato. En de postbus die we nodig hebben voor
-antwoorden bestaat allang: `beheer@beleggingscollege.nl` draait bij Strato en bevat mail.
+De postbus die we nodig hebben voor antwoorden bestaat trouwens allang:
+`beheer@beleggingscollege.nl` draait bij Strato, bevat mail en werkt gewoon.
 
-## Waarom Resend
+## Waarom Migadu en niet Resend
 
-| | |
-|---|---|
-| Gratis laag | 3.000 mails per maand, 100 per dag |
-| Kosten daarna | $20/mnd voor 50.000 mails |
-| Waarom niet Postmark | Betere reputatie, maar 100 mails/mnd gratis en daarna $15 — bij nul klanten onnodig |
-| Waarom niet Amazon SES | Goedkoopst op schaal, maar je moet uit de sandbox worden gelaten en het is veel meer werk |
-| Waarom niet via Strato SMTP | Werkt, maar Strato is precies de partij waar we weg willen. Dan bouw je iets wat je bij de verhuizing weer moet slopen |
+Eerst stond hier Resend. Dat is teruggedraaid na een gesprek met Jason op 2 augustus 2026, en
+de redenering is het waard om te bewaren.
 
-Bij Jasons volume (nul tot enkele verkopen per maand) is Resend jaren gratis.
+| | Migadu | Resend |
+|---|---|---|
+| Kosten | Al betaald (Micro/yearly), draait al voor bliep.org en jasonkrijgsman.com | Gratis tot 3.000/mnd |
+| Accounts | Nul nieuwe | Eén nieuwe |
+| DNS-records | Nodig | Ook nodig |
+| Bezorglogboek, bounce-webhooks | Nee | Ja |
+| Waar de post van dit domein tóch heen gaat | Hierheen | — |
+
+**Doorslaggevend:** Jason betaalt al voor Migadu, vertrouwt het, en de post van
+`beleggingscollege.nl` gaat er na de verhuizing sowieso heen. Eén dienst minder is bij een
+eenmanszaak meer waard dan een bezorgdashboard dat je bij nul tot enkele verkopen per maand
+toch niet leest. Een harde bounce komt bij Migadu gewoon terug in de postbus.
+
+**Wat we daarmee opgeven:** zicht op aflevering. Bij Resend zie je in een dashboard of een mail
+is aangekomen; bij Migadu merk je het pas als er iets terugkomt. Voor een mail waar een
+juridisch gevolg aan hangt is dat een reëel nadeel — zie het openstaande punt over een
+herkansing in `docs/openstaand.md`.
+
+**Heroverwegen wanneer:** het volume groeit, of als een bounce-golf de verzendreputatie raakt.
+Bij Migadu zit de transactionele post op dezelfde reputatie als Jasons persoonlijke mail. Bij
+dit volume geen probleem, bij een groter volume wel iets om uit elkaar te trekken.
+
+### Een correctie die je moet kennen
+
+Er is even gedacht dat transactionele mail buiten Migadu's toegestane gebruik valt. **Dat klopt
+niet.** Migadu's voorwaarden verbieden spam en mailinglijsten waar mensen geen toestemming voor
+gaven. Een orderbevestiging aan iemand die net betaald heeft is geen van beide. Wat Migadu wél
+heeft is een uitgaand quotum per abonnement, en dat is bij dit volume niet relevant.
+
+Het echte obstakel is een ander, zie hieronder.
+
+## Waarom we wachten op de `.nl`
+
+Migadu activeert een domein pas als de MX-records naar Migadu wijzen — hun eigen tekst: *"Email
+capability will remain inactive until the required checks pass."* Zonder activering geen
+verzending. Migadu gebruiken voor `beleggingscollege.nl` betekent dus de MX weghalen bij Strato,
+en dat betekent de bestaande postbus meeverhuizen.
+
+Dat kán vandaag (zie de ontsnappingsroute hieronder), maar het hoeft niet, en dit is waarom:
+
+**De bevestigingsmail staat niet op het kritieke pad.** Er kan vandaag geen echt geld
+binnenkomen, om redenen die los van e-mail staan:
+
+- `MOLLIE_API_KEY` in Vercel is nog een `test_`-key
+- Vercel staat op Hobby, dat commercieel gebruik verbiedt
+- Er staat nog geen vestigingsadres in de bevestiging
+
+De bevestiging wordt pas blokkerend op het moment dat de live-key erin gaat. Wachten kost dus
+niets, en het scheelt een postbus op de `.com` opzetten die je een paar weken later weer
+verhuist.
+
+**Het risico van wachten:** hiermee hangt een wettelijke voorwaarde aan het tempo van Strato, en
+dat tempo is niet van ons. Er staat "DNSSEC: Wordt gedeactiveerd" zonder datum.
+
+## De ontsnappingsroute — als Strato blijft treuzelen
+
+Doe dit zodra Jason wél wil verkopen en de `.nl` nog niet verhuisd is. **De e-mailverhuizing
+heeft de naamserverwissel niet nodig.** MX-records staan ín de zone bij Strato, en DNSSEC
+blokkeert het wijzigen van records niet — alleen het wisselen van naamservers.
+
+1. Exporteer de bestaande post uit `beheer@` en `info@` bij Strato (samen ± 6 MB, via IMAP of
+   Migadu's importfunctie). **Sla deze stap niet over**, anders ben je de inhoud kwijt.
+2. Zet Migadu's records in het DNS-paneel van Strato: Domeinen → beleggingscollege.nl → DNS.
+   De volledige lijst staat in `docs/migadu-records.txt`.
+3. Migadu → Rerun Checks. Het domein gaat van Inactive naar Active.
+4. Maak `beheer@beleggingscollege.nl` aan bij Migadu en importeer de oude post.
+5. Vul de omgevingsvariabelen (zie onder) en test.
+
+Diezelfde records komen bij de uiteindelijke verhuizing gewoon opnieuw in Cloudflare te staan.
+Er gaat dus geen werk verloren.
+
+### Wat we bewust níét doen
+
+**E-mail opzetten op `beleggingscollege.com`.** Dat kon vandaag — de DNS van de `.com` ligt
+volledig bij Cloudflare, zonder Strato en zonder DNSSEC. Afgevallen omdat je dan
+`beheer@beleggingscollege.com` configureert, een paar weken gebruikt, en daarna alsnog naar de
+`.nl` verhuist: het adres in de code wijzigen, opnieuw verifiëren, klanten met twee adressen.
+Die rompslomp is meer waard dan de weken die het scheelt, zolang er toch niet verkocht wordt.
+
+**Versturen via Strato SMTP.** Werkt vandaag, nul DNS-wijzigingen, DKIM slaagt al. Afgevallen
+omdat Strato precies de partij is waar we weg willen: je bouwt iets wat je bij de verhuizing
+weer sloopt. Bovendien zet je dan een postbuswachtwoord in Vercel in plaats van een sleutel die
+je kunt intrekken — en dat wachtwoord geeft ook leestoegang tot de postbus.
 
 ## De valkuil: DMARC staat op reject en er is geen SPF
 
-Dit is het enige dat echt mis kan gaan, en het gaat *stil* mis.
+Dit is het enige dat echt stil mis kan gaan.
 
 Op `beleggingscollege.nl` staat `v=DMARC1;p=reject;` — de standaardregel van Strato. Er is
 **geen SPF-record**. Dat uitgaande post van Strato tóch aankomt, komt doordat Strato met DKIM
 ondertekent (`strato-dkim-0002` en `strato-dkim-0003` staan in de zone). DMARC slaagt namelijk
 op SPF **óf** DKIM.
 
-Gaat Resend namens dit domein versturen zonder eigen DKIM, dan slaagt geen van beide en zegt
-onze eigen DMARC-regel tegen de ontvanger: *weiger deze mail*. Niet in de map ongewenst —
-geweigerd. Elke orderbevestiging zou verdwijnen, en wij zouden dat niet merken.
+Gaat Migadu straks namens dit domein versturen zonder dat Migadu's eigen DKIM-records staan, dan
+slaagt geen van beide en zegt onze eigen DMARC-regel tegen de ontvanger: *weiger deze mail*.
+Niet in de map ongewenst — geweigerd. Elke orderbevestiging zou verdwijnen, en wij zouden dat
+niet merken.
 
-**Daarom: eerst de DNS-records, dan pas de key in Vercel.**
+**Daarom: eerst de records, dan pas verzenden.** En zet DMARC tijdelijk op `p=quarantine` tot
+verzenden bewezen werkt; daarna terug naar `reject`.
 
-## Stappenplan
+## Omgevingsvariabelen
 
-### 1. Resend-account (Jason)
-Aanmelden op resend.com. Gratis laag volstaat. Domein `beleggingscollege.nl` toevoegen.
-
-### 2. DNS-records bij Strato (Jason, ik kan meekijken)
-Resend toont na het toevoegen van het domein een lijst records. Die kunnen gewoon in het
-DNS-paneel van Strato: **Domeinen → beleggingscollege.nl → DNS → TXT- en CNAME-records**.
-
-DNSSEC blokkeert dit niet. DNSSEC blokkeert het wisselen van *naamservers*, niet het wijzigen
-van records binnen de zone; Strato ondertekent de zone daarna zelf opnieuw.
-
-Wat Resend vraagt is doorgaans:
-
-| Type | Naam | Waarde |
-|---|---|---|
-| TXT | `resend._domainkey` | de DKIM-sleutel die Resend toont |
-| TXT | `send` | `v=spf1 include:amazonses.com ~all` |
-| MX | `send` | `feedback-smtp.eu-west-1.amazonses.com` (prioriteit 10) |
-
-Let op de twee dingen die hier fout gaan:
-- **De MX en SPF horen op de subdomeinnaam `send`, niet op `@`.** Zet je ze op `@`, dan
-  overschrijf je de MX van het hoofddomein en komt er geen post meer binnen op
-  `beheer@beleggingscollege.nl`.
-- Neem de DKIM-waarde over zonder regeleinden.
-
-### 3. Controleren vóór de key erin gaat
-```bash
-# DKIM van Resend moet bestaan
-nslookup -type=TXT resend._domainkey.beleggingscollege.nl
-
-# de bestaande MX van het hoofddomein moet ONGEWIJZIGD naar Strato blijven wijzen
-nslookup -type=MX beleggingscollege.nl
-```
-De tweede is de belangrijkste: die bewijst dat je de ontvangende post niet gesloopt hebt.
-
-### 4. Omgevingsvariabelen
 In Vercel (Production + Preview) en in `.env.local`:
 
 ```
-RESEND_API_KEY=re_...
+RESEND_API_KEY=          # of de Migadu-SMTP-gegevens, zie hieronder
 MAIL_AFZENDER=Beleggingscollege <beheer@beleggingscollege.nl>
+BEDRIJF_ADRES=
+BEDRIJF_BTW_NUMMER=NL004813328B30
 ```
 
-Zonder `RESEND_API_KEY` verstuurt de app niets en logt hij een waarschuwing. De aankoop werkt
-gewoon door — dat is met opzet, zie hieronder.
+**Let op bij het omzetten naar Migadu:** `src/lib/mail.ts` praat nu met de HTTP-API van Resend.
+Migadu heeft geen verzend-API, alleen SMTP. Bij het inschakelen moet die functie dus omgebouwd
+worden naar SMTP (`smtp.migadu.com`, poort 465, gebruikersnaam is het volledige mailadres). De
+rest van de keten — `orderbevestiging.ts`, `mailteksten.ts`, de webhook — verandert niet: die
+roepen alleen `verstuurMail()` aan.
 
-### 5. Testen
-Koop op de live site een cursus met de test-key en controleer dat de bevestiging aankomt.
-Controleer daarna in de kopregels van die mail dat er `dkim=pass` en `dmarc=pass` staat. In
-Gmail: de drie puntjes → "Origineel weergeven".
+Zonder verzendgegevens verstuurt de app niets en logt hij een waarschuwing. De aankoop werkt
+gewoon door; dat is met opzet.
+
+## Twee btw-nummers, en één ervan mag nooit naar buiten
+
+Jason heeft er twee, en ze lijken op elkaar:
+
+- **`NL004813328B30`** — het **btw-identificatienummer**. Dit is het openbare nummer; het hoort
+  in de voettekst (art. 3:15d BW) en in de orderbevestiging. Staat er inmiddels in.
+- **`214739879B02`** — het **omzetbelastingnummer**. Dit is afgeleid van Jasons BSN en hoort
+  **nergens** gepubliceerd te worden. Niet in de repo, niet in de footer, niet in een mail, niet
+  in documentatie. Het staat hier alleen omdat je moet weten dát het bestaat en waarom je het
+  niet moet gebruiken.
 
 ## Ontwerpkeuzes in de code
 
@@ -98,16 +165,17 @@ bevestigingsmail — die kan hij alsnog krijgen — dan een klant met een aankoo
 raakt. Mislukkingen worden gelogd.
 
 **`purchases.confirmationSentAt` voorkomt dubbele post.** Mollie roept de webhook gegarandeerd
-meerdere keren aan voor dezelfde betaling. Zonder dit veld krijgt de klant tien identieke
-mails. Het veld is tegelijk het bewijs dát de wettelijk verplichte bevestiging verstuurd is.
+meerdere keren aan voor dezelfde betaling. Zonder dit veld krijgt de klant tien identieke mails.
+Het veld is tegelijk het bewijs dát de wettelijk verplichte bevestiging verstuurd is.
 
-**`purchases.orderNumber` is een doorlopende reeks** (`BC-2026-0001`), niet het UUID en niet
-het Mollie-id. De Belastingdienst wil een reeks zonder gaten.
+**`purchases.orderNumber` is een doorlopende reeks** (`BC-2026-0001`), niet het UUID en niet het
+Mollie-id. De Belastingdienst wil een reeks zonder gaten.
 
 ## Wat hierna nog moet
 
-- [ ] Bounces en klachten afhandelen. Resend kan een webhook sturen als een mail hard bounct;
-      dan weten we dat een klant onbereikbaar is. Nu horen we niets.
-- [ ] Een echte factuur met btw-uitsplitsing. De bevestiging is niet hetzelfde als een factuur.
-- [ ] Een SPF-record op het hoofddomein toevoegen. Niet nodig zolang DKIM het werk doet, maar
-      wel netter, en het scheelt bij ontvangers die op SPF leunen.
+- [ ] `src/lib/mail.ts` omzetten van de Resend-API naar Migadu SMTP.
+- [ ] Een herkansing als de bevestigingsmail mislukt. Nu wordt dat alleen naar de console
+      gelogd, terwijl juist die mail bepaalt of het herroepingsrecht vervalt.
+- [ ] Bounces afhandelen. Bij Migadu komen die terug in de postbus; er moet iemand kijken.
+- [ ] Een echte factuur met btw-uitsplitsing. De bevestiging is geen factuur.
+- [ ] Een SPF-record toevoegen. Niet strikt nodig zolang DKIM het werk doet, maar netter.

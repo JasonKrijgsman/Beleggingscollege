@@ -94,11 +94,23 @@ Dit merk verkoopt zichzelf als de eerlijke tegenhanger van get-rich-quick-aanbie
 
 ## E-mail
 
-- **Verzenden en ontvangen zijn twee losse dingen.** Een postbus ontvangt; transactionele mail versturen we via een API en dat heeft géén postbus nodig. Dit wachtte dus nooit op de verhuizing bij Strato — een misvatting die ons een tijd heeft opgehouden.
-- Verzenden via **Resend** (`src/lib/mail.ts`), ontvangen op de bestaande Strato-postbus `beheer@beleggingscollege.nl`. Zelfde adres, dus de klant kan gewoon antwoorden.
-- **Valkuil die stil misgaat:** het domein publiceert `p=reject` zónder SPF. Uitgaande post slaagt nu alleen doordat Strato met DKIM ondertekent. Gaat Resend versturen zonder eigen DKIM-records, dan wordt élke bevestigingsmail geweigerd — niet in spam, geweigerd. Eerst de records, dan pas de key. Zie `docs/e-mail-versturen.md`.
+**Stand: de code is af, er gaat nog niets de deur uit, en dat is een keuze.** Volledige onderbouwing in `docs/e-mail-versturen.md`.
+
+- **Verzenden en ontvangen zijn twee losse dingen.** Een postbus ontvangt; transactionele mail versturen we via een server of API en dat heeft géén postbus nodig. Dit wachtte dus nooit op Strato — een misvatting die ons een tijd heeft opgehouden.
+- **Gekozen: Migadu**, niet Resend. Jason betaalt er al voor (draait voor bliep.org en jasonkrijgsman.com) en de post van dit domein gaat er na de verhuizing sowieso heen. We geven daarmee bezorglogboeken en bounce-webhooks op; bij nul tot enkele verkopen per maand is dat een prima ruil.
+- **Correctie die je moet kennen:** transactionele mail is níét in strijd met Migadu's voorwaarden. Die verbieden spam en niet-toegestemde mailinglijsten; een orderbevestiging is geen van beide. Het obstakel is dat Migadu een domein pas activeert als de MX ernaartoe wijst.
+- **We wachten op de verhuizing van de `.nl`**, omdat de bevestigingsmail niet op het kritieke pad staat: er kan toch geen echt geld binnenkomen (test-key, Vercel Hobby, geen vestigingsadres). Duurt Strato te lang, dan is er een ontsnappingsroute — de MX kan bij Strato zelf naar Migadu wijzen, zónder naamserverwissel, want DNSSEC blokkeert alleen dat laatste. Stappen staan in `docs/e-mail-versturen.md`.
+- **Valkuil die stil misgaat:** het domein publiceert `p=reject` zónder SPF. Uitgaande post slaagt nu alleen doordat Strato met DKIM ondertekent. Verstuurt Migadu straks zonder eigen DKIM-records, dan wordt élke bevestigingsmail geweigerd — niet in spam, geweigerd. Eerst de records, dan pas verzenden.
+- `src/lib/mail.ts` praat nu met de HTTP-API van Resend. Migadu heeft alleen SMTP, dus die ene functie moet nog omgebouwd worden. De rest van de keten (`orderbevestiging.ts`, `mailteksten.ts`, de webhook) raakt dat niet: die roepen alleen `verstuurMail()` aan.
 - `verstuurMail()` **gooit nooit**: hij draait in de Mollie-webhook nadat de aankoop al op `paid` staat, en een mislukte mail mag daar geen 500 van maken (Mollie herhaalt dan tien keer over 26 uur).
 - `purchases.confirmationSentAt` voorkomt tien identieke mails bij herhaalde webhooks en is tegelijk het bewijs dát de verplichte bevestiging is verstuurd.
+
+### Bedrijfsgegevens: één btw-nummer is openbaar, het andere nooit
+
+- **`NL004813328B30`** is het **btw-identificatienummer**. Openbaar, hoort in de voettekst (art. 3:15d BW) en in de orderbevestiging. Staat er.
+- **`214739879B02`** is het **omzetbelastingnummer**, afgeleid van Jasons BSN. Publiceer dit **nooit** — niet in code, niet in een mail, niet in documentatie.
+- Vestigingsadres en btw-nummer komen uit de omgevingsvariabelen `BEDRIJF_ADRES` en `BEDRIJF_BTW_NUMMER`, en staan bewust niet in de repo: Jason wil zijn woonadres niet op internet. Het adres is nog niet opgelost — zie `docs/openstaand.md`.
+- **Geen kleineondernemersregeling** (bevestigd 2 aug 2026), dus de 21%-regel in de bevestiging klopt.
 
 ## Toegang tot betaalde content
 
