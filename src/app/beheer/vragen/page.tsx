@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isBeheerder } from "@/lib/beheer";
 import { wachtendeVragen, AFM_STANDAARDANTWOORD } from "@/lib/lesvragen";
@@ -24,7 +25,13 @@ export default async function BeheerVragenPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-      <h1 className="text-3xl font-extrabold text-ink">Vragen modereren</h1>
+      <Link
+        href="/beheer"
+        className="text-sm font-semibold text-body hover:text-brand-700"
+      >
+        ← Beheer
+      </Link>
+      <h1 className="mt-3 text-3xl font-extrabold text-ink">Vragen modereren</h1>
       <p className="mt-2 text-sm leading-relaxed text-body">
         {wachtend.length === 0
           ? "De wachtrij is leeg. Zo hoort een maandagochtend te beginnen."
