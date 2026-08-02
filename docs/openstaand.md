@@ -275,14 +275,16 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       `catch {}` behandelt ook gewone databasefouten als botsingen, en de terugvaloptie
       mailt een nummer op basis van `Date.now()` dat nooit in de database wordt opgeslagen:
       de klant krijgt dan een ordernummer dat in de administratie niet bestaat.
-- [ ] **Eerst een klein beheerscherm, dan pas een CMS.** Er is nu geen enkele manier om
-      zonder databaseconsole een klant of aankoop op te zoeken, hangende of
-      mismatch-betalingen te zien, toegang in te trekken of terug te geven, een
-      terugbetaling te verwerken en vast te leggen, een bevestiging opnieuw te sturen of
-      een AVG-verzoek (export of verwijdering) af te handelen — `/account` linkt daarvoor
-      naar een mailto. Het dichtstbijzijnde gereedschap is `scripts/db-check.mjs`: lokaal
-      en alleen-lezen. Zo'n scherm maakt de winkel meer hands-off dan een content-CMS ooit
-      doet. Zie CODEX-006.
+- [x] ~~Eerst een klein beheerscherm, dan pas een CMS~~ **Het alleen-lezen deel bestaat
+      sinds 3 aug 2026**: `/beheer` toont klanten, aankopen, entitlements, betaal- en
+      mailstatus, en zoekt op e-mailadres of Mollie-id. Toegang via `ADMIN_EMAILS`
+      (kommagescheiden; zonder die variabele is niemand beheerder), voor ieder ander is
+      de pagina een 404.
+- [ ] **Beheeracties ontbreken nog.** Een bevestiging opnieuw sturen, toegang intrekken
+      of herstellen, een terugbetaling verwerken en vastleggen, en een AVG-verzoek
+      (export of verwijdering) afhandelen kan nog niet vanuit `/beheer` — dat vraagt om
+      muterende acties mét beheerdersautorisatie en een audittrail. Tot die tijd blijft
+      daarvoor de databaseconsole nodig. Zie CODEX-006.
 - [ ] **Algemene browserbeveiligingsheaders ontbreken.** Ontwerp minimaal frame-,
       content-type-, referrer- en permissions-beleid; ontwerp CSP apart rond Google,
       Mollie en een eventuele Payload-preview. Zie CODEX-109.
