@@ -187,12 +187,13 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
 ## 6. Techniek en bedrijfsvoering
 
 - [ ] **De laptop gebruikt nog de primaire productiedatabase.** Gecontroleerd in Jasons
-      Chrome: Production gebruikt de primaire Neon-branch; Preview is wél goed geïsoleerd
-      via de ingeschakelde Neon deployment action, die per Preview-deployment een tijdelijke
-      branch en connection string maakt. Maar `.env.local` bevat exact het primaire endpoint
-      uit Vercel. Maak één vaste Neon Development-branch en zet uitsluitend die lokaal; laat
-      scripts en migraties weigeren als ze per ongeluk tegen productie draaien. Zie
-      CODEX-002 in de Codex-review.
+      Chrome en de Neon-console: Production gebruikt de primaire Neon-branch. Voor Preview
+      is isolatie geconfigureerd via de Neon deployment action, die per Preview-deployment
+      een tijdelijke branch en connection string maakt; op het controlemoment bestond alleen
+      `main`, dus er was geen actieve Preview-branch. Maar `.env.local` bevat exact het primaire
+      endpoint uit Vercel. Maak één vaste Neon Development-branch en zet uitsluitend die
+      lokaal; laat scripts en migraties weigeren als ze per ongeluk tegen productie draaien.
+      Zie CODEX-002 in de Codex-review.
       Twee kanttekeningen: previewbranches zijn kopieën en bevatten dus persoonsgegevens
       zodra er echte klanten zijn (waarschuwing uit `docs/implementatie-accounts-betalen.md`),
       en méér databases (aparte voor gebruikers, cursussen, certificaten) of een
@@ -227,29 +228,61 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       v15 bijwerken zodra de patches gebundeld zijn, en vóór het einde van Next 15's
       onderhoudsperiode (±oktober 2026, nextjs.org/support-policy) een geteste migratie
       naar Next 16 inplannen. Zie CODEX-110.
-- [ ] **De prijs wordt met een regex uit een weergavetekst ("€49") gepeuterd.** Werkt, maar
-      breekt zodra iemand er een punt of komma anders in zet. De prijs hoort een getal in
-      centen te zijn, met de tekst als afgeleide — niet andersom.
+- [ ] **De prijs wordt met een regex uit een weergavetekst ("€49") gepeuterd** —
+      `prijsInCenten()` in `src/app/api/checkout/route.ts`. Werkt, maar breekt zodra iemand
+      er een punt of komma anders in zet ("€1.234,56" zou stilletjes € 1,23 worden). De
+      prijs hoort een getal in centen te zijn, met de tekst als afgeleide — niet andersom.
+      Zie CODEX-107.
 - [ ] **`/lab` staat publiek** (HTTP 200). Wel `noindex, nofollow`, dus Google neemt hem
       niet op, maar wie de URL heeft ziet het interne stijllab.
 - [ ] **`auth()` in de root-layout maakt ook publieke marketingpagina's dynamisch.** De live
       homepage antwoordt daardoor met `private, no-cache, no-store` en iedere bezoeker kan de
       database wekken. Isoleer sessie-afhankelijke UI en controleer daarna caching en
       Neon-wakeups. Zie CODEX-101 in de Codex-review.
+      Let op bij het oplossen: de aanroep in `layout.tsx` weghalen is niet genoeg —
+      `AuthKnop` doet in dezelfde schil een twééde `auth()`-aanroep, en `ProgressProvider`
+      krijgt zijn `ingelogd`-vlag van de layout. Die twee moeten client-side of in Suspense.
 - [ ] **Open redirect via `/inloggen?terug=`.** `terug` gaat ongewijzigd naar `redirect()`
       en Auth.js `redirectTo`. Accepteer alleen een intern pad dat met één `/` begint en val
       anders terug op `/leerpad`. Zie CODEX-102.
 - [ ] **De mobiele header loopt horizontaal uit.** Bij een viewport van 390px was het
-      document 492px breed. Maak een echt mobiel menu of verberg secundaire elementen en
-      test 320/375/390px. Zie CODEX-103.
+      document 492px breed. De oorzaak zit in `SiteHeader.tsx`: het volledige logo staat op
+      `shrink-0`, en logo, "Start gratis"-knop en mobiele navigatie delen één rij zonder
+      wrap. Maak een echt mobiel menu of verberg secundaire elementen en test
+      320/375/390px. Zie CODEX-103.
 - [ ] **Voortgang mist twee serverregels.** `POST /api/voortgang` controleert geen aankoop
-      voordat betaalde cursusvoortgang wordt geschreven; “Voortgang wissen” wist bij een
-      ingelogde gebruiker alleen de lokale cache en de server zet alles terug. Zie
+      voordat betaalde cursusvoortgang wordt geschreven (`heeftToegangTot()` wordt in dat
+      pad nergens aangeroepen), en de quizscore komt van de client en wordt alleen
+      begrensd — de antwoorden zelf gaan nooit mee, dus de foutloos-badge en de quizbonus
+      (tot 25 XP per les) zijn met één fetch te claimen. Er lekt geen lesinhoud, maar
+      badges en certificaten worden er waardeloos van. Daarnaast wist “Voortgang wissen”
+      bij een ingelogde gebruiker alleen de lokale cache: er is geen server-delete en de
+      import is bewust alleen-aanvullend, dus na de volgende paginalading staat alles er
+      weer — terwijl de knop juist "Dit kan niet ongedaan worden gemaakt" zegt. Zie
       CODEX-104 en CODEX-105.
 - [ ] **Ordermail heeft een race en achterhaalde tekst.** Gelijktijdige webhooks kunnen
-      allebei mailen vóór `confirmationSentAt` gezet is; de mail zegt bovendien nog dat
-      voortgang uitsluitend in de browser leeft. Maak verzending claim/outbox-gestuurd en
-      werk de tekst bij. Zie CODEX-004 en CODEX-106.
+      allebei mailen vóór `confirmationSentAt` gezet is — de controle in
+      `src/lib/orderbevestiging.ts` is lezen-dan-doen, zonder atomische claim
+      (`UPDATE … WHERE confirmation_sent_at IS NULL`). De mail zegt bovendien nog dat
+      voortgang uitsluitend in de browser leeft (`src/lib/mailteksten.ts:105`), wat sinds
+      de serversynchronisatie onwaar is — juist voor kopers, die per definitie ingelogd
+      zijn. Maak verzending claim/outbox-gestuurd en werk de tekst bij. Zie CODEX-004 en
+      CODEX-106.
+- [ ] **Ordernummers kunnen botsen, gaten krijgen of buiten de administratie vallen.**
+      `geefOrdernummer()` in `src/lib/orderbevestiging.ts` telt rijen en probeert +1: bij
+      gelijktijdigheid redt de unique-index de uniciteit, maar de hertelling na een botsing
+      slaat een nummer over — tegen de eigen doorlopende-nummering-eis in. De kale
+      `catch {}` behandelt ook gewone databasefouten als botsingen, en de terugvaloptie
+      mailt een nummer op basis van `Date.now()` dat nooit in de database wordt opgeslagen:
+      de klant krijgt dan een ordernummer dat in de administratie niet bestaat.
+- [ ] **Eerst een klein beheerscherm, dan pas een CMS.** Er is nu geen enkele manier om
+      zonder databaseconsole een klant of aankoop op te zoeken, hangende of
+      mismatch-betalingen te zien, toegang in te trekken of terug te geven, een
+      terugbetaling te verwerken en vast te leggen, een bevestiging opnieuw te sturen of
+      een AVG-verzoek (export of verwijdering) af te handelen — `/account` linkt daarvoor
+      naar een mailto. Het dichtstbijzijnde gereedschap is `scripts/db-check.mjs`: lokaal
+      en alleen-lezen. Zo'n scherm maakt de winkel meer hands-off dan een content-CMS ooit
+      doet. Zie CODEX-006.
 - [ ] **Algemene browserbeveiligingsheaders ontbreken.** Ontwerp minimaal frame-,
       content-type-, referrer- en permissions-beleid; ontwerp CSP apart rond Google,
       Mollie en een eventuele Payload-preview. Zie CODEX-109.
@@ -277,10 +310,15 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       `6d87ec9bdcf67bce.vercel-dns-017.com` in Cloudflare (DNS only). Geverifieerd: 308.
 - [ ] **Geen redirects voor de oude WooCommerce `/product/`-URL's** en vier andere
       geïndexeerde WordPress-pagina's; die geven nu 404.
-- [ ] **`/leerpad` heeft geen eigen titel of description** — hij erft die van de homepage.
+- [ ] **`/leerpad` heeft geen eigen titel, description of `noindex`** — hij erft alles van
+      de homepage. `robots.ts` blokkeert alleen het crawlen, en dat houdt indexering via
+      links niet tegen. De pagina is een `"use client"`-component en kan zelf geen metadata
+      exporteren; er moet dus een `layout.tsx` of serverwrapper omheen.
 - [ ] **De sitemap bevat ook alle betaalde les-URL's.** Bepaal bewust of een zoekmachine een
       vergrendelde lespagina moet indexeren; haal ze eruit als de indexeerbare pagina geen
-      zelfstandige publieke waarde heeft.
+      zelfstandige publieke waarde heeft. (Nu krijgt een uitgelogde crawler daar het
+      slotscherm: dunne pagina's, zónder `noindex` en mét lestitel en intro als metadata —
+      `src/app/sitemap.ts` neemt álle lessen van alle niet-comingSoon-cursussen op.)
 
 ## 8. Domein en e-mail
 
@@ -366,3 +404,10 @@ onvolledig zijn (is inmiddels bijgewerkt), drie ongebruikte exports, een dode
 `generateStaticParams`, de streak die bij herhaalde lessen zou oplopen, het recht op
 verwijdering dat van een verhuizende postbus zou afhangen, de teasercursus in de sitemap,
 en de blogpost met een datum van morgen.
+
+Ook gezien maar niet reproduceerbaar: `npm run build` faalde in de nacht van 2 op 3 aug
+tweemaal met dezelfde prerender-fout (digest `2686592030`) op de export van de gratis les
+`waarom-beleggen`, en slaagde daarna zonder enige codewijziging volledig (36/36 pagina's,
+gezonde route-tabel). Vermoedelijke oorzaak: twee agentsessies plus een dev-server die
+tegelijk in dezelfde werkmap en `.next` bezig waren. Komt de fout terug in een build die
+alléén draait, dán is er echt iets.

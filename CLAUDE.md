@@ -5,7 +5,7 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 ## Stack
 
 - Next.js 15 (App Router) + React 19 + TypeScript, Tailwind CSS v4 (`@theme` tokens in `src/app/globals.css`), lucide-react icons.
-- Cursusinhoud is typed data (`src/content/`). Accounts en aankopen staan in Postgres (Neon + Drizzle); **lesvoortgang leeft nog altijd in localStorage** en reist dus niet mee naar een ander apparaat — de tabellen `lesson_progress` en `user_stats` bestaan wel maar worden door geen enkele regel code gelezen of geschreven.
+- Cursusinhoud is typed data (`src/content/`). Accounts en aankopen staan in Postgres (Neon + Drizzle). **Lesvoortgang synct sinds 2 aug 2026 naar de server voor ingelogde gebruikers** (`src/lib/voortgang-server.ts`, `POST /api/voortgang`; de tabellen `lesson_progress` en `user_stats` zijn dus wél in gebruik). Uitgelogd blijft localStorage leidend, en de individuele quizantwoorden staan alleen lokaal.
 - Dev server: `npm run dev` (poort 3000). Build: `npm run build`.
 - **`docs/openstaand.md` is de lijst met alles wat nog niet af is.** Lees die vóór je iets belooft of live zet.
 
