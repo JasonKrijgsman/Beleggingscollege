@@ -65,6 +65,14 @@ Drie dingen die vastliggen vóór dit gebouwd wordt:
 - **Alleen boeken die daadwerkelijk in de cursus gebruikt worden.** Anders wordt de selectie
   door de vergoeding bepaald in plaats van door de inhoud.
 
+### Lesvragen / forum — besloten richting (2 aug 2026)
+Jason wil interactie tussen cursisten; het onderzoek waarschuwde voor het lege-zaal-probleem
+van een algemeen forum. De gekozen vorm: **vragen per les** ("Vragen bij deze les", alleen
+ingelogd, zichtbaar na goedkeuring, met de eerlijke belofte "Jason antwoordt wekelijks").
+Elke vraag voedt de cursus; een algemeen forum verdient zichzelf pas als dit leeft, met
+College Live als hartslag. AFM-vangrail: de vaste vriendelijke afwijzing voor persoonlijke
+vragen ligt klaar vóór de eerste vraag binnenkomt.
+
 ### AI-agenten die de site draaien
 De langetermijnvisie: Jason levert inhoud en richting, AI-agenten doen support en marketing.
 Nog niets van gebouwd. Realistisch eerste stapje is niet "een agent", maar de dingen uit
