@@ -37,6 +37,7 @@ export default function SiteHeader() {
         <nav className="hidden items-center gap-1 sm:flex">
           <NavLink href="/cursussen" label="Cursussen" />
           <NavLink href="/leerpad" label="Mijn leerpad" />
+          <NavLink href="/over-ons" label="Over ons" />
         </nav>
         <div className="flex items-center gap-2.5">
           {hasStreak && (

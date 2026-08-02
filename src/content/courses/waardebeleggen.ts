@@ -9,7 +9,7 @@ const course: Course = {
   level: "Gevorderd",
   accent: "navy",
   icon: "scale",
-  price: "€29",
+  price: "€49",
   order: 2,
   heroQuote: {
     text: "Prijs is wat je betaalt. Waarde is wat je krijgt.",

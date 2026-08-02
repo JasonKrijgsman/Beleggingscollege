@@ -35,13 +35,35 @@ export default function SiteFooter() {
                 Mijn leerpad
               </Link>
             </li>
+            <li>
+              <Link className="hover:text-brand-700" href="/over-ons">
+                Over ons
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
           <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink">
-            Goed om te weten
+            Meer
           </h3>
-          <p className="text-sm leading-relaxed text-body">
+          <ul className="space-y-2 text-sm text-body">
+            <li>
+              <Link className="hover:text-brand-700" href="/blog">
+                Blog
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-brand-700" href="/veelgestelde-vragen">
+                Veelgestelde vragen
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-brand-700" href="/contact">
+                Contact
+              </Link>
+            </li>
+          </ul>
+          <p className="mt-4 text-sm leading-relaxed text-body">
             Beleggen brengt risico&apos;s met zich mee. Je kunt (een deel van)
             je inleg verliezen. Beleggingscollege geeft onderwijs — geen
             persoonlijk beleggingsadvies.
@@ -49,6 +71,17 @@ export default function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-lijn py-5 text-center text-xs text-body">
+        <div className="mb-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
+          <Link className="hover:text-brand-700" href="/privacy">
+            Privacy
+          </Link>
+          <Link className="hover:text-brand-700" href="/voorwaarden">
+            Algemene voorwaarden
+          </Link>
+          <Link className="hover:text-brand-700" href="/herroepingsrecht">
+            Herroepingsrecht
+          </Link>
+        </div>
         © {new Date().getFullYear()} Beleggingscollege (KVK 71856633) ·
         beleggingscollege.nl
       </div>

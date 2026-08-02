@@ -378,7 +378,7 @@ export default function HomePage() {
           {/* College+ */}
           <div className="relative rounded-2xl border-2 border-brand-600 bg-white p-8 shadow-pop">
             <span className="absolute -top-3 right-6 rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white">
-              Meest gekozen
+              Onze aanbeveling
             </span>
             <h3 className="text-lg font-bold text-ink">College+</h3>
             <div className="mt-2 text-3xl font-extrabold text-ink">
@@ -386,7 +386,7 @@ export default function HomePage() {
               <span className="text-sm font-semibold text-body"> / maand</span>
             </div>
             <p className="mt-1 text-sm font-semibold text-body">
-              Voor wie doorleert
+              Voor wie doorleert · maandelijks opzegbaar
             </p>
             <ul className="mt-5 space-y-2.5 text-sm text-body">
               {COLLEGE_PLUS_VOORDELEN.map((f) => (
@@ -399,12 +399,16 @@ export default function HomePage() {
             <div className="mt-6 cursor-not-allowed rounded-full bg-mist py-2.5 text-center text-sm font-bold text-body">
               Beschikbaar bij lancering
             </div>
+            <p className="mt-3 text-center text-xs text-body">
+              Later liever per jaar? Dat kan voor {PRICING.abonnementJaar} —
+              omgerekend {PRICING.abonnementJaarPerMaand} per maand.
+            </p>
           </div>
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-center text-xs leading-relaxed text-body">
           Alle bedragen zijn inclusief btw. Een losse cursus houd je voor altijd;
           College+ is maandelijks opzegbaar en geeft toegang zolang je abonnement
-          loopt.
+          loopt. Stop je? Dan blijven je certificaten van je.
         </p>
       </section>
 

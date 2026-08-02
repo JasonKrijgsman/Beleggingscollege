@@ -26,10 +26,15 @@ const nextConfig: NextConfig = {
       // Vangnet voor overige oude cursus-URL's
       { source: "/courses/:path*", destination: "/cursussen", permanent: true },
       { source: "/mijn-account", destination: "/leerpad", permanent: true },
-      // Pagina's die (nog) geen eigen plek hebben: naar home tot ze bestaan
-      { source: "/over-ons", destination: "/", permanent: true },
-      { source: "/veelgestelde-vragen", destination: "/", permanent: true },
-      { source: "/blog", destination: "/", permanent: true },
+      // /over-ons, /veelgestelde-vragen, /contact en /blog hebben inmiddels een
+      // eigen pagina. Die oude WordPress-URL's blijven dus precies bestaan en
+      // hoeven niet omgeleid te worden — dat is SEO-technisch het beste.
+      {
+        source: "/terugbetaal-en-retourneringsbeleid",
+        destination: "/herroepingsrecht",
+        permanent: true,
+      },
+      { source: "/privacy-policy-2", destination: "/privacy", permanent: true },
     ];
   },
 };

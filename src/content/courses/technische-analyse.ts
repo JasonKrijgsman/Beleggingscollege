@@ -9,7 +9,7 @@ const course: Course = {
   level: "Gevorderd",
   accent: "blauw",
   icon: "chart",
-  price: "€29",
+  price: "€49",
   order: 3,
   heroQuote: {
     text: "Er is niets nieuws op Wall Street. Dat kan ook niet, want speculatie is zo oud als de bergen. Wat vandaag op de beurs gebeurt, is eerder gebeurd en zal opnieuw gebeuren.",

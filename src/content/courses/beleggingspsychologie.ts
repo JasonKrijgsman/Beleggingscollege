@@ -10,7 +10,7 @@ const course: Course = {
   level: "Beginner",
   accent: "paars",
   icon: "brain",
-  price: "€29",
+  price: "€49",
   learnPoints: [
     "Herken de zes duurste denkfouten van beleggers",
     "Waarom je brein verlies dubbel zo zwaar weegt als winst",

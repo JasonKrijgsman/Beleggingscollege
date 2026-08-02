@@ -1,0 +1,455 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  Building2,
+  CreditCard,
+  Database,
+  Lock,
+  Mail,
+  Scale,
+  ShieldCheck,
+  UserCheck,
+} from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Privacyverklaring",
+  description:
+    "Hoe Beleggingscollege met je gegevens omgaat: wat we verwerken, waarom, hoe lang we het bewaren en welke rechten je hebt onder de AVG.",
+  alternates: { canonical: "/privacy" },
+  robots: { index: false },
+};
+
+export default function PrivacyPage() {
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
+      {/* Conceptmelding — weghalen zodra een jurist de tekst heeft goedgekeurd */}
+      <div className="flex gap-3 rounded-2xl border border-goud-300 bg-goud-100 p-5">
+        <AlertTriangle
+          className="mt-0.5 h-5 w-5 shrink-0 text-goud-600"
+          aria-hidden="true"
+        />
+        <div className="text-sm leading-relaxed text-ink">
+          <strong className="block font-bold">
+            Concept — nog niet juridisch getoetst
+          </strong>
+          <p className="mt-1">
+            Dit is een werkversie die nog door een jurist gecontroleerd moet
+            worden voordat Beleggingscollege betalingen accepteert. Er kunnen
+            geen rechten aan deze tekst worden ontleend zolang deze melding
+            hier staat.
+          </p>
+        </div>
+      </div>
+
+      <h1 className="mt-10 text-4xl font-extrabold text-ink">
+        Privacyverklaring
+      </h1>
+      <p className="mt-3 leading-relaxed text-body">
+        We houden dit zo kort en zo eerlijk mogelijk. Op dit moment verzamelen
+        we vrijwel niets: je voortgang blijft in je eigen browser, we volgen je
+        niet en we verkopen nooit gegevens door. Hieronder lees je precies wat
+        we wél verwerken, en wat er verandert zodra je een account kunt
+        aanmaken en kunt betalen.
+      </p>
+      <p className="mt-3 text-sm text-body">Conceptversie 1 — 2 augustus 2026</p>
+
+      <div className="mt-8 rounded-2xl border border-brand-200 bg-brand-50 p-6">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-ink">
+          <ShieldCheck className="h-5 w-5 text-brand-600" aria-hidden="true" />
+          In het kort
+        </h2>
+        <ul className="mt-3 list-disc space-y-2 pl-5 leading-relaxed text-body">
+          <li>
+            Je voortgang, XP en badges staan in de opslag van je eigen browser.
+            Die gegevens verlaten je apparaat niet en wij kunnen er niet bij.
+          </li>
+          <li>
+            Geen trackingcookies, geen advertentiecookies, geen profilering.
+          </li>
+          <li>
+            Bij lancering van accounts en betalingen komen daar je naam,
+            e-mailadres en betaalgegevens bij. Betalingen lopen via Mollie; wij
+            zien nooit je volledige bank- of kaartgegevens.
+          </li>
+          <li>Wij verkopen of verhuren je gegevens nooit aan derden.</li>
+        </ul>
+      </div>
+
+      <h2 className="mt-12 flex items-center gap-2 text-2xl font-bold text-ink">
+        <Building2 className="h-6 w-6 text-brand-600" aria-hidden="true" />
+        1. Wie is verantwoordelijk voor je gegevens?
+      </h2>
+      <p className="mt-3 leading-relaxed text-body">
+        Beleggingscollege is de verwerkingsverantwoordelijke in de zin van de
+        Algemene verordening gegevensbescherming (AVG).
+      </p>
+      <div className="mt-4 rounded-2xl border border-lijn bg-white p-6 shadow-card">
+        <dl className="grid gap-x-8 gap-y-3 text-sm leading-relaxed text-body sm:grid-cols-[10rem_1fr]">
+          <dt className="font-bold text-ink">Naam</dt>
+          <dd>Beleggingscollege (voorheen Visual Future, naam gewijzigd in juni 2023)</dd>
+          <dt className="font-bold text-ink">KVK-nummer</dt>
+          <dd>71856633</dd>
+          <dt className="font-bold text-ink">Eigenaar</dt>
+          <dd>Jason Krijgsman</dd>
+          <dt className="font-bold text-ink">Vestigingsplaats</dt>
+          <dd>Den Haag, Nederland</dd>
+          <dt className="font-bold text-ink">E-mail</dt>
+          <dd>
+            <a
+              className="font-semibold text-brand-700 hover:text-brand-800"
+              href="mailto:beheer@beleggingscollege.nl"
+            >
+              beheer@beleggingscollege.nl
+            </a>
+          </dd>
+          <dt className="font-bold text-ink">Website</dt>
+          <dd>beleggingscollege.nl</dd>
+        </dl>
+        <p className="mt-4 text-sm leading-relaxed text-body">
+          We zijn niet verplicht een functionaris voor gegevensbescherming aan
+          te stellen en hebben die dus niet. Vragen over privacy stel je direct
+          via het e-mailadres hierboven.
+        </p>
+      </div>
+
+      <h2 className="mt-12 flex items-center gap-2 text-2xl font-bold text-ink">
+        <Database className="h-6 w-6 text-brand-600" aria-hidden="true" />
+        2. Wat we nu verwerken
+      </h2>
+      <p className="mt-3 leading-relaxed text-body">
+        Je kunt de site op dit moment volledig gebruiken zonder account. Er is
+        dus ook nauwelijks iets te verwerken.
+      </p>
+
+      <h3 className="mt-6 text-lg font-bold text-ink">
+        Je voortgang staat in je eigen browser
+      </h3>
+      <p className="mt-2 leading-relaxed text-body">
+        Welke lessen je hebt afgerond, je XP, je level, je streak, je badges en
+        je quizscores slaan we op in de lokale opslag (localStorage) van je
+        browser, onder de sleutel{" "}
+        <span className="rounded bg-mist px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
+          beleggingscollege-voortgang-v1
+        </span>
+        . Die gegevens blijven op jouw apparaat, worden niet naar ons of naar
+        iemand anders verstuurd, en wij kunnen ze niet inzien. Wis je je
+        browsergegevens, dan is je voortgang weg — ook voor ons is die dan niet
+        te herstellen. Gebruik je een ander apparaat of een andere browser, dan
+        begin je daar met een schone lei.
+      </p>
+
+      <h3 className="mt-6 text-lg font-bold text-ink">Technische logs</h3>
+      <p className="mt-2 leading-relaxed text-body">
+        Onze hostingpartij legt bij elk bezoek standaard technische gegevens
+        vast, zoals je IP-adres, het opgevraagde adres, tijdstip en
+        browsertype. Dat is nodig om de site te laten werken, storingen op te
+        sporen en misbruik te blokkeren. We gebruiken die logs niet om je te
+        volgen of om profielen op te bouwen.
+      </p>
+
+      <h3 className="mt-6 text-lg font-bold text-ink">
+        E-mail die je ons stuurt
+      </h3>
+      <p className="mt-2 leading-relaxed text-body">
+        Stuur je ons een bericht, dan verwerken we je e-mailadres en de inhoud
+        van je bericht om je te kunnen antwoorden.
+      </p>
+
+      <h3 className="mt-6 text-lg font-bold text-ink">
+        Cookies en meetsoftware
+      </h3>
+      <p className="mt-2 leading-relaxed text-body">
+        We plaatsen geen trackingcookies en geen advertentiecookies, en we
+        gebruiken geen advertentienetwerken. De lokale opslag die we gebruiken
+        is puur functioneel: zonder die opslag kunnen we je voortgang niet
+        onthouden. Daarvoor is geen toestemmingsbanner vereist. Zetten we later
+        wél meetsoftware in, dan vragen we daar vooraf toestemming voor en
+        passen we deze verklaring aan.
+      </p>
+
+      <h2 className="mt-12 flex items-center gap-2 text-2xl font-bold text-ink">
+        <CreditCard className="h-6 w-6 text-brand-600" aria-hidden="true" />
+        3. Wat erbij komt zodra accounts en betalingen live gaan
+      </h2>
+      <p className="mt-3 leading-relaxed text-body">
+        Accounts en betaalde toegang zijn nog niet live. Zodra dat wel zo is,
+        verwerken we ook de volgende gegevens. We noemen ze hier alvast, zodat
+        je vooraf weet waar je aan toe bent.
+      </p>
+      <ul className="mt-4 list-disc space-y-3 pl-5 leading-relaxed text-body">
+        <li>
+          <strong className="text-ink">Accountgegevens:</strong> je naam en
+          e-mailadres, plus een versleutelde weergave van je wachtwoord (het
+          wachtwoord zelf slaan we niet leesbaar op).
+        </li>
+        <li>
+          <strong className="text-ink">Voortgangsgegevens op de server:</strong>{" "}
+          afgeronde lessen, quizresultaten, XP en behaalde certificaten, zodat
+          je op elk apparaat verder kunt waar je gebleven was.
+        </li>
+        <li>
+          <strong className="text-ink">Betaalgegevens:</strong> betalingen lopen
+          via Mollie B.V. (iDEAL, creditcard/debitcard, PayPal en Apple Pay).
+          Je vult je betaalgegevens in bij Mollie, niet bij ons. Mollie treedt
+          daarbij op als verwerker en wij ontvangen alleen wat we nodig hebben
+          om je bestelling af te handelen: het bedrag, de datum, de status van
+          de betaling, de gebruikte betaalmethode en een betaalreferentie. Je
+          volledige bankrekening- of kaartnummer krijgen wij niet te zien.
+        </li>
+        <li>
+          <strong className="text-ink">Bestel- en factuurgegevens:</strong> wat
+          je hebt gekocht, wanneer, voor welk bedrag en welke btw daarover is
+          berekend.
+        </li>
+        <li>
+          <strong className="text-ink">Nieuwsbrief:</strong> alleen als je je
+          daar zelf voor aanmeldt. Elke e-mail bevat een afmeldlink.
+        </li>
+      </ul>
+
+      <h2 className="mt-12 flex items-center gap-2 text-2xl font-bold text-ink">
+        <Scale className="h-6 w-6 text-brand-600" aria-hidden="true" />
+        4. Waarom we dit mogen verwerken (grondslagen)
+      </h2>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-lijn">
+              <th className="py-3 pr-4 font-bold text-ink">Gegevens</th>
+              <th className="py-3 pr-4 font-bold text-ink">Doel</th>
+              <th className="py-3 font-bold text-ink">Grondslag</th>
+            </tr>
+          </thead>
+          <tbody className="align-top leading-relaxed text-body">
+            <tr className="border-b border-lijn">
+              <td className="py-3 pr-4">Lokale voortgang in je browser</td>
+              <td className="py-3 pr-4">De cursus laten werken</td>
+              <td className="py-3">
+                Blijft op je apparaat; wij verwerken die gegevens niet
+              </td>
+            </tr>
+            <tr className="border-b border-lijn">
+              <td className="py-3 pr-4">Technische logs</td>
+              <td className="py-3 pr-4">Beveiliging en beschikbaarheid</td>
+              <td className="py-3">Gerechtvaardigd belang</td>
+            </tr>
+            <tr className="border-b border-lijn">
+              <td className="py-3 pr-4">Account- en voortgangsgegevens</td>
+              <td className="py-3 pr-4">Toegang geven tot wat je hebt gekocht</td>
+              <td className="py-3">Uitvoering van de overeenkomst</td>
+            </tr>
+            <tr className="border-b border-lijn">
+              <td className="py-3 pr-4">Betaal- en bestelgegevens</td>
+              <td className="py-3 pr-4">Betaling afhandelen</td>
+              <td className="py-3">Uitvoering van de overeenkomst</td>
+            </tr>
+            <tr className="border-b border-lijn">
+              <td className="py-3 pr-4">Facturen en boekhouding</td>
+              <td className="py-3 pr-4">Fiscale administratie</td>
+              <td className="py-3">Wettelijke verplichting</td>
+            </tr>
+            <tr>
+              <td className="py-3 pr-4">Nieuwsbrief</td>
+              <td className="py-3 pr-4">Je op de hoogte houden</td>
+              <td className="py-3">Toestemming (altijd in te trekken)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="mt-12 text-2xl font-bold text-ink">5. Hoe lang we het bewaren</h2>
+      <ul className="mt-4 list-disc space-y-3 pl-5 leading-relaxed text-body">
+        <li>
+          <strong className="text-ink">Lokale voortgang:</strong> tot je je
+          browsergegevens wist. Jij hebt hier de knop, niet wij.
+        </li>
+        <li>
+          <strong className="text-ink">Technische logs:</strong> kort, in de
+          regel niet langer dan enkele maanden.
+        </li>
+        <li>
+          <strong className="text-ink">Accountgegevens:</strong> zolang je
+          account bestaat. Zeg je op en vraag je om verwijdering, dan wissen we
+          je account; wat we wettelijk moeten bewaren blijft staan.
+        </li>
+        <li>
+          <strong className="text-ink">Facturen en betaalgegevens:</strong>{" "}
+          zeven jaar, vanwege de fiscale bewaarplicht.
+        </li>
+        <li>
+          <strong className="text-ink">E-mailcorrespondentie:</strong> zolang
+          dat nodig is om je vraag af te handelen en daarna maximaal twee jaar.
+        </li>
+      </ul>
+
+      <h2 className="mt-12 text-2xl font-bold text-ink">
+        6. Met wie we gegevens delen
+      </h2>
+      <p className="mt-3 leading-relaxed text-body">
+        We delen niets meer dan nodig, en alleen met partijen die ons helpen de
+        dienst te leveren. Met elk van hen sluiten we een
+        verwerkersovereenkomst. We verkopen je gegevens nooit door en we
+        gebruiken ze niet voor advertenties van derden.
+      </p>
+      <ul className="mt-4 list-disc space-y-3 pl-5 leading-relaxed text-body">
+        <li>
+          <strong className="text-ink">Mollie B.V.</strong> — afhandeling van
+          betalingen (bij lancering).
+        </li>
+        <li>
+          <strong className="text-ink">Onze hostingpartij</strong> — draaien van
+          de website en de database.
+        </li>
+        <li>
+          <strong className="text-ink">Onze e-mailprovider</strong> — versturen
+          en ontvangen van e-mail.
+        </li>
+        <li>
+          <strong className="text-ink">Onze boekhouder en de Belastingdienst</strong>{" "}
+          — voor zover dat wettelijk verplicht is.
+        </li>
+      </ul>
+      <p className="mt-4 leading-relaxed text-body">
+        We proberen verwerking binnen de Europese Economische Ruimte te houden.
+        Wordt er toch buiten de EER verwerkt, dan gebeurt dat op basis van een
+        adequaatheidsbesluit of de standaardcontractbepalingen van de Europese
+        Commissie.
+      </p>
+
+      <h2 className="mt-12 flex items-center gap-2 text-2xl font-bold text-ink">
+        <UserCheck className="h-6 w-6 text-brand-600" aria-hidden="true" />
+        7. Je rechten
+      </h2>
+      <p className="mt-3 leading-relaxed text-body">
+        Onder de AVG heb je een aantal rechten. Je hoeft geen reden op te geven
+        en het kost je niets.
+      </p>
+      <ul className="mt-4 list-disc space-y-3 pl-5 leading-relaxed text-body">
+        <li>
+          <strong className="text-ink">Inzage</strong> — opvragen welke
+          gegevens we van je hebben.
+        </li>
+        <li>
+          <strong className="text-ink">Correctie</strong> — onjuiste gegevens
+          laten aanpassen.
+        </li>
+        <li>
+          <strong className="text-ink">Verwijdering</strong> — je gegevens
+          laten wissen, behalve wat we wettelijk moeten bewaren.
+        </li>
+        <li>
+          <strong className="text-ink">Beperking</strong> — de verwerking
+          tijdelijk laten stilleggen, bijvoorbeeld als je de juistheid betwist.
+        </li>
+        <li>
+          <strong className="text-ink">Dataportabiliteit</strong> — je gegevens
+          in een gangbaar bestandsformaat ontvangen om ze mee te nemen.
+        </li>
+        <li>
+          <strong className="text-ink">Bezwaar</strong> — bezwaar maken tegen
+          verwerking op grond van een gerechtvaardigd belang.
+        </li>
+        <li>
+          <strong className="text-ink">Toestemming intrekken</strong> — voor
+          alles waar je toestemming voor gaf, zoals de nieuwsbrief. Dat raakt
+          niet aan wat daarvoor al is verwerkt.
+        </li>
+      </ul>
+      <p className="mt-4 leading-relaxed text-body">
+        Mail je verzoek naar{" "}
+        <a
+          className="font-semibold text-brand-700 hover:text-brand-800"
+          href="mailto:beheer@beleggingscollege.nl"
+        >
+          beheer@beleggingscollege.nl
+        </a>
+        . We reageren binnen een maand. Om te voorkomen dat we gegevens aan de
+        verkeerde persoon geven, kunnen we je vragen je verzoek te sturen
+        vanaf het e-mailadres van je account. Zolang je geen account hebt,
+        beheer je je voortgang trouwens zelf: wis je de gegevens van deze site
+        in je browser, dan is alles weg.
+      </p>
+
+      <h2 className="mt-12 flex items-center gap-2 text-2xl font-bold text-ink">
+        <Lock className="h-6 w-6 text-brand-600" aria-hidden="true" />
+        8. Beveiliging
+      </h2>
+      <p className="mt-3 leading-relaxed text-body">
+        De site draait volledig over een versleutelde verbinding (https).
+        Wachtwoorden worden na lancering versleuteld opgeslagen, toegang tot
+        gegevens is beperkt tot wie die nodig heeft, en betaalgegevens worden
+        door Mollie afgehandeld in plaats van door ons. Geen enkel systeem is
+        honderd procent veilig; merk je iets wat niet klopt, laat het ons dan
+        weten via{" "}
+        <a
+          className="font-semibold text-brand-700 hover:text-brand-800"
+          href="mailto:beheer@beleggingscollege.nl"
+        >
+          beheer@beleggingscollege.nl
+        </a>
+        .
+      </p>
+
+      <h2 className="mt-12 text-2xl font-bold text-ink">
+        9. Klacht indienen bij de Autoriteit Persoonsgegevens
+      </h2>
+      <p className="mt-3 leading-relaxed text-body">
+        Kom je er met ons niet uit, dan heb je het recht een klacht in te
+        dienen bij de Nederlandse toezichthouder, de Autoriteit
+        Persoonsgegevens, via{" "}
+        <a
+          className="font-semibold text-brand-700 hover:text-brand-800"
+          href="https://www.autoriteitpersoonsgegevens.nl"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          autoriteitpersoonsgegevens.nl
+        </a>
+        . We stellen het op prijs als je het eerst bij ons probeert — meestal is
+        het gewoon opgelost met een mailtje.
+      </p>
+
+      <h2 className="mt-12 text-2xl font-bold text-ink">
+        10. Wijzigingen in deze verklaring
+      </h2>
+      <p className="mt-3 leading-relaxed text-body">
+        Verandert de manier waarop we gegevens verwerken — bijvoorbeeld zodra
+        accounts en betalingen live gaan — dan passen we deze verklaring aan en
+        vermelden we hier een nieuwe datum. Bij ingrijpende wijzigingen laten we
+        het je weten als je een account hebt.
+      </p>
+
+      <div className="mt-12 flex flex-col gap-3 rounded-2xl border border-lijn bg-white p-6 shadow-card sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <Mail className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
+          <p className="text-sm leading-relaxed text-body">
+            <strong className="block text-ink">Nog een vraag over privacy?</strong>
+            Mail gerust — je krijgt gewoon antwoord van een mens.
+          </p>
+        </div>
+        <a
+          className="shrink-0 rounded-xl bg-brand-600 px-5 py-3 text-center text-sm font-bold text-white hover:bg-brand-700"
+          href="mailto:beheer@beleggingscollege.nl"
+        >
+          beheer@beleggingscollege.nl
+        </a>
+      </div>
+
+      <p className="mt-8 text-sm text-body">
+        Zie ook{" "}
+        <Link className="font-semibold text-brand-700 hover:text-brand-800" href="/voorwaarden">
+          de algemene voorwaarden
+        </Link>{" "}
+        en{" "}
+        <Link
+          className="font-semibold text-brand-700 hover:text-brand-800"
+          href="/herroepingsrecht"
+        >
+          herroepingsrecht en terugbetaling
+        </Link>
+        .
+      </p>
+    </div>
+  );
+}
