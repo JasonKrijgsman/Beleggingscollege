@@ -8,3 +8,7 @@ build/
 .DS_Store
 next-env.d.ts
 *.tsbuildinfo
+
+# Rommel van onderzoekstools
+resp.html
+*.tmp.html
