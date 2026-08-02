@@ -2,11 +2,16 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { courseDurationMin, courses, getCourse } from "@/content";
 import CourseDetail from "@/components/CourseDetail";
+import { detail } from "@/content/view";
 import { SITE_URL } from "@/lib/site";
+import { auth } from "@/auth";
+import { heeftToegangTot } from "@/lib/entitlements";
+import KoopKnop from "@/components/KoopKnop";
+import { PRICING } from "@/lib/pricing";
 
-export function generateStaticParams() {
-  return courses.map((c) => ({ slug: c.slug }));
-}
+// Deze pagina toont de koopknop en of je de cursus al hebt, en hangt dus af
+// van wie er kijkt. Daarom per verzoek renderen in plaats van vooraf bouwen.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -36,6 +41,10 @@ export default async function CoursePage({
   const { slug } = await params;
   const course = getCourse(slug);
   if (!course) notFound();
+
+  const session = await auth();
+  const ingelogd = Boolean(session?.user);
+  const alGekocht = await heeftToegangTot(slug);
 
   // schema.org Course-markup voor rich results in Google
   const jsonLd = course.comingSoon
@@ -75,7 +84,19 @@ export default async function CoursePage({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       )}
-      <CourseDetail course={course} />
+      <CourseDetail
+        course={detail(course)}
+        koopSlot={
+          course.free || course.comingSoon || alGekocht ? null : (
+            <KoopKnop
+              slug={course.slug}
+              titel={course.title}
+              prijs={course.price ?? PRICING.losseCursus}
+              ingelogd={ingelogd}
+            />
+          )
+        }
+      />
     </>
   );
 }

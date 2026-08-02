@@ -19,6 +19,7 @@ import {
   totalQuizQuestions,
 } from "@/content";
 import CourseCard from "@/components/CourseCard";
+import { samenvatting } from "@/content/view";
 import { LEVELS } from "@/lib/levels";
 import {
   COLLEGE_PLUS_VOORDELEN,
@@ -210,7 +211,7 @@ export default function HomePage() {
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {courses.map((c) => (
-            <CourseCard key={c.slug} course={c} />
+            <CourseCard key={c.slug} course={samenvatting(c)} />
           ))}
         </div>
       </section>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { courses } from "@/content";
 import CourseCard from "@/components/CourseCard";
+import { samenvatting } from "@/content/view";
 import { PRICING } from "@/lib/pricing";
 
 export const metadata: Metadata = {
@@ -27,7 +28,7 @@ export default function CursussenPage() {
       </p>
       <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {courses.map((c) => (
-          <CourseCard key={c.slug} course={c} />
+          <CourseCard key={c.slug} course={samenvatting(c)} />
         ))}
       </div>
     </div>

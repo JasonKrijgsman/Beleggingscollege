@@ -2,20 +2,15 @@
 
 import Link from "next/link";
 import { BookOpen, Clock, Lock, Zap } from "lucide-react";
-import type { Course } from "@/content/types";
-import {
-  courseDurationMin,
-  courseLessonCount,
-  courseXpTotal,
-} from "@/content";
+import type { CursusSamenvatting } from "@/content/view";
 import { ACCENTS } from "@/lib/accent";
 import { useProgress } from "@/lib/progress";
 import CourseIcon from "./CourseIcon";
 
-export default function CourseCard({ course }: { course: Course }) {
+export default function CourseCard({ course }: { course: CursusSamenvatting }) {
   const acc = ACCENTS[course.accent];
   const { courseProgress, ready } = useProgress();
-  const total = courseLessonCount(course);
+  const total = course.aantalLessen;
   const progress = ready ? courseProgress(course.slug, total) : 0;
   const pct = Math.round(progress * 100);
 
@@ -64,11 +59,11 @@ export default function CourseCard({ course }: { course: Course }) {
               <BookOpen className="h-3.5 w-3.5" /> {total} lessen
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" /> ±{courseDurationMin(course)} min
+              <Clock className="h-3.5 w-3.5" /> ±{course.duurMinuten} min
             </span>
             <span className="flex items-center gap-1">
               <Zap className="h-3.5 w-3.5 text-goud-500" />{" "}
-              {courseXpTotal(course)} XP
+              {course.totaalXp} XP
             </span>
           </div>
           <div className="mt-4">

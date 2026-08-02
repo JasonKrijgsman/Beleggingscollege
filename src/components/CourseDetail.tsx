@@ -12,27 +12,29 @@ import {
   Quote,
   Zap,
 } from "lucide-react";
-import type { Course } from "@/content/types";
-import {
-  courseDurationMin,
-  courseLessonCount,
-  courseXpTotal,
-  flatLessons,
-} from "@/content";
+import type { CursusDetail } from "@/content/view";
 import { ACCENTS } from "@/lib/accent";
 import { PRICING } from "@/lib/pricing";
 import { useProgress } from "@/lib/progress";
 import CourseIcon from "./CourseIcon";
 
-export default function CourseDetail({ course }: { course: Course }) {
+export default function CourseDetail({
+  course,
+  koopSlot,
+}: {
+  course: CursusDetail;
+  /** Server component met de koopknop; als slot doorgegeven zodat de sessie
+   *  en de aankoopstatus op de server blijven. */
+  koopSlot?: React.ReactNode;
+}) {
   const acc = ACCENTS[course.accent];
   const { isLessonCompleted, courseProgress, ready } = useProgress();
-  const total = courseLessonCount(course);
+  const total = course.aantalLessen;
   const progress = ready ? courseProgress(course.slug, total) : 0;
   const done = Math.round(progress * total);
   const isComplete = total > 0 && progress >= 1;
 
-  const all = flatLessons(course);
+  const all = course.modules.flatMap((m) => m.lessen.map((lesson) => ({ lesson })));
   const firstOpen = all.find(
     (x) => !isLessonCompleted(course.slug, x.lesson.slug)
   );
@@ -103,11 +105,11 @@ export default function CourseDetail({ course }: { course: Course }) {
                 <BookOpen className="h-4 w-4" /> {total} lessen
               </span>
               <span className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4" /> ±{courseDurationMin(course)}{" "}
+                <Clock className="h-4 w-4" /> ±{course.duurMinuten}{" "}
                 minuten
               </span>
               <span className="flex items-center gap-1.5">
-                <Zap className="h-4 w-4" /> {courseXpTotal(course)} XP te
+                <Zap className="h-4 w-4" /> {course.totaalXp} XP te
                 verdienen
               </span>
             </div>
@@ -159,6 +161,7 @@ export default function CourseDetail({ course }: { course: Course }) {
             )}
           </div>
           <div className="space-y-5">
+            {koopSlot}
             <div className="rounded-2xl bg-white/10 p-6 backdrop-blur">
               <div className="text-xs font-bold uppercase tracking-wider text-white/70">
                 Wat je leert
@@ -201,7 +204,7 @@ export default function CourseDetail({ course }: { course: Course }) {
               </div>
               <p className="mb-4 text-sm text-body">{mod.description}</p>
               <div className="overflow-hidden rounded-2xl border border-lijn bg-white shadow-card">
-                {mod.lessons.map((lesson, li) => {
+                {mod.lessen.map((lesson, li) => {
                   const completed =
                     ready && isLessonCompleted(course.slug, lesson.slug);
                   const isNext =
@@ -234,7 +237,7 @@ export default function CourseDetail({ course }: { course: Course }) {
                           {lesson.title}
                         </span>
                         <span className="mt-0.5 block text-xs font-semibold text-body">
-                          {lesson.durationMin} min · {lesson.quiz.length}{" "}
+                          {lesson.durationMin} min · {lesson.aantalQuizvragen}{" "}
                           quizvragen · {lesson.xp} XP
                         </span>
                       </span>

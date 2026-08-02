@@ -13,12 +13,27 @@ import { courses, flatLessons, getCourse, getLessonContext, courseLessonCount } 
 import { ACCENTS } from "@/lib/accent";
 import LessonRunner from "@/components/LessonRunner";
 import CompoundCalculator from "@/components/CompoundCalculator";
+import LesVergrendeld from "@/components/LesVergrendeld";
+import { heeftToegangTot } from "@/lib/entitlements";
+import { PRICING } from "@/lib/pricing";
 
+// Alleen de GRATIS lessen worden vooraf gebouwd. Dat is de kennismakingsroute
+// en die mag zo snel mogelijk zijn.
+//
+// Betaalde lessen bewust NIET: die worden per verzoek gerenderd, want pas dan
+// is er een sessie en kan `heeftToegangTot` iets zinnigs beslissen. Zouden we
+// ze vooraf bouwen, dan werd de uitkomst tijdens de build vastgelegd — zonder
+// ingelogde gebruiker — en zag iedereen voor altijd het slotje, ook na betaling.
 export function generateStaticParams() {
-  return courses.flatMap((c) =>
-    flatLessons(c).map((x) => ({ slug: c.slug, les: x.lesson.slug }))
-  );
+  return courses
+    .filter((c) => c.free)
+    .flatMap((c) =>
+      flatLessons(c).map((x) => ({ slug: c.slug, les: x.lesson.slug }))
+    );
 }
+
+/** Onbekende combinaties (dus de betaalde lessen) mogen op aanvraag renderen. */
+export const dynamicParams = true;
 
 export async function generateMetadata({
   params,
@@ -46,6 +61,25 @@ export default async function LessonPage({
   if (!course) notFound();
   const ctx = getLessonContext(course, les);
   if (!ctx) notFound();
+
+  // DE POORT. Hier wordt beslist of de lesinhoud de server verlaat.
+  //
+  // Het is belangrijk dat dit hier staat en niet in middleware: de inhoud mag
+  // niet mee de bundel in en daarna verstopt worden met CSS of een client-side
+  // check. Wie geen toegang heeft, krijgt de tekst simpelweg nooit te zien.
+  if (!(await heeftToegangTot(slug))) {
+    // Alleen losse waarden doorgeven: props van server components belanden in
+    // de payload van de pagina. Het hele course-object doorgeven zou de
+    // volledige cursus alsnog in de HTML zetten.
+    return (
+      <LesVergrendeld
+        courseSlug={course.slug}
+        courseTitel={course.title}
+        lesTitel={ctx.lesson.title}
+        prijs={course.price ?? PRICING.losseCursus}
+      />
+    );
+  }
 
   const acc = ACCENTS[course.accent];
   const { lesson, module: mod } = ctx;
