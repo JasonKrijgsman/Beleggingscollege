@@ -12,3 +12,4 @@ next-env.d.ts
 # Rommel van onderzoekstools
 resp.html
 *.tmp.html
+.claude/worktrees/
