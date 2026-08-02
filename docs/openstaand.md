@@ -248,14 +248,7 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
 
 ## 9b. Lopend op 2 aug 2026 — voor wie dit later oppakt
 
-- **Menselijke elementen-onderzoek loopt.** Jasons vraag: welke niet-door-AI-te-kopiëren
-  elementen (video, community, fysiek drukwerk, geloofwaardigheid buiten het scherm, smaak)
-  onderscheiden ons echt, gerangschikt op onderscheidend vermogen per uur van Jasons tijd.
-  Resultaat hoort te landen in `docs/menselijke-elementen.md`. Staat dat bestand er niet,
-  dan is het onderzoek nooit opgeslagen — de uitvoer staat dan nog in de sessiemap
-  (taak wn4x3jxz5, workflow wf_99e5e0bc-4e8). Onderdeel van het antwoord: de videoketen
-  rond DaVinci Resolve (Jason neemt op, de machine doet transcriptie, knippen op tekst,
-  ondertiteling en export — Resolve heeft eigen AI-gereedschap en een scripting-API).
+- [x] ~~Menselijke elementen-onderzoek~~ **Geland op 2 aug 2026: `docs/menselijke-elementen.md`** — de rangschikking van wat alleen Jason kan toevoegen, inclusief het DaVinci Resolve-antwoord en de eerste stap voor komende maand.
 
 ## 10. Onderzocht en in orde — niet opnieuw uitzoeken
 
