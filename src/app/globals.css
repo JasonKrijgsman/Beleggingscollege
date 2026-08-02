@@ -103,6 +103,26 @@ body {
 .anim-flame { animation: flame-pulse 1.6s ease-in-out infinite; }
 .anim-float { animation: float-slow 5s ease-in-out infinite; }
 
+/* Respecteer de systeeminstelling "verminder beweging". Mensen met
+   vestibulaire klachten kunnen misselijk worden van doorlopende animaties;
+   de eindtoestand blijft gewoon zichtbaar. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up,
+  .anim-pop-in,
+  .anim-flame,
+  .anim-float {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Printstijl voor certificaten */
 @media print {
   .no-print { display: none !important; }
