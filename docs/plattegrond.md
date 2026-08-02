@@ -4,7 +4,7 @@ Gegenereerd op 2026-08-02 uit `src/app` door `scripts/plattegrond.mjs`.
 **Niet met de hand bewerken** — draai `npm run plattegrond` na elke nieuwe pagina
 of API-route, dan kan dit document niet gaan liegen.
 
-## Pagina's (20)
+## Pagina's (21)
 
 | Route | Rendering | Bijzonderheden |
 |---|---|---|
@@ -21,6 +21,7 @@ of API-route, dan kan dit document niet gaan liegen.
 | `/cursussen` | per verzoek | toegangscontrole |
 | `/herroepingsrecht` | statisch | — |
 | `/inloggen` | per verzoek (sessie) | leest sessie |
+| `/lab/opties` | statisch | noindex |
 | `/lab` | statisch | noindex |
 | `/leerpad` | client | — |
 | `/over-ons` | statisch | — |
