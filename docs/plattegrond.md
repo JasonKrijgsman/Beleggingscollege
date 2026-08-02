@@ -4,11 +4,12 @@ Gegenereerd op 2026-08-02 uit `src/app` door `scripts/plattegrond.mjs`.
 **Niet met de hand bewerken** — draai `npm run plattegrond` na elke nieuwe pagina
 of API-route, dan kan dit document niet gaan liegen.
 
-## Pagina's (19)
+## Pagina's (20)
 
 | Route | Rendering | Bijzonderheden |
 |---|---|---|
 | `/account` | per verzoek (sessie) | toegangscontrole |
+| `/beheer` | per verzoek | leest sessie |
 | `/beheer/vragen` | per verzoek | — |
 | `/blog/[slug]` | vooraf gebouwd | — |
 | `/blog` | statisch | — |
