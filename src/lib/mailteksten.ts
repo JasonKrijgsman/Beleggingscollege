@@ -10,25 +10,22 @@ export const BEDRIJF = {
   naam: "Beleggingscollege",
   kvk: "71856633",
   email: "beheer@beleggingscollege.nl",
-  // TODO: vestigingsadres en btw-identificatienummer invullen. Allebei
-  // verplicht op de bevestiging; zie docs/wat-de-winkel-mist.md punt 6.
-  adres: null as string | null,
-  btwNummer: null as string | null,
+  /* Adres en btw-nummer komen bewust uit omgevingsvariabelen en staan dus
+   * NIET in de repo. Jason wil zijn woonadres niet op internet; zolang er
+   * geen zakelijk adres gekozen is (zie docs/openstaand.md) hoort het ook
+   * nergens in git te belanden. Invullen = twee variabelen in Vercel zetten,
+   * geen code wijzigen. */
+  adres: process.env.BEDRIJF_ADRES ?? null,
+  btwNummer: process.env.BEDRIJF_BTW_NUMMER ?? null,
 };
 
 /**
- * BTW-BEHANDELING — CONTROLEER DIT VOORDAT ER ECHT VERKOCHT WORDT.
+ * BTW-BEHANDELING.
  *
- * Hier staat 21% ingesteld, het normale tarief voor een commerciële online
- * cursus. Maar er is een reëel alternatief dat de tekst van deze mail
- * verandert: de **kleineondernemersregeling (KOR)**. Wie daarvoor gekozen
- * heeft en onder € 20.000 omzet per jaar blijft, brengt géén btw in rekening
- * en mag ook geen btw-bedrag vermelden. In plaats daarvan hoort er te staan
- * dat er geen btw is berekend op grond van de KOR.
- *
- * Een eenmanszaak die net begint zit vaak in de KOR. Zet `KOR` op true als dat
- * zo is; dan verdwijnt de btw-regel uit de mail en komt de juiste zin ervoor
- * in de plaats.
+ * Jason heeft op 2 augustus 2026 bevestigd: GEEN kleineondernemersregeling.
+ * De 21%-regel hieronder is dus de juiste. De KOR-tak blijft bestaan voor het
+ * geval dat ooit verandert — wie in de KOR zit mag géén btw-bedrag vermelden,
+ * en dan moet de mailtekst mee.
  */
 export const KOR = false;
 export const BTW_TARIEF = 0.21;

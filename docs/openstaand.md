@@ -59,12 +59,17 @@ juridisch niet mag verkopen, of kun je een geschil niet winnen.
       `0a5ba8e`): `src/lib/mail.ts`, `src/lib/mailteksten.ts`, `src/lib/orderbevestiging.ts`,
       afgevuurd vanuit de Mollie-webhook. **Staat nog uit** tot `RESEND_API_KEY` gezet is en
       de DNS-records bij Strato staan — zie `docs/e-mail-versturen.md`.
-- [ ] **Drie gegevens die Jason moet aanleveren voordat die mail de deur uit mag:**
-      - Zit je in de **kleineondernemersregeling**? Zo ja, dan mag er géén btw-bedrag in de
-        mail staan maar de KOR-zin. Zet `KOR = true` in `src/lib/mailteksten.ts`. Zo nee, dan
-        klopt de huidige 21%-regel.
-      - **Vestigingsadres** — verplicht op de bevestiging, staat nu op `null`.
-      - **Btw-identificatienummer** — idem.
+- [ ] **Twee gegevens die er nog niet zijn (KOR is beantwoord):**
+      - ~~KOR?~~ **Beantwoord op 2 aug 2026: geen KOR.** De 21%-regel in de mail klopt dus.
+      - **Vestigingsadres.** Jason wil zijn woonadres niet op internet. Onderzoek naar de
+        opties (postbus, virtueel bedrijfsadres, adres van de boekhouder) loopt. Tot er
+        gekozen is: het adres komt uit de omgevingsvariabele `BEDRIJF_ADRES` en staat bewust
+        nérgens in de repo. **Schrijf het woonadres ook niet in documentatie.**
+      - **Btw-identificatienummer.** Staat nergens opgeslagen — óók niet bij Mollie (veld is
+        leeg, gecontroleerd 2 aug 2026). Het is een Belastingdienst-nummer, geen KVK-nummer:
+        op te halen via Mijn Belastingdienst Zakelijk (DigiD) of van een oude
+        Visual Future-factuur. Daarna: omgevingsvariabele `BEDRIJF_BTW_NUMMER` invullen,
+        het veld bij Mollie invullen, en het nummer in de sitefooter zetten (art. 3:15d BW).
 - [ ] **Echte factuur.** Bij B2C is een volledige factuur níét wettelijk verplicht (art. 34c
       Wet OB geldt alleen B2B) — een bon volstaat. Maar `/voorwaarden` belooft er wél een, en
       die eigen toezegging bindt. Nummering is er nu (`purchases.order_number`), btw-uitsplitsing
