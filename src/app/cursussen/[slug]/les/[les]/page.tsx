@@ -12,6 +12,9 @@ import {
 import { courses, flatLessons, getCourse, getLessonContext, courseLessonCount } from "@/content";
 import { ACCENTS } from "@/lib/accent";
 import LessonRunner from "@/components/LessonRunner";
+import LesVragen from "@/components/LesVragen";
+import { auth } from "@/auth";
+import { eigenVragen, zichtbareVragen } from "@/lib/lesvragen";
 import CompoundCalculator from "@/components/CompoundCalculator";
 import IntrinsiekeWaardeTool from "@/components/IntrinsiekeWaardeTool";
 import SteunWeerstandTool from "@/components/SteunWeerstandTool";
@@ -85,6 +88,17 @@ export default async function LessonPage({
 
   const acc = ACCENTS[course.accent];
   const { lesson, module: mod } = ctx;
+
+  // Vragen bij deze les. Het formulier is er alleen voor ingelogde cursisten;
+  // de openbare vragen (goedgekeurd én beantwoord) horen bij de les zelf.
+  const session = await auth();
+  const ingelogd = Boolean(session?.user?.id);
+  const openbareVragen = ingelogd
+    ? await zichtbareVragen(course.slug, lesson.slug)
+    : [];
+  const mijnWachtende = session?.user?.id
+    ? await eigenVragen(session.user.id, course.slug, lesson.slug)
+    : [];
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -229,6 +243,34 @@ export default async function LessonPage({
           certHref={`/cursussen/${course.slug}/certificaat`}
         />
       </div>
+
+      {/* Vragen bij deze les: openbaar alleen wat goedgekeurd én beantwoord
+          is; het formulier alleen voor wie is ingelogd (de API controleert
+          de toegang zelf nog eens). Serverdata als props — de client krijgt
+          nooit meer dan wat hier bewust wordt doorgegeven. */}
+      {ingelogd && (
+        <LesVragen
+          courseSlug={course.slug}
+          lessonSlug={lesson.slug}
+          accent={course.accent}
+          zichtbaar={openbareVragen.map((v) => ({
+            id: v.id,
+            naam: v.naam,
+            vraag: v.vraag,
+            antwoord: v.antwoord,
+            datum: v.answeredAt
+              ? v.answeredAt.toLocaleDateString("nl-NL", { day: "numeric", month: "long" })
+              : "",
+          }))}
+          eigenWachtend={mijnWachtende.map((v) => ({
+            id: v.id,
+            naam: v.naam,
+            vraag: v.vraag,
+            antwoord: null,
+            datum: "",
+          }))}
+        />
+      )}
 
       <nav className="mt-8 flex items-center justify-between text-sm font-semibold">
         {ctx.prev ? (

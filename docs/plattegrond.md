@@ -4,11 +4,12 @@ Gegenereerd op 2026-08-02 uit `src/app` door `scripts/plattegrond.mjs`.
 **Niet met de hand bewerken** — draai `npm run plattegrond` na elke nieuwe pagina
 of API-route, dan kan dit document niet gaan liegen.
 
-## Pagina's (18)
+## Pagina's (19)
 
 | Route | Rendering | Bijzonderheden |
 |---|---|---|
 | `/account` | per verzoek (sessie) | toegangscontrole |
+| `/beheer/vragen` | per verzoek | — |
 | `/blog/[slug]` | vooraf gebouwd | — |
 | `/blog` | statisch | — |
 | `/contact` | statisch | — |
@@ -33,12 +34,14 @@ bevriest de inhoud — daarom mag een betaalde les dit nooit volledig zijn);
 zodra de pagina van de bezoeker afhangt); **client** = de pagina zelf is een
 client-component (de gegevens komen dan via props of API).
 
-## API-routes (5)
+## API-routes (7)
 
 | Route | Wat er speelt |
 |---|---|
 | `/api/auth/[...nextauth]` | publiek |
 | `/api/checkout` | vereist sessie |
+| `/api/lesvragen/moderatie` | publiek |
+| `/api/lesvragen` | vereist sessie |
 | `/api/mollie/webhook` | publiek |
 | `/api/nieuwsbrief` | vereist sessie |
 | `/api/voortgang` | vereist sessie |

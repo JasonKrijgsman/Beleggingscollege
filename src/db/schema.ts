@@ -172,6 +172,43 @@ export const lessonProgress = pgTable(
 );
 
 /**
+ * Vragen bij een les — de gekozen communityvorm (zie docs/ideeen.md).
+ *
+ * Bewust GEEN algemeen forum: vragen hangen onder een les, worden pas
+ * zichtbaar nadat Jason ze heeft goedgekeurd én beantwoord, en de site
+ * belooft alleen wat vol te houden is ("Jason antwoordt wekelijks").
+ * Een onbeantwoorde vraag is alleen zichtbaar voor de vraagsteller zelf.
+ */
+export const lessonQuestions = pgTable(
+  "lesson_questions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    /** Verwijdert iemand zijn account, dan verdwijnen ook zijn vragen (AVG). */
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Voornaam zoals bij het stellen, zodat de weergave niet meebeweegt met
+     *  latere naamswijzigingen bij Google. */
+    naam: text("naam").notNull().default(""),
+    courseSlug: text("course_slug").notNull(),
+    lessonSlug: text("lesson_slug").notNull(),
+    vraag: text("vraag").notNull(),
+    /** Jasons antwoord; verplicht vóór een vraag zichtbaar wordt. */
+    antwoord: text("antwoord"),
+    /** wachtend | zichtbaar | afgewezen */
+    status: text("status").notNull().default("wachtend"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    answeredAt: timestamp("answered_at", { mode: "date" }),
+  },
+  (t) => [
+    index("lesson_questions_les_idx").on(t.courseSlug, t.lessonSlug, t.status),
+    index("lesson_questions_user_idx").on(t.userId),
+  ]
+);
+
+/**
  * Nieuwsbrief-aanmeldingen, verzameld op het moment van afronding — als de
  * goodwill piekt, niet als een popup bij binnenkomst.
  *
