@@ -19,6 +19,23 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 - Pages: `/` (marketing), `/cursussen`, `/cursussen/[slug]`, `/cursussen/[slug]/les/[les]`, `/cursussen/[slug]/certificaat` (printbaar), `/leerpad` (dashboard), `/blog` + `/blog/[slug]`, `/over-ons`, `/veelgestelde-vragen`, `/contact`, `/privacy`, `/voorwaarden`, `/herroepingsrecht` (die laatste drie zijn **concepten** en staan op noindex tot een jurist ernaar kijkt), `/lab` (intern stijllab, noindex).
 - XP-regels: 50 XP per les + quizbonus tot 25 XP; herhaalde les = 0 XP.
 
+## Accounts, database en toegang
+
+Aanwezig maar **slapend**: zonder `DATABASE_URL` en Google-sleutels draait de site precies als voorheen.
+
+- **Neon** = gehoste Postgres (serverless, schaalt naar nul, gratis laag, regio Frankfurt — **regio is achteraf niet te wijzigen**). **Drizzle** = ORM: queries in TypeScript in plaats van SQL-strings, met typecontrole tijdens de build.
+- **Waarom niet SQLite:** dat is een bestand op schijf, en Vercel heeft geen blijvend bestandssysteem — elke instance krijgt zijn eigen kopie en elke deploy wist hem. Waarom niet Supabase: die pauzeert gratis projecten na een week inactiviteit, onacceptabel voor betalende klanten. Vercel Postgres bestaat niet meer (in 2024 naar Neon verhuisd). Zelf hosten op de NAS kan technisch, maar dan wordt de thuisverbinding de beschikbaarheid van de webshop.
+- `src/db/schema.ts` — Auth.js-tabellen (exact zoals de adapter ze verwacht) + `purchases`, `lesson_progress`, `user_stats`.
+- `src/auth.ts` / `src/auth.config.ts` — gesplitst omdat middleware op de Edge draait en daar geen database kan laden. **Database-sessies, geen JWT**: alleen zo kun je toegang direct intrekken na terugbetaling of misbruik.
+- **`src/lib/entitlements.ts` is de enige plek die bepaalt of iemand een betaalde cursus mag zien.** `server-only`, kijkt uitsluitend naar de sessie en een rij in `purchases` met status `paid`. Middleware is géén autorisatie (Auth.js waarschuwt daar expliciet voor) — die doet alleen een nette redirect.
+- Versies staan **exact gepind**: Auth.js v5 is na 2,5 jaar nog steeds beta en Drizzle 1.0-rc breekt auth-adapters. Niet upgraden zonder testen.
+- Valkuil in `src/db/index.ts`: de verbinding wordt opgezet met een placeholder-URL als `DATABASE_URL` ontbreekt, anders faalt `next build`. Lui initialiseren via een Proxy kán niet — de Drizzle-adapter inspecteert het db-object en faalt met "Unsupported database type".
+- Volledige implementatiegids met geverifieerde versies en codevoorbeelden: `docs/implementatie-accounts-betalen.md`.
+
+### Domeinwissel raakt dit alles níét
+
+Accounts, aankopen en voortgang hangen aan gebruikers-id's, niet aan een URL. Bij de verhuizing naar de `.nl` verandert alleen: `NEXT_PUBLIC_SITE_URL`, een redirect `.com` → `.nl`, en — als die er niet al staat — de callback-URL in Google Cloud Console. **Zet daarom bij het aanmaken van de Google-client meteen álle redirect-URI's erin** (`.com`, `.nl` en localhost); dan hoeft daar later niets aan te gebeuren.
+
 ## Merk (uit 2023-archief "Website Resources Collection.docx")
 
 - Primair blauw `#0072CE` (Pantone 285C), secundair groen `#006546` (349C), logo-navy `#0033A0`, bodytekst `#53565A`, goud-accent voor gamification.
