@@ -65,13 +65,25 @@ Drie dingen die vastliggen vóór dit gebouwd wordt:
 - **Alleen boeken die daadwerkelijk in de cursus gebruikt worden.** Anders wordt de selectie
   door de vergoeding bepaald in plaats van door de inhoud.
 
-### Lesvragen / forum — besloten richting (2 aug 2026)
-Jason wil interactie tussen cursisten; het onderzoek waarschuwde voor het lege-zaal-probleem
-van een algemeen forum. De gekozen vorm: **vragen per les** ("Vragen bij deze les", alleen
-ingelogd, zichtbaar na goedkeuring, met de eerlijke belofte "Jason antwoordt wekelijks").
-Elke vraag voedt de cursus; een algemeen forum verdient zichzelf pas als dit leeft, met
-College Live als hartslag. AFM-vangrail: de vaste vriendelijke afwijzing voor persoonlijke
-vragen ligt klaar vóór de eerste vraag binnenkomt.
+### Vragen & antwoorden bij de les — GEBOUWD, redactioneel (3 aug 2026)
+Jason wilde interactie, maar geen tweede baan als vragenbeantwoorder en geen frame dat
+oogt als een klein, overvraagd eenmansbedrijf ("stel een vraag, Jason antwoordt binnenkort").
+Na afweging gekozen: **redactionele Q&A**. Cursisten kunnen (ingelogd) een vraag insturen,
+maar er is GEEN beloofde termijn en GEEN zichtbare wachtrij — een inzending is een suggestie,
+geen ticket. Jason kiest zélf welke vragen een goed antwoord verdienen; beantwoorde vragen
+worden openbaar als een groeiende mini-FAQ die de les scherper maakt. Off-topic of
+persoonlijke-adviesvragen (opties bij de Graham-les, "wat moet ik met mijn geld") verschijnen
+nooit — die wijst de moderatie af, met de vaste AFM-afwijzing als knop.
+
+Waarom NIET de AI-coach hier: een vrij "vraag maar raak"-vak leidt tot eindeloze prompting
+en vragen die de volgende les al beantwoordt. De coach blijft daarom oefenmeester (quizreview),
+zoals `docs/college-plus-concept.md` al scopet — niet een open chat bij elke les.
+Waarom NIET een algemeen forum: het lege-zaal-probleem, plus AFM-risico op peer-antwoorden.
+
+Bestanden: `src/lib/lesvragen.ts` (modulegrens), `src/lib/beheer.ts` (BEHEER_EMAILS bepaalt
+de moderator — er is geen apart admin-account; het is gewoon wélk ingelogd Google-account mag
+modereren), `POST /api/lesvragen` (+ /moderatie), `src/components/LesVragen.tsx`, en
+`/beheer/vragen` (404 voor niet-beheerders).
 
 ### AI-agenten die de site draaien
 De langetermijnvisie: Jason levert inhoud en richting, AI-agenten doen support en marketing.

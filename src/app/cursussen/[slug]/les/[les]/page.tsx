@@ -14,7 +14,7 @@ import { ACCENTS } from "@/lib/accent";
 import LessonRunner from "@/components/LessonRunner";
 import LesVragen from "@/components/LesVragen";
 import { auth } from "@/auth";
-import { eigenVragen, zichtbareVragen } from "@/lib/lesvragen";
+import { zichtbareVragen } from "@/lib/lesvragen";
 import CompoundCalculator from "@/components/CompoundCalculator";
 import IntrinsiekeWaardeTool from "@/components/IntrinsiekeWaardeTool";
 import SteunWeerstandTool from "@/components/SteunWeerstandTool";
@@ -89,16 +89,13 @@ export default async function LessonPage({
   const acc = ACCENTS[course.accent];
   const { lesson, module: mod } = ctx;
 
-  // Vragen bij deze les. Het formulier is er alleen voor ingelogde cursisten;
-  // de openbare vragen (goedgekeurd én beantwoord) horen bij de les zelf.
+  // Vragen & antwoorden bij deze les: redactioneel. De beantwoorde vragen
+  // zijn gewoon lesinhoud en horen bij iedereen die de les mag zien; het
+  // insturen kan alleen ingelogd. Deze pagina rendert voor betaalde lessen
+  // toch alleen voor wie toegang heeft, dus de Q&A lekt nergens.
   const session = await auth();
   const ingelogd = Boolean(session?.user?.id);
-  const openbareVragen = ingelogd
-    ? await zichtbareVragen(course.slug, lesson.slug)
-    : [];
-  const mijnWachtende = session?.user?.id
-    ? await eigenVragen(session.user.id, course.slug, lesson.slug)
-    : [];
+  const openbareVragen = await zichtbareVragen(course.slug, lesson.slug);
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -244,33 +241,21 @@ export default async function LessonPage({
         />
       </div>
 
-      {/* Vragen bij deze les: openbaar alleen wat goedgekeurd én beantwoord
-          is; het formulier alleen voor wie is ingelogd (de API controleert
-          de toegang zelf nog eens). Serverdata als props — de client krijgt
-          nooit meer dan wat hier bewust wordt doorgegeven. */}
-      {ingelogd && (
-        <LesVragen
-          courseSlug={course.slug}
-          lessonSlug={lesson.slug}
-          accent={course.accent}
-          zichtbaar={openbareVragen.map((v) => ({
-            id: v.id,
-            naam: v.naam,
-            vraag: v.vraag,
-            antwoord: v.antwoord,
-            datum: v.answeredAt
-              ? v.answeredAt.toLocaleDateString("nl-NL", { day: "numeric", month: "long" })
-              : "",
-          }))}
-          eigenWachtend={mijnWachtende.map((v) => ({
-            id: v.id,
-            naam: v.naam,
-            vraag: v.vraag,
-            antwoord: null,
-            datum: "",
-          }))}
-        />
-      )}
+      {/* Vragen & antwoorden bij deze les: redactioneel. Alleen beantwoorde
+          vragen zijn openbaar; het insturen kan alleen ingelogd (de API
+          controleert de toegang zelf nog eens). */}
+      <LesVragen
+        courseSlug={course.slug}
+        lessonSlug={lesson.slug}
+        accent={course.accent}
+        ingelogd={ingelogd}
+        zichtbaar={openbareVragen.map((v) => ({
+          id: v.id,
+          naam: v.naam,
+          vraag: v.vraag,
+          antwoord: v.antwoord,
+        }))}
+      />
 
       <nav className="mt-8 flex items-center justify-between text-sm font-semibold">
         {ctx.prev ? (

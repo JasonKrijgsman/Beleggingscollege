@@ -1,17 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { CheckCircle2, Clock3, MessageCircleQuestion } from "lucide-react";
+import { CheckCircle2, MessageCircleQuestion } from "lucide-react";
 import type { CourseAccent } from "@/content/types";
 import { ACCENTS } from "@/lib/accent";
 
 /**
- * "Vragen bij deze les" — de gekozen communityvorm (docs/ideeen.md).
+ * "Vragen & antwoorden bij deze les" — redactioneel, geen helpdesk.
  *
- * Alleen goedgekeurde én beantwoorde vragen zijn openbaar; eigen wachtende
- * vragen ziet alleen de vraagsteller. De AFM-verwachting staat vóór het
- * formulier, niet erachter: wie een persoonlijke beleggingsvraag wil stellen
- * hoort vooraf te weten dat die niet beantwoord kan worden.
+ * Bewust géén "stel een vraag, Jason antwoordt binnenkort": dat wordt een
+ * tweede baan en oogt als een klein, overvraagd eenmansbedrijf. In plaats
+ * daarvan verzamelen we vragen stil, Jason kiest zélf welke een goed antwoord
+ * verdienen, en beantwoorde vragen worden hier openbaar als een groeiende
+ * mini-FAQ. Off-topic of persoonlijke-adviesvragen verschijnen nooit — die
+ * wijst de moderatie af. Er is dus geen beloofde antwoordtermijn en geen
+ * zichtbare wachtrij: wie iets instuurt, levert een suggestie, geen ticket.
  */
 
 type Vraag = {
@@ -19,21 +23,20 @@ type Vraag = {
   naam: string;
   vraag: string;
   antwoord: string | null;
-  datum: string; // al op de server als nl-NL tekst gezet
 };
 
 export default function LesVragen({
   courseSlug,
   lessonSlug,
   accent,
+  ingelogd,
   zichtbaar,
-  eigenWachtend,
 }: {
   courseSlug: string;
   lessonSlug: string;
   accent: CourseAccent;
+  ingelogd: boolean;
   zichtbaar: Vraag[];
-  eigenWachtend: Vraag[];
 }) {
   const acc = ACCENTS[accent];
   const [vraag, setVraag] = useState("");
@@ -69,26 +72,20 @@ export default function LesVragen({
     <section className="mt-10 rounded-2xl border border-lijn bg-white p-6 shadow-card">
       <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-body">
         <MessageCircleQuestion className={`h-4 w-4 ${acc.text}`} aria-hidden="true" />
-        Vragen bij deze les
+        Vragen &amp; antwoorden bij deze les
       </div>
 
       {zichtbaar.length > 0 ? (
         <ul className="mt-4 space-y-5">
           {zichtbaar.map((v) => (
             <li key={v.id}>
-              <p className="text-sm font-bold text-ink">
-                {v.naam || "Een cursist"}{" "}
-                <span className="font-semibold text-body">vroeg:</span>{" "}
-                {v.vraag}
-              </p>
+              <p className="text-sm font-bold text-ink">{v.vraag}</p>
               {v.antwoord && (
                 <div className={`mt-2 rounded-xl border-l-4 bg-mist/60 p-4 ${acc.border}`}>
-                  <p className="text-xs font-bold uppercase tracking-wider text-body">
-                    Jason antwoordt
-                  </p>
-                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink">
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-ink">
                     {v.antwoord}
                   </p>
+                  <p className="mt-2 text-xs font-semibold text-body">— Jason</p>
                 </div>
               )}
             </li>
@@ -96,46 +93,42 @@ export default function LesVragen({
         </ul>
       ) : (
         <p className="mt-3 text-sm leading-relaxed text-body">
-          Nog geen beantwoorde vragen bij deze les. Stel de eerste — daar is
-          dit vak voor.
+          Hier verzamel ik de vragen die deze les scherper maken, met antwoord.
+          Zit je ergens mee? Laat het hieronder weten.
         </p>
       )}
 
-      {eigenWachtend.length > 0 && (
-        <div className="mt-5 space-y-2" aria-live="polite">
-          {eigenWachtend.map((v) => (
-            <p
-              key={v.id}
-              className="flex items-start gap-2 rounded-xl bg-goud-100/50 px-4 py-3 text-sm text-ink"
-            >
-              <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-goud-600" aria-hidden="true" />
-              <span>
-                <strong>Je vraag staat in de wachtrij:</strong> “{v.vraag}”
-              </span>
-            </p>
-          ))}
-        </div>
-      )}
-
-      {status === "klaar" ? (
+      {/* Insturen: alleen ingelogd. Geen antwoordbelofte, geen wachtrij. */}
+      {!ingelogd ? (
+        <p className="mt-5 text-sm text-body">
+          <Link
+            href={`/inloggen?terug=/cursussen/${courseSlug}/les/${lessonSlug}`}
+            className={`font-semibold underline ${acc.text}`}
+          >
+            Log in
+          </Link>{" "}
+          om zelf een vraag over deze les achter te laten.
+        </p>
+      ) : status === "klaar" ? (
         <p
           className="mt-5 flex items-start gap-2 rounded-xl bg-groen-50 px-4 py-3 text-sm font-semibold text-groen-800"
           aria-live="polite"
         >
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          Bedankt! Je vraag staat in de wachtrij. Jason leest en beantwoordt
-          wekelijks; zodra je vraag beantwoord is, verschijnt hij hier.
+          Genoteerd, bedankt. Ik lees mee — de vragen die de les beter maken
+          beantwoord ik hier, voor iedereen.
         </p>
       ) : (
         <form onSubmit={verstuur} className="mt-5">
           <label htmlFor={`vraag-${lessonSlug}`} className="text-sm font-bold text-ink">
-            Stel je vraag over deze les
+            Iets onduidelijk? Stel je vraag over deze les
           </label>
           <p className="mt-1 text-xs leading-relaxed text-body">
-            Vragen over de lesstof beantwoordt Jason wekelijks, en de beste
-            komen hier voor iedereen te staan. Persoonlijke beleggingsvragen
-            (&ldquo;wat moet ik met mijn geld?&rdquo;) kunnen we niet
-            beantwoorden — wij zijn opleider, geen adviseur.
+            Niet elke vraag krijgt een persoonlijk antwoord, maar de beste komen
+            hier bij de les te staan. Houd het bij déze les — en let op:
+            persoonlijke beleggingsvragen (&ldquo;wat moet ik met mijn
+            geld?&rdquo;) kunnen we niet beantwoorden. Wij zijn opleider, geen
+            adviseur.
           </p>
           <textarea
             id={`vraag-${lessonSlug}`}
@@ -157,7 +150,7 @@ export default function LesVragen({
               disabled={status === "bezig"}
               className="shrink-0 rounded-full bg-brand-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-mist disabled:text-body"
             >
-              {status === "bezig" ? "Bezig…" : "Verstuur vraag"}
+              {status === "bezig" ? "Bezig…" : "Stuur in"}
             </button>
           </div>
         </form>

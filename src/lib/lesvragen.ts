@@ -5,17 +5,20 @@ import { lessonQuestions } from "@/db/schema";
 import { getCourse } from "@/content";
 
 /**
- * Vragen bij een les — het domein achter de gekozen communityvorm.
+ * Vragen & antwoorden bij een les — REDACTIONEEL, geen helpdesk.
+ * (Besloten 3 aug 2026, zie docs/ideeen.md.)
  *
- * Spelregels (besloten 2 aug 2026, zie docs/ideeen.md):
- * - Alleen ingelogd, en alleen bij lessen waar je toegang toe hebt. De
- *   toegangscontrole doet de API-route via heeftToegangTot(); dit bestand
- *   gaat over de vragen zelf.
- * - Een vraag wordt pas openbaar als hij is goedgekeurd ÉN beantwoord.
- *   Zo blijft de belofte "Jason antwoordt wekelijks" waar, en oogt een
- *   rustige les nooit als een dode ("3 onbeantwoorde vragen uit maart").
- * - Maximaal drie wachtende vragen per gebruiker: genoeg voor echte
- *   nieuwsgierigheid, te weinig voor spam.
+ * Jason wil geen tweede baan als vragenbeantwoorder, en "stel een vraag,
+ * antwoord volgt" oogt als een klein, overvraagd eenmansbedrijf. Daarom:
+ * - Insturen kan alleen ingelogd, en alleen bij lessen waar je toegang toe
+ *   hebt. De toegangscontrole doet de API-route via heeftToegangTot().
+ * - Een vraag wordt pas openbaar als Jason hem zélf uitkiest en beantwoordt.
+ *   Er is GEEN beloofde termijn en GEEN zichtbare wachtrij: een ingestuurde
+ *   vraag is een suggestie, geen ticket. Off-topic of persoonlijke-advies-
+ *   vragen (opties bij de Graham-les, "wat moet ik met mijn geld") verschijnen
+ *   nooit — die wijst de moderatie af. Beantwoorde vragen groeien uit tot een
+ *   mini-FAQ die de les scherper maakt.
+ * - Maximaal drie openstaande inzendingen per gebruiker tegen spam.
  */
 
 export const MAX_WACHTEND_PER_GEBRUIKER = 3;
@@ -82,37 +85,6 @@ export async function zichtbareVragen(
     .limit(50);
 }
 
-/** De eigen vragen van de kijker bij deze les, ongeacht status — zodat je
- *  ziet dat je vraag in de wachtrij staat (of waarom hij is afgewezen zie
- *  je niet: afgewezen vragen verdwijnen stil uit je lijstje). */
-export async function eigenVragen(
-  userId: string,
-  courseSlug: string,
-  lessonSlug: string
-): Promise<LesVraag[]> {
-  return db
-    .select({
-      id: lessonQuestions.id,
-      naam: lessonQuestions.naam,
-      vraag: lessonQuestions.vraag,
-      antwoord: lessonQuestions.antwoord,
-      status: lessonQuestions.status,
-      createdAt: lessonQuestions.createdAt,
-      answeredAt: lessonQuestions.answeredAt,
-    })
-    .from(lessonQuestions)
-    .where(
-      and(
-        eq(lessonQuestions.userId, userId),
-        eq(lessonQuestions.courseSlug, courseSlug),
-        eq(lessonQuestions.lessonSlug, lessonSlug),
-        eq(lessonQuestions.status, "wachtend")
-      )
-    )
-    .orderBy(desc(lessonQuestions.createdAt))
-    .limit(MAX_WACHTEND_PER_GEBRUIKER);
-}
-
 export type PlaatsResultaat =
   | { ok: true }
   | { ok: false; reden: string };
@@ -148,7 +120,7 @@ export async function plaatsVraag(
     return {
       ok: false,
       reden:
-        "Je hebt al drie vragen in de wachtrij. Zodra die beantwoord zijn kun je weer verder vragen.",
+        "Je hebt al een paar vragen ingestuurd — dank! Geef me even de kans die te bekijken voordat je er meer stuurt.",
     };
   }
 
