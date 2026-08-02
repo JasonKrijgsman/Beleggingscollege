@@ -47,4 +47,22 @@ export const ACCENTS: Record<CourseAccent, AccentClasses> = {
     bar: "bg-paars-600",
     iconBox: "bg-paars-100 text-paars-700",
   },
+  petrol: {
+    solid: "bg-petrol-600 hover:bg-petrol-700 text-white",
+    soft: "bg-petrol-50 text-petrol-700",
+    text: "text-petrol-700",
+    border: "border-petrol-200",
+    gradient: "from-petrol-950 via-petrol-800 to-petrol-600",
+    bar: "bg-petrol-600",
+    iconBox: "bg-petrol-100 text-petrol-700",
+  },
+  oranje: {
+    solid: "bg-oranje-600 hover:bg-oranje-700 text-white",
+    soft: "bg-oranje-50 text-oranje-700",
+    text: "text-oranje-700",
+    border: "border-oranje-200",
+    gradient: "from-oranje-950 via-oranje-800 to-oranje-600",
+    bar: "bg-oranje-600",
+    iconBox: "bg-oranje-100 text-oranje-700",
+  },
 };

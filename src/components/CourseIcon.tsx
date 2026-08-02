@@ -1,4 +1,14 @@
-import { Brain, LineChart, Scale, Sprout, type LucideIcon } from "lucide-react";
+import {
+  Activity,
+  Brain,
+  Gauge,
+  LineChart,
+  Scale,
+  Shield,
+  Sprout,
+  Target,
+  type LucideIcon,
+} from "lucide-react";
 import type { CourseIcon as CourseIconKey } from "@/content/types";
 
 const ICONS: Record<CourseIconKey, LucideIcon> = {
@@ -6,6 +16,10 @@ const ICONS: Record<CourseIconKey, LucideIcon> = {
   scale: Scale,
   chart: LineChart,
   brain: Brain,
+  target: Target,
+  shield: Shield,
+  activity: Activity,
+  gauge: Gauge,
 };
 
 export default function CourseIcon({

@@ -15,9 +15,7 @@ import LessonRunner from "@/components/LessonRunner";
 import LesVragen from "@/components/LesVragen";
 import { auth } from "@/auth";
 import { zichtbareVragen } from "@/lib/lesvragen";
-import CompoundCalculator from "@/components/CompoundCalculator";
-import IntrinsiekeWaardeTool from "@/components/IntrinsiekeWaardeTool";
-import SteunWeerstandTool from "@/components/SteunWeerstandTool";
+import LesTool from "@/components/lesson-tools";
 import LesVergrendeld from "@/components/LesVergrendeld";
 import { heeftToegangTot } from "@/lib/entitlements";
 import { PRICING } from "@/lib/pricing";
@@ -170,9 +168,7 @@ export default async function LessonPage({
         ))}
       </div>
 
-      {lesson.tool === "rente-op-rente" && <CompoundCalculator />}
-      {lesson.tool === "intrinsieke-waarde" && <IntrinsiekeWaardeTool />}
-      {lesson.tool === "steun-weerstand" && <SteunWeerstandTool />}
+      <LesTool tool={lesson.tool} />
 
       {lesson.bookRefs && lesson.bookRefs.length > 0 && (
         <aside className="mt-10 rounded-2xl border border-lijn bg-white p-6 shadow-card">

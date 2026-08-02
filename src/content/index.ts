@@ -14,12 +14,20 @@ import beleggenVoorBeginners from "./courses/beleggen-voor-beginners";
 import waardebeleggen from "./courses/waardebeleggen";
 import technischeAnalyse from "./courses/technische-analyse";
 import beleggingspsychologie from "./courses/beleggingspsychologie";
+import optiesBegrijpen from "./courses/opties-begrijpen";
+import beschermenEnVerdienen from "./courses/beschermen-en-verdienen-met-opties";
+import volatiliteitEnSpreads from "./courses/volatiliteit-en-spreads";
+import hefboomproducten from "./courses/hefboomproducten";
 
 export const courses: Course[] = [
   beleggenVoorBeginners,
   waardebeleggen,
   technischeAnalyse,
   beleggingspsychologie,
+  optiesBegrijpen,
+  beschermenEnVerdienen,
+  volatiliteitEnSpreads,
+  hefboomproducten,
 ].sort((a, b) => a.order - b.order);
 
 export const activeCourses = courses.filter((c) => !c.comingSoon);

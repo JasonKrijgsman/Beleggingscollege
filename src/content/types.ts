@@ -25,7 +25,16 @@ export type BookRef = {
 export type LessonTool =
   | "rente-op-rente" // rekenmachine samengestelde groei (gratis cursus)
   | "intrinsieke-waarde" // waardering + veiligheidsmarge (Waardebeleggen)
-  | "steun-weerstand"; // niveaus intekenen op een grafiek (Technische Analyse)
+  | "steun-weerstand" // niveaus intekenen op een grafiek (Technische Analyse)
+  | "optie-uitbetaling" // uitbetalingsdiagram van één positie (Opties Begrijpen)
+  | "optie-keten" // oefen-optieketen als brokerscherm (Opties Begrijpen)
+  | "optie-tijdswaarde" // intrinsieke waarde vs. tijdswaarde (Opties Begrijpen)
+  | "optie-strategiebouwer" // poten combineren tot spreads (Beschermen & Verdienen, Volatiliteit & Spreads)
+  | "optie-gedekt-schrijven" // covered-call-simulator (Beschermen & Verdienen)
+  | "optie-tijdverval" // tijdsverval over de looptijd (Volatiliteit & Spreads)
+  | "optie-volatiliteit" // implied volatility-verkenner (Volatiliteit & Spreads)
+  | "optie-greeks" // Greeks-speeltuin (Volatiliteit & Spreads)
+  | "hefboom-simulator"; // knock-out en financieringskosten (Hefboomproducten)
 
 export type Lesson = {
   slug: string;
@@ -47,8 +56,22 @@ export type Module = {
   lessons: Lesson[];
 };
 
-export type CourseAccent = "blauw" | "groen" | "navy" | "paars";
-export type CourseIcon = "sprout" | "scale" | "chart" | "brain";
+export type CourseAccent =
+  | "blauw"
+  | "groen"
+  | "navy"
+  | "paars"
+  | "petrol" // de opties-leerlijn (drie cursussen, één familie)
+  | "oranje"; // Hefboomproducten (waarschuwingskleur, bewust)
+export type CourseIcon =
+  | "sprout"
+  | "scale"
+  | "chart"
+  | "brain"
+  | "target" // Opties Begrijpen (de uitoefenprijs als doel)
+  | "shield" // Beschermen & Verdienen met Opties
+  | "activity" // Volatiliteit & Spreads
+  | "gauge"; // Hefboomproducten
 
 export type Course = {
   slug: string;

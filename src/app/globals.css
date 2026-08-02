@@ -48,6 +48,32 @@
   --color-goud-500: #dda221;
   --color-goud-600: #b98214;
 
+  /* Petrol: de opties-leerlijn (drie cursussen, één familiekleur) */
+  --color-petrol-50: #eefaf9;
+  --color-petrol-100: #d5f1f0;
+  --color-petrol-200: #afe3e2;
+  --color-petrol-300: #7ccfce;
+  --color-petrol-400: #45b2b4;
+  --color-petrol-500: #26959a;
+  --color-petrol-600: #0f7680;
+  --color-petrol-700: #0e5f6b;
+  --color-petrol-800: #104d57;
+  --color-petrol-900: #113f48;
+  --color-petrol-950: #0a2930;
+
+  /* Oranje: Hefboomproducten (bewust een waarschuwingstint, geen goud) */
+  --color-oranje-50: #fff6ee;
+  --color-oranje-100: #ffe9d5;
+  --color-oranje-200: #fdd0a8;
+  --color-oranje-300: #fab06f;
+  --color-oranje-400: #f68a37;
+  --color-oranje-500: #ee6c12;
+  --color-oranje-600: #d05408;
+  --color-oranje-700: #ad430b;
+  --color-oranje-800: #8a3810;
+  --color-oranje-900: #70300f;
+  --color-oranje-950: #3d1706;
+
   --color-paars-50: #f5f2fd;
   --color-paars-100: #e9e2fa;
   --color-paars-200: #d5c8f5;
