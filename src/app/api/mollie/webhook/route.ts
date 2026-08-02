@@ -6,6 +6,13 @@ import { bedragNaarCenten, mollie, mollieIsGeconfigureerd } from "@/lib/mollie";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Statuscode uit een fout van de Mollie-client, als die er is. De client gooit
+ *  een ApiError met een `statusCode`; netwerkfouten hebben er geen. */
+function mollieStatus(fout: unknown): number | undefined {
+  const code = (fout as { statusCode?: unknown })?.statusCode;
+  return typeof code === "number" ? code : undefined;
+}
+
 /**
  * Mollie meldt hier dat er iets veranderd is aan een betaling.
  *
@@ -91,8 +98,20 @@ export async function POST(request: Request) {
 
     return new Response("OK", { status: 200 });
   } catch (fout) {
-    // Wél een foutcode: dit is een echte storing aan onze kant (Mollie
-    // onbereikbaar, database plat). Dan mág Mollie het opnieuw proberen.
+    const status = mollieStatus(fout);
+
+    // Kent Mollie de betaling niet, dan valt er niets te herstellen. Dit is
+    // ook wat er gebeurt als iemand dit publieke endpoint met een verzonnen id
+    // bestookt. Rustig 200 teruggeven: een foutcode zou Mollie tien keer over
+    // 26 uur laten terugkomen voor een betaling die niet bestaat.
+    if (status === 404 || status === 410) {
+      console.warn(`[mollie] onbekende betaling ${paymentId} (${status})`);
+      return new Response("OK", { status: 200 });
+    }
+
+    // Al het overige is wél een echte storing: onze sleutel deugt niet (401),
+    // we zitten aan een limiet (429), Mollie ligt eruit of de database is weg.
+    // Dan is herhalen juist gewenst, dus geven we een foutcode terug.
     console.error("[mollie] webhook mislukt", fout);
     return new Response("Tijdelijke fout", { status: 500 });
   }
