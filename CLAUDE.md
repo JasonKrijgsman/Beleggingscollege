@@ -32,7 +32,7 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 - **Neon** = gehoste Postgres (serverless, schaalt naar nul, gratis laag, regio Frankfurt — **regio is achteraf niet te wijzigen**). **Drizzle** = ORM: queries in TypeScript in plaats van SQL-strings, met typecontrole tijdens de build.
 - **Waarom niet SQLite:** dat is een bestand op schijf, en Vercel heeft geen blijvend bestandssysteem — elke instance krijgt zijn eigen kopie en elke deploy wist hem. Waarom niet Supabase: die pauzeert gratis projecten na een week inactiviteit, onacceptabel voor betalende klanten. Vercel Postgres bestaat niet meer (in 2024 naar Neon verhuisd). Zelf hosten op de NAS kan technisch, maar dan wordt de thuisverbinding de beschikbaarheid van de webshop.
 - `src/db/schema.ts` — Auth.js-tabellen (exact zoals de adapter ze verwacht) + `purchases`, `lesson_progress`, `user_stats`.
-- `src/auth.ts` / `src/auth.config.ts` — gesplitst omdat middleware op de Edge draait en daar geen database kan laden. **Database-sessies, geen JWT**: alleen zo kun je toegang direct intrekken na terugbetaling of misbruik.
+- `src/auth.ts` / `src/auth.config.ts` — gesplitst zodat er ooit edge-middleware bíj kan (die kan geen database laden). **Let op: er is op dit moment géén `middleware.ts` in de repo** — de nette redirect voor uitgelogde bezoekers doet `/account` zelf met `redirect()`. **Database-sessies, geen JWT**: alleen zo kun je toegang direct intrekken na terugbetaling of misbruik.
 - **`src/lib/entitlements.ts` is de enige plek die bepaalt of iemand een betaalde cursus mag zien.** `server-only`, kijkt uitsluitend naar de sessie en een rij in `purchases` met status `paid`. Middleware is géén autorisatie (Auth.js waarschuwt daar expliciet voor) — die doet alleen een nette redirect.
 - Versies staan **exact gepind**: Auth.js v5 is na 2,5 jaar nog steeds beta en Drizzle 1.0-rc breekt auth-adapters. Niet upgraden zonder testen.
 - Valkuil in `src/db/index.ts`: de verbinding wordt opgezet met een placeholder-URL als `DATABASE_URL` ontbreekt, anders faalt `next build`. Lui initialiseren via een Proxy kán niet — de Drizzle-adapter inspecteert het db-object en faalt met "Unsupported database type".
@@ -61,6 +61,8 @@ Accounts, aankopen en voortgang hangen aan gebruikers-id's, niet aan een URL. Bi
 - **Kosten en de Vercel-valkuil rond commercieel gebruik**: `docs/hosting-en-kosten.md`. Kort: Vercel Hobby is alleen voor niet-commercieel gebruik; zodra er betaald kan worden is Pro (~$20/mnd) verplicht.
 - Gered materiaal van de oude WordPress-site: `docs/salvage/`.
 - Jasons eigen ideeën (gebouwd, nog niet gebouwd, afgevallen): `docs/ideeen.md`. Wat de winkel nog mist en waarom: `docs/wat-de-winkel-mist.md`.
+- **Architectuur en schaal**: `docs/architectuur.md` (de kaart, modules en drempels), `docs/plattegrond.md` (autogegenereerd routeoverzicht — `npm run plattegrond` na elke nieuwe pagina), `docs/cms-keuze.md` (Payload, geverifieerd; verhuizing nog niet gepland). Ontwerpprincipe van Jason: **schaal zit in grenzen, niet in massa** — elke module heeft een stabiele interface (`getCourse()`, `heeftToegangTot()`, `verstuurMail()`), binnenkanten zijn verwisselbaar.
+- **College+ en de AI-studiecoach**: het besluit staat in `docs/college-plus-concept.md` — de oefenlaag draagt het abonnement, niet de bibliotheek; lanceervoorwaarden staan erin. Onderliggend onderzoek: `docs/productonderzoek.md`.
 
 ## SEO-huisregels
 
