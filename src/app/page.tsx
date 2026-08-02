@@ -288,25 +288,53 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* De boekenkast — waar de lessen op gebaseerd zijn */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
         <h2 className="text-center text-3xl font-extrabold text-ink">
-          Wat studenten zeggen
+          Uit de boekenkast, niet uit een hype
         </h2>
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
+        <p className="mx-auto mt-3 max-w-2xl text-center text-body">
+          We verzinnen geen methodes. Elke les staat op werk dat zich over
+          decennia heeft bewezen — met bronvermelding, zodat je zelf verder kunt
+          lezen.
+        </p>
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
           {[
-            "Ik ben enorm onder de indruk van de cursussen van Beleggingscollege. Ze zijn gedetailleerd, goed uitgelegd en buitengewoon nuttig.",
-            "Dankzij Beleggingscollege heb ik nu een solide beleggingsstrategie. Ik heb niet alleen de basis geleerd, maar ook geavanceerde technieken.",
-            "Ik was compleet nieuw in de wereld van beleggen, maar de cursus Beleggen voor Beginners heeft alles eenvoudig gemaakt.",
-          ].map((t, i) => (
+            {
+              titel: "The Intelligent Investor",
+              auteur: "Benjamin Graham, 1949",
+              waarom:
+                "De grondlegger van waardebeleggen. Hiervan komt Mr. Market en de veiligheidsmarge — twee ideeën die nog altijd de kern van de cursus vormen.",
+            },
+            {
+              titel: "The Little Book of Common Sense Investing",
+              auteur: "John C. Bogle, 2007",
+              waarom:
+                "Waarom kosten en spreiding meer bepalen dan slim kiezen. Bogle bedacht het indexfonds en hield vol dat saai werkt.",
+            },
+            {
+              titel: "The Psychology of Money",
+              auteur: "Morgan Housel, 2020",
+              waarom:
+                "Beleggen mislukt zelden door rekenwerk en bijna altijd door gedrag. Dit boek legt uit waarom geduld de zeldzaamste vaardigheid is.",
+            },
+          ].map((b) => (
             <figure
-              key={i}
+              key={b.titel}
               className="rounded-2xl border border-lijn bg-white p-7 shadow-card"
             >
-              <div className="text-3xl font-extrabold text-brand-200">&ldquo;</div>
-              <blockquote className="text-sm leading-relaxed text-ink">
-                {t}
-              </blockquote>
+              <div className="flex h-12 w-9 items-center justify-center rounded-md bg-navy-600 text-white shadow">
+                <BookOpen className="h-4 w-4" />
+              </div>
+              <figcaption className="mt-4">
+                <div className="font-bold leading-snug text-ink">{b.titel}</div>
+                <div className="mt-0.5 text-xs font-semibold text-body">
+                  {b.auteur}
+                </div>
+              </figcaption>
+              <p className="mt-3 text-sm leading-relaxed text-body">
+                {b.waarom}
+              </p>
             </figure>
           ))}
         </div>
