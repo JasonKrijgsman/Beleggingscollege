@@ -21,7 +21,12 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 
 ## Accounts, database en toegang
 
-Aanwezig maar **slapend**: zonder `DATABASE_URL` en Google-sleutels draait de site precies als voorheen.
+**Live sinds 3 augustus 2026.** Inloggen met Google werkt op productie; er staan echte gebruikers, sessies en gekoppelde providers in de database.
+
+- **Neon-database draait** (PostgreSQL 17, regio Frankfurt), 8 tabellen aangemaakt via `npx drizzle-kit migrate`. De SQL staat in `drizzle/` en hoort mee de repo in.
+- **Omgevingsvariabelen staan in Vercel** (Production + Preview): `AUTH_SECRET` (een ándere dan lokaal — een lek op de laptop mag geen productiesessies raken), `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, plus alles wat de Neon-integratie zelf injecteert. Lokaal staat hetzelfde in `.env.local` (nooit committen; zie `.env.example`).
+- `NEXT_PUBLIC_SITE_URL` staat bewust **niet** in Vercel: `NEXT_PUBLIC_`-variabelen worden in de browserbundel gebakken, dus die als "Sensitive" markeren is schijnveiligheid. De code valt terug op `https://beleggingscollege.com`. Bij de verhuizing naar de `.nl` alsnog toevoegen, als gewone (niet-gevoelige) variabele.
+- Google OAuth: alleen de scopes `openid`, `email`, `profile` — daarmee is Google's volledige verificatietraject niet nodig. Alle vier de redirect-URI's (localhost, `.com`, `.nl`, `www.nl`) staan al geregistreerd, dus de domeinverhuizing vraagt daar geen actie.
 
 - **Neon** = gehoste Postgres (serverless, schaalt naar nul, gratis laag, regio Frankfurt — **regio is achteraf niet te wijzigen**). **Drizzle** = ORM: queries in TypeScript in plaats van SQL-strings, met typecontrole tijdens de build.
 - **Waarom niet SQLite:** dat is een bestand op schijf, en Vercel heeft geen blijvend bestandssysteem — elke instance krijgt zijn eigen kopie en elke deploy wist hem. Waarom niet Supabase: die pauzeert gratis projecten na een week inactiviteit, onacceptabel voor betalende klanten. Vercel Postgres bestaat niet meer (in 2024 naar Neon verhuisd). Zelf hosten op de NAS kan technisch, maar dan wordt de thuisverbinding de beschikbaarheid van de webshop.
