@@ -8,6 +8,7 @@ const mail = orderbevestigingMail({
   cursusSlug: "waardebeleggen",
   bedragCenten: 4900,
   datum: new Date("2026-08-02T14:30:00Z"),
+  aantalLessen: 6,
   ordernummer: "BC-2026-0001",
 });
 

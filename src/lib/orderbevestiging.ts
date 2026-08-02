@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { purchases, users } from "@/db/schema";
-import { getCourse } from "@/content";
+import { courseLessonCount, getCourse } from "@/content";
 import { ordernummer, verstuurMail } from "./mail";
 import { orderbevestigingMail } from "./mailteksten";
 
@@ -64,6 +64,7 @@ export async function stuurOrderbevestiging(
       voornaam: eersteNaam(aankoop.naam),
       cursusnaam: course.title,
       cursusSlug: course.slug,
+      aantalLessen: courseLessonCount(course),
       bedragCenten: aankoop.amountCents,
       datum: aankoop.paidAt ?? new Date(),
       ordernummer: nummer,
