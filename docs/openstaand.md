@@ -134,15 +134,30 @@ voerde die onwaarheden ook als FAQPage-markup aan Google. Commit `7fd4082`.
 
 ## 4. Wat een betalende klant nu níét krijgt
 
-- **Voortgang die met je meereist.** XP, badges, streak, vinkjes en certificaten staan in
-  `localStorage`. De tabellen `lesson_progress` en `user_stats` staan wél in de database,
-  maar er is geen enkele regel code die ze leest of schrijft. Wie op zijn telefoon inlogt,
-  vindt zijn aankoop terug maar begint qua punten opnieuw. De koopbox en de inlogpagina
-  verkopen expliciet het tegendeel.
-- **Zijn quizresultaten.** Ze worden opgeslagen en nergens getoond.
-- **Een bevestiging, bon of factuur.** Zie hoofdstuk 2.
-- **Een overzicht van wat hij bezit**, anders dan `/account`. In de catalogus staat bij een
-  gekochte cursus nog steeds het prijskaartje van € 49.
+- [x] ~~Voortgang die met je meereist~~ **Gebouwd 2 aug 2026** (`src/lib/voortgang-server.ts`,
+      `POST /api/voortgang`). Ingelogd is de database de bron van waarheid; bij de eerste
+      login wordt de localStorage-historie eenmalig geïmporteerd. **Alle XP wordt op de
+      server herrekend uit de cursusinhoud** — de teller uit de browser gaat bewust de
+      prullenbak in, anders zet iemand met één fetch zijn XP op een miljoen.
+      Nog te doen: uitgelogd blijft `localStorage` leidend, en de individuele quizantwoorden
+      (voor het terugkijken) staan alleen lokaal — die reizen dus níét mee.
+- [x] ~~Zijn quizresultaten~~ **Gebouwd 2 aug 2026** (`src/components/QuizReview.tsx`).
+      Na afronding zijn je antwoorden terug te kijken naast de juiste, met uitleg.
+- [ ] **Een bevestiging, bon of factuur.** Zie hoofdstuk 2 — gebouwd, wacht op verzending.
+- [x] ~~Een overzicht van wat hij bezit~~ Gedeeltelijk: een gekochte cursus toont nu een
+      gouden "Van jou" in de catalogus en "Deze cursus is van jou — levenslang" in de hero,
+      in plaats van het prijskaartje. Een echt "mijn cursussen"-ingangspunt buiten `/account`
+      ontbreekt nog.
+
+## 4b. Waarde voor je geld — de kern van het probleem
+
+Een betaalde cursus was tekst plus een meerkeuzequiz; dat geeft YouTube gratis weg. Op
+2 aug 2026 kreeg elke betaalde cursus daarom een eigen interactieve tool:
+`IntrinsiekeWaardeTool` (Waardebeleggen) en `SteunWeerstandTool` (Technische Analyse).
+
+Dat is een begin, geen oplossing. De hele betaalde catalogus is nog altijd ~100 minuten.
+Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/ideeen.md` en
+`docs/wat-de-winkel-mist.md`.
 
 ## 5. Certificaten deugen niet
 
@@ -178,11 +193,22 @@ voerde die onwaarheden ook als FAQPage-markup aan Google. Commit `7fd4082`.
 - [ ] **De oude WordPress-site draait nog op beleggingscollege.nl**, met de drie verzonnen
       testimonials die uit de nieuwe site zijn gehaald, en met aanbod dat niet meer bestaat.
       Dat is het adres dat in je eigen footer en op elk certificaat staat.
-- [ ] **Geen OG-afbeelding en geen favicon.** Elke gedeelde link is een blanco kaartje.
-- [ ] **Geen Search Console.** De sitemap is nooit ingediend, en zonder Search Console kun
-      je bij de verhuizing naar de .nl geen Change of Address doen — precies het moment
-      waarop je hem nodig hebt.
-- [ ] **`www.beleggingscollege.com` bestaat niet.** Wie het intikt krijgt niets.
+- [x] ~~Geen OG-afbeelding en geen favicon~~ **Gedaan 2 aug 2026.** `src/app/icon.svg`,
+      `apple-icon.tsx` en `opengraph-image.tsx` — die laatste twee worden bij de build als PNG
+      gegenereerd. Wijzig je `LogoMark` in `src/components/Logo.tsx`, pas dan `icon.svg` mee
+      aan; het favicon hoort hetzelfde beeldmerk te zijn.
+- [x] ~~Geen Search Console~~ **Gedaan 2 aug 2026.** Domeinproperty `beleggingscollege.com`
+      geverifieerd via een TXT-record in Cloudflare
+      (`google-site-verification=aMcoxNotYTImcSrnGJDcEpWoCKFN1WFQhhiubh5ty_8` — **laat dat
+      record staan**, anders vervalt de verificatie). Sitemap ingediend. Bewust géén
+      OAuth-koppeling tussen Google en Cloudflare gemaakt: dat geeft Google blijvende
+      DNS-toegang voor een eenmalige controle.
+      Let op: de sitemapstatus stond direct na indienen op "Kan niet ophalen". Dat is de
+      begintoestand vóór Google's eerste crawl; de sitemap zelf geeft HTTP 200 met 32 URL's.
+      Staat dat er over een paar dagen nog, dán is er wél iets aan de hand.
+- [x] ~~`www.beleggingscollege.com` bestaat niet~~ **Gedaan 2 aug 2026.** Toegevoegd in Vercel
+      als **308 permanente redirect** naar het hoofddomein, met een CNAME `www` →
+      `6d87ec9bdcf67bce.vercel-dns-017.com` in Cloudflare (DNS only). Geverifieerd: 308.
 - [ ] **Geen redirects voor de oude WooCommerce `/product/`-URL's** en vier andere
       geïndexeerde WordPress-pagina's; die geven nu 404.
 - [ ] **`/leerpad` heeft geen eigen titel of description** — hij erft die van de homepage.
