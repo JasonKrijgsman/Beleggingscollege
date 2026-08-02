@@ -1,7 +1,11 @@
 # Betalingen via Mollie — status, risico's en bouwplan
 
-Laatst bijgewerkt: 3 augustus 2026. Dit is het levende document voor alles rond betalen.
+Laatst bijgewerkt: 2 augustus 2026. Dit is het levende document voor alles rond betalen.
 Zie ook `docs/wordpress-audit.md` (hoe we dit ontdekten) en `CLAUDE.md` (architectuur).
+
+> **Stand van zaken:** losse cursussen kopen wérkt en is op 2 augustus 2026 end-to-end
+> getest op de live site met een **test**-key. Het abonnement wacht nog op SEPA-goedkeuring.
+> Vóór de eerste echte verkoop moet de test-key vervangen worden door de live-key.
 
 ## Status van het Mollie-account
 
@@ -14,6 +18,11 @@ Zie ook `docs/wordpress-audit.md` (hoe we dit ontdekten) en `CLAUDE.md` (archite
 | Actieve methoden | iDEAL, krediet-/debetkaarten, PayPal, Apple Pay |
 | SEPA-incasso | **Aangevraagd op 3 aug 2026** — status: klok-icoon = in beoordeling bij Mollie |
 | Oud testprofiel | example.org — geblokkeerd, kan genegeerd worden |
+| Test-key in gebruik | `test_…` staat in Vercel (Production + Preview) én in `.env.local` |
+
+Mollie bevestigde tijdens de test zelf: *"Your account is ready to start processing iDEAL
+payments."* De methodes die de API in testmodus teruggaf voor EUR 49,00 zijn iDEAL | Wero,
+Card en PayPal.
 
 De KYC-molen is dus al in 2023 doorlopen. Betalingen zijn **niet** het knelpunt; het ontbreekt
 alleen nog aan accounts/login en serverkant in de nieuwe app.
@@ -21,8 +30,14 @@ alleen nog aan accounts/login en serverkant in de nieuwe app.
 ### Openstaande actie
 - [ ] **Controleer of Mollie SEPA-incasso heeft goedgekeurd** (klok → vinkje op de pagina
       Instellingen → Online Betalingen). Mollie doet hiervoor een extra controleproces.
-- [ ] Live API-key ophalen uit Mollie en veilig in de omgevingsvariabelen van de nieuwe app zetten
-      (**nooit** in de repo committen). De oude WordPress-koppeling stond alleen op de Test-key.
+      Blokkeert alleen het abonnement, niet de losse verkoop.
+- [ ] **Vóór de eerste echte verkoop:** live API-key ophalen uit Mollie en `MOLLIE_API_KEY`
+      in Vercel vervangen (**nooit** in de repo committen). Zolang de test-key erin staat
+      lijkt de winkel open, maar kan niemand echt betalen — dat is de stilste manier om
+      omzet te missen. Na het wisselen opnieuw deployen; de key wordt bij de bouw ingeladen.
+- [ ] Vercel Pro (~$20/mnd) nemen: het Hobby-plan verbiedt commercieel gebruik.
+- [ ] Testaankoop opruimen: de rij `waardebeleggen | paid` op Jasons eigen account komt uit
+      de testbetaling `tr_hTh3aaeBX99fmiT2SjpUJ` en is nooit met echt geld betaald.
 
 ## Tarieven SEPA-incasso (zoals getoond in het Mollie-dashboard)
 
@@ -71,27 +86,67 @@ Deze punten zijn geen "nice to have" — ze zijn onze enige verdediging bij een 
 Kaartbetalingen (al actief) kennen een ander geschillenregime waarin goed bewijs wél telt;
 het is verstandig om zowel iDEAL/SEPA als kaart aan te bieden.
 
-## Wat er nog gebouwd moet worden (dit is het echte werk)
+## Wat er staat — losse cursussen kopen
 
-De huidige site is volledig statisch: alle lesinhoud wordt naar de browser gestuurd. Dat is
-prima voor gratis content, maar **betaalde content moet naar de server** — anders is die
-leesbaar voor iedereen die kijkt. Benodigd voor v2:
+Klaar en getest. De weg die een klant aflegt:
 
-1. **Accounts + login** (bijv. Auth.js) — nu leeft voortgang alleen in localStorage
-2. **Database** voor gebruikers, voortgang en abonnementsstatus
-3. **Serverkant afscherming** van betaalde lessen (content niet meesturen zonder actief abonnement)
-4. **Mollie-koppeling**: eerste betaling via iDEAL → mandaat → recurring via SEPA-incasso.
-   Mollie heeft een eigen **Abonnementen**-product in het dashboard; recurring hoeft niet
-   volledig zelf gebouwd te worden.
-5. **Webhooks** van Mollie verwerken (betaald / mislukt / gestorneerd) en de toegang daarop
-   bijwerken
-6. Facturen/btw: 21% btw, factuur per betaling
+1. `/cursussen/[slug]` toont de koopknop (`src/components/KoopKnop.tsx`) met de verplichte
+   herroepingscheckbox. De knop blijft uit tot die is aangevinkt.
+2. `POST /api/checkout` — prijs komt uit **onze eigen catalogus**, nooit uit het verzoek,
+   anders bepaalt de klant zelf wat hij betaalt. Weigert zonder login (401), zonder akkoord
+   (400) en bij een cursus die je al hebt (409). Maakt de betaling bij Mollie aan en schrijft
+   één rij in `purchases` met status `pending` (unieke index op userId + courseSlug, dus een
+   tweede poging werkt dezelfde rij bij in plaats van er een nieuwe naast te zetten).
+3. Klant betaalt op Mollie's eigen pagina. Wij zien nooit bank- of kaartgegevens.
+4. `POST /api/mollie/webhook` — Mollie stuurt alléén `id=tr_…`, geen status en geen bedrag.
+   Dat is met opzet: het endpoint is publiek. Wij halen de status dus zelf op met onze
+   API-key en controleren bedrag én valuta tegen wat wij hadden vastgelegd.
+5. `heeftToegangTot()` in `src/lib/entitlements.ts` is de enige toegangspoort. De lespagina
+   rendert per verzoek (`dynamicParams`), zodat de check nooit vastvriest tijdens de bouw.
 
-## Prijsstelling — nog te beslissen
+### Wat er op 2 augustus 2026 daadwerkelijk getest is (live, met test-key)
+
+| Controle | Uitkomst |
+|---|---|
+| Koopknop uit tot herroepingsvakje aan staat | ✅ |
+| Mollie-checkout opent, testmodus-banner, logo, € 49,00 | ✅ |
+| `purchases`-rij op `pending` met hetzelfde `tr_`-id als de checkout-URL | ✅ |
+| Webhook zet de rij op `paid` | ✅ |
+| Vergrendelde les toont daarna de volledige inhoud | ✅ |
+| `/account` toont "Ontdek Waardebeleggen — Levenslang toegang" | ✅ |
+| Koopknop verdwijnt na aankoop | ✅ |
+| Checkout zonder login | 401 ✅ |
+| Webhook met een verzonnen `tr_`-id | 200 ✅ (zie hieronder) |
+| Anoniem verzoek op de betaalde les ná de aankoop | slotpagina, 0 regels lesinhoud ✅ |
+| Cache-headers op die pagina | `private, no-cache, no-store` ✅ |
+
+De laatste twee zijn de belangrijkste: ze bewijzen dat een betaalde pagina niet per ongeluk
+in de CDN belandt en zo bij een willekeurige bezoeker terechtkomt.
+
+### Waarom de webhook 200 antwoordt op een onbekend id
+
+Mollie geeft een 404 als je een betaling opvraagt die niet bestaat. Die fout viel eerst in de
+algemene catch en leverde een 500 op — waarmee Mollie tien keer over 26 uur terugkwam voor
+iets wat nooit gaat lukken. Omdat het endpoint publiek is kon iedereen dat uitlokken met een
+verzonnen id. Nu onderscheiden we 404/410 (betaling bestaat niet → 200, klaar) van echte
+storingen als 401, 429 en 5xx, waar herhalen juist gewenst is.
+
+## Wat er nog niet staat
+
+1. **Abonnement (College+)** — eerste betaling via iDEAL → mandaat → recurring via SEPA.
+   Wacht op de SEPA-goedkeuring. Mollie heeft een eigen **Abonnementen**-product in het
+   dashboard; recurring hoeft niet volledig zelf gebouwd te worden.
+2. **Bevestigingsmail** na aankoop — nu krijgt de klant alleen de bedankpagina.
+3. **Facturen/btw**: 21% btw, factuur per betaling.
+4. **Terugbetalingen**: Mollie zet de betaling niet zelf op `refunded`, dat komt via een
+   aparte refund-webhook. Zodra we gaan terugbetalen moet daar ook de toegang worden
+   ingetrokken (staat als comment in de webhook).
+
+## Prijsstelling — besloten
 
 - 2023 (WooCommerce): Technische Analyse € 19,99, Waardebeleggen € 19,99, Beginners € 4,99
-- 2023 (homepage-claim): "vanaf € 14,99"
-- Nieuwe site (nu): **College+ € 14,99/maand**, beginnerscursus gratis
+- Nu: **losse cursus € 49**, **College+ € 14,99/maand**, **€ 149/jaar**, beginnerscursus gratis
 
-Te beslissen: alleen abonnement, of ook losse cursussen kopen? Losse verkoop kan meteen
-(iDEAL/kaart staan al live), een abonnement moet wachten op SEPA-goedkeuring.
+Beide vormen worden aangeboden, zodat mensen kunnen kiezen. Losse verkoop kon meteen
+(iDEAL/kaart staan al live), het abonnement wacht op SEPA-goedkeuring. Bedragen staan op
+één plek: `src/lib/pricing.ts`.

@@ -78,12 +78,26 @@ Dit merk verkoopt zichzelf als de eerlijke tegenhanger van get-rich-quick-aanbie
 
 ## Betalingen
 
-- Mollie-account is **volledig live-klaar** (KYC afgerond in 2023, bankrekening geverifieerd, profiel Online). iDEAL, kaarten, PayPal en Apple Pay staan actief; SEPA-incasso is 3 aug 2026 aangevraagd en wacht op goedkeuring.
-- **Volledige status, tarieven, MOI-risico (€65) en verplichte tegenmaatregelen: `docs/betalingen-mollie.md`.** Lees dat bestand vóór er iets aan de checkout gebouwd wordt.
-- Live API-key hoort in omgevingsvariabelen, **nooit** in de repo.
+- **Losse cursussen kopen wérkt** — op 2 aug 2026 end-to-end getest op de live site: koopknop → Mollie → webhook → `purchases.status = 'paid'` → les ontgrendelt. Bewijs en testmatrix in `docs/betalingen-mollie.md`.
+- **Er staat nu een `test_`-key in Vercel.** De winkel lijkt dus open, maar niemand kan echt betalen. Vervang `MOLLIE_API_KEY` door de live-key vóór de eerste verkoop, en deploy daarna opnieuw.
+- Mollie-account is live-klaar (KYC afgerond in 2023, bankrekening geverifieerd, profiel Online). iDEAL, kaarten, PayPal en Apple Pay staan actief; SEPA-incasso is 3 aug 2026 aangevraagd en wacht nog op goedkeuring — dat blokkeert alleen het abonnement, niet de losse verkoop.
+- **MOI-risico (€65), tarieven en verplichte tegenmaatregelen: `docs/betalingen-mollie.md`.** Lees dat vóór er aan het abonnement gebouwd wordt.
+- API-keys horen in omgevingsvariabelen, **nooit** in de repo.
+
+### Twee regels die niet gebroken mogen worden
+
+1. **De prijs komt uit onze eigen catalogus, nooit uit het verzoek.** Anders bepaalt de klant wat hij betaalt.
+2. **De webhook gelooft niets uit de payload behalve het id.** Mollie stuurt alleen `id=tr_…`; het endpoint is publiek, dus de status halen we zelf op en we controleren bedrag én valuta tegen wat wij hadden vastgelegd.
+
+## Toegang tot betaalde content
+
+`heeftToegangTot()` in `src/lib/entitlements.ts` is de **enige** toegangspoort — voeg geen tweede check elders toe, dan lopen ze uit elkaar.
+
+Twee valkuilen die we al een keer in productie hebben gehad:
+
+- **Props naar client components komen in de HTML terecht.** Geef daarom nooit een `Course` door; gebruik de view-modellen in `src/content/view.ts`. Zo lekten ooit alle lesteksten én de quizantwoorden (`correctIndex`) mee in de publieke cursuspagina.
+- **Betaalde lespagina's mogen niet vooraf gebouwd worden.** `generateStaticParams` levert alleen de gratis cursus; de rest rendert per verzoek. Anders bevriest de toegangscheck tijdens de bouw — zonder sessie — en zien kopers voor altijd het slot.
 
 ## Roadmap (v2+)
 
-Accounts/auth + serverkant voortgang, betalingen (College+ €14,99/mnd — zie `docs/betalingen-mollie.md`), AI-studiecoach, cursus Beleggingspsychologie (nu comingSoon-teaser), risicoprofiel-tool, blog.
-
-**Let op bij v2:** betaalde lesinhoud moet naar de server. Nu wordt alle content naar de browser gestuurd — prima voor gratis materiaal, onhoudbaar zodra er betaald wordt.
+Abonnement College+ (wacht op SEPA), bevestigingsmail na aankoop, facturen/btw, terugbetalingen, AI-studiecoach, cursus Beleggingspsychologie (nu comingSoon-teaser), risicoprofiel-tool.
