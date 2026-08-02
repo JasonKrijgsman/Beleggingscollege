@@ -25,6 +25,8 @@ reist niet mee naar een ander apparaat. Zie `docs/wat-de-winkel-mist.md`, punt 3
 ## Nog niet gebouwd
 
 ### AI-studiecoach
+
+**Besluit genomen op 2 aug 2026: zie `docs/college-plus-concept.md`** — de coach wordt oefenmeester (fase 1), met de AFM-grens als architectuurprincipe en een evalset als release-criterium.
 Al genoemd op de prijskaart van College+ als kenmerk, terwijl hij niet bestaat. Dat is nu
 gemarkeerd als "Beschikbaar bij lancering", maar het blijft een belofte met een deadline.
 
