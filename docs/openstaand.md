@@ -1,6 +1,6 @@
 # Openstaand — de eerlijke stand van zaken
 
-Laatst bijgewerkt: 2 augustus 2026.
+Laatst bijgewerkt: 3 augustus 2026.
 
 Dit is de losse-eindjeslijst. Eén plek, zodat je niet door 3.000 regels documentatie
 hoeft te zoeken om te weten wat er nog moet. De andere documenten beschrijven hóe iets
@@ -14,6 +14,13 @@ controles over de code, de documentatie, de live site, de juridische pagina's en
 databank zijn gehaald, en elke bevinding daarna door een tweede controleur is nagelopen.
 96 bevindingen hielden stand, 7 sneuvelden. Die 7 staan onderaan, zodat niemand ze opnieuw
 gaat uitzoeken.
+
+Een onafhankelijke second opinion door OpenAI Codex staat in
+[`docs/reviews/2026-08-02-codex-website-en-architectuurreview.md`](reviews/2026-08-02-codex-website-en-architectuurreview.md).
+Die review legt bewijs en afwegingen vast; de nog uit te voeren punten blijven uitsluitend
+in dit document staan. De Codex-punten zijn daarna stuk voor stuk tegen de code
+geverifieerd — regelnummers gecontroleerd, races nagelopen, de npm-audit opnieuw
+gedraaid — en met die details hieronder verwerkt.
 
 ---
 
@@ -84,6 +91,10 @@ juridisch niet mag verkopen, of kun je een geschil niet winnen.
       naar de console gelogd. Omdat juist die mail bepaalt of het herroepingsrecht vervalt, is
       "hij ging niet weg en niemand weet het" het slechtst denkbare gat. Er hoort een
       herhaalpoging te zijn, of op zijn minst een waarschuwing naar Jason zelf.
+      Let op: de code rekent erop dat een volgende webhook-aanroep het opnieuw probeert
+      (`confirmationSentAt` blijft leeg bij falen), maar de webhook antwoordt ook na een
+      mislukte mail gewoon 200 — Mollie herhaalt dan dus juist níét. Herstel hangt nu op een
+      toevallige tweede aanroep.
 - [ ] **Voorwaarden meesturen als tekst of bijlage.** Strikt genomen moeten de algemene
       voorwaarden mee op de duurzame gegevensdrager, niet alleen als link. De mail claimt nu
       geen bijlage (dat zou een onwaarheid zijn), maar het gat blijft.
@@ -167,26 +178,76 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
 - De tekst beloofde "alle quizzen behaald", terwijl de quiz geen ondergrens kent — nul goed
   telt ook als afgerond. Op 2 aug afgezwakt naar "doorlopen", maar de echte keuze staat nog
   open: óf een slaagdrempel invoeren, óf accepteren dat het een deelnamebewijs is.
+- Sinds 2 aug staat er wél servervoortgang in de database, maar de certificaatpagina kijkt
+  er niet naar: de controle zit volledig in de client (localStorage, vrij te bewerken) en
+  de pagina wordt zelfs vooraf gebouwd voor álle cursussen, ook de betaalde. De richting
+  voor betaalde cursussen: uitgifte op de server na controle van aankoop én voltooiing,
+  met een onveranderlijk verificatie-id op het document. Zie CODEX-108.
 
 ## 6. Techniek en bedrijfsvoering
 
-- [ ] **Lokaal, Preview en productie delen één database.** `DATABASE_URL` is overal
-      dezelfde. Een verkeerd commando op de laptop raakt de echte klantgegevens. Dit is het
-      soort fout dat één keer gebeurt en dan groot is.
-- [ ] **Geen monitoring, geen alarmering, geen foutpagina.** Elke storing hierboven
-      verloopt geruisloos: je hoort het pas van een klant. Er is ook geen eigen `error.tsx`,
-      dus een databasehapering geeft een kale, Engelstalige pagina.
+- [ ] **De laptop gebruikt nog de primaire productiedatabase.** Gecontroleerd in Jasons
+      Chrome: Production gebruikt de primaire Neon-branch; Preview is wél goed geïsoleerd
+      via de ingeschakelde Neon deployment action, die per Preview-deployment een tijdelijke
+      branch en connection string maakt. Maar `.env.local` bevat exact het primaire endpoint
+      uit Vercel. Maak één vaste Neon Development-branch en zet uitsluitend die lokaal; laat
+      scripts en migraties weigeren als ze per ongeluk tegen productie draaien. Zie
+      CODEX-002 in de Codex-review.
+- [ ] **Geen monitoring, geen alarmering.** Elke storing hierboven verloopt geruisloos:
+      je hoort het pas van een klant. Alle fouten in webhook en mail zijn `console.error`
+      in Vercels vluchtige logboeken. (De foutpagina's zijn er inmiddels wél:
+      Nederlandstalige `error.tsx` en `global-error.tsx` sinds commit `729e0cd` — alleen
+      is de digest-code die ze tonen nergens terug te zoeken.) Minimaal nodig: het
+      tienregelige zelfmailtje uit `docs/wat-de-winkel-mist.md` §5 bij mismatch-betalingen,
+      blijven hangen `pending`-aankopen en mislukte bevestigingsmails; een periodieke
+      opruimronde (cron) die verweesde `pending`-rijen bij Mollie naslaat; en een
+      gedocumenteerde, één keer echt geoefende restore van de Neon-database — de gratis
+      laag kan maar 6 uur terug in de tijd. Zie CODEX-005.
 - [ ] **Geen tests, geen CI, geen lint in de pijplijn** — terwijl elke push naar `main`
-      automatisch naar productie gaat, inclusief het betaalpad.
+      automatisch naar productie gaat, inclusief het betaalpad. Het enige impliciete hek
+      is dat `next build` typecheckt (strict staat aan) en een kapotte build niet live
+      gaat; ESLint is niet eens geïnstalleerd. Minimaal, vóór de merge: typecheck, lint
+      (mét toegankelijkheidsregels), productiebuild, de bundel-lekcontrole uit hoofdstuk 3
+      (`grep correctIndex`), tests voor de geldpaden — prijsconversie, webhook-idempotentie,
+      `heeftToegangTot()`, voortgang, terugbetaling — en een preview-deploy die groen moet
+      zijn. Zie CODEX-003.
 - [ ] **Chargeback.** Komt er een terugboeking, dan houdt de klant zijn toegang, kost het
       € 10 en ziet niemand het.
-- [ ] **Drie kwetsbaarheden met hoge ernst in de afhankelijkheden**, en niets dat dat ooit
-      zou melden.
+- [ ] **Kwetsbaarheden in de afhankelijkheden, en niets dat dat ooit zou melden.** Herteld
+      op 2 aug: drie hoog (twee in postcss, één in sharp — allebei pakketten die Next zelf
+      bundelt) plus een paar middelzware, waaronder esbuild via drizzle-kit (raakt alleen
+      de dev-machine). Praktische blootstelling is klein: er is geen vreemde CSS of
+      beeldupload en `next/image` wordt nergens gebruikt. **Draai níét `npm audit fix`** —
+      dat stelt serieus een downgrade naar Next 9.3.3 voor. De echte route: Next binnen
+      v15 bijwerken zodra de patches gebundeld zijn, en vóór het einde van Next 15's
+      onderhoudsperiode (±oktober 2026, nextjs.org/support-policy) een geteste migratie
+      naar Next 16 inplannen. Zie CODEX-110.
 - [ ] **De prijs wordt met een regex uit een weergavetekst ("€49") gepeuterd.** Werkt, maar
       breekt zodra iemand er een punt of komma anders in zet. De prijs hoort een getal in
       centen te zijn, met de tekst als afgeleide — niet andersom.
 - [ ] **`/lab` staat publiek** (HTTP 200). Wel `noindex, nofollow`, dus Google neemt hem
       niet op, maar wie de URL heeft ziet het interne stijllab.
+- [ ] **`auth()` in de root-layout maakt ook publieke marketingpagina's dynamisch.** De live
+      homepage antwoordt daardoor met `private, no-cache, no-store` en iedere bezoeker kan de
+      database wekken. Isoleer sessie-afhankelijke UI en controleer daarna caching en
+      Neon-wakeups. Zie CODEX-101 in de Codex-review.
+- [ ] **Open redirect via `/inloggen?terug=`.** `terug` gaat ongewijzigd naar `redirect()`
+      en Auth.js `redirectTo`. Accepteer alleen een intern pad dat met één `/` begint en val
+      anders terug op `/leerpad`. Zie CODEX-102.
+- [ ] **De mobiele header loopt horizontaal uit.** Bij een viewport van 390px was het
+      document 492px breed. Maak een echt mobiel menu of verberg secundaire elementen en
+      test 320/375/390px. Zie CODEX-103.
+- [ ] **Voortgang mist twee serverregels.** `POST /api/voortgang` controleert geen aankoop
+      voordat betaalde cursusvoortgang wordt geschreven; “Voortgang wissen” wist bij een
+      ingelogde gebruiker alleen de lokale cache en de server zet alles terug. Zie
+      CODEX-104 en CODEX-105.
+- [ ] **Ordermail heeft een race en achterhaalde tekst.** Gelijktijdige webhooks kunnen
+      allebei mailen vóór `confirmationSentAt` gezet is; de mail zegt bovendien nog dat
+      voortgang uitsluitend in de browser leeft. Maak verzending claim/outbox-gestuurd en
+      werk de tekst bij. Zie CODEX-004 en CODEX-106.
+- [ ] **Algemene browserbeveiligingsheaders ontbreken.** Ontwerp minimaal frame-,
+      content-type-, referrer- en permissions-beleid; ontwerp CSP apart rond Google,
+      Mollie en een eventuele Payload-preview. Zie CODEX-109.
 
 ## 7. Vindbaarheid
 
@@ -212,6 +273,9 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
 - [ ] **Geen redirects voor de oude WooCommerce `/product/`-URL's** en vier andere
       geïndexeerde WordPress-pagina's; die geven nu 404.
 - [ ] **`/leerpad` heeft geen eigen titel of description** — hij erft die van de homepage.
+- [ ] **De sitemap bevat ook alle betaalde les-URL's.** Bepaal bewust of een zoekmachine een
+      vergrendelde lespagina moet indexeren; haal ze eruit als de indexeerbare pagina geen
+      zelfstandige publieke waarde heeft.
 
 ## 8. Domein en e-mail
 
@@ -245,10 +309,34 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
   die nog niet geweest is.
 - `CLAUDE.md` zei tot voor kort dat er geen backend of database is.
 - `README.md` beschrijft een product dat niet meer bestaat.
+- `docs/cms-keuze.md` zegt dat Payload de geïnstalleerde `next@15.5.22` ondersteunt omdat
+  de eis “Next ≥ 15.4.11” zou zijn. De actuele officiële matrix noemt alleen specifieke
+  `15.2.x`, `15.3.x`, `15.4.x`-reeksen of `16.2.6+`; `15.5.x` ontbreekt. Vóór een proef moet
+  dus bewust een ondersteunde Next-versie worden gekozen.
+- Hetzelfde document noemt de Payload-migratie “triviaal” en zegt dat buiten
+  `getCourse()`/`catalogus()` niets verandert. `getCourse()` is nu synchroon en heeft ten
+  minste veertien aanroepen in entitlement, checkout, voortgang, mails, metadata en
+  pagina's; databasequeries zijn asynchroon. Voeg caching, invalidatie, drafts en het
+  gedrag bij CMS-uitval aan het verhuisplan toe.
 
 ## 9b. Lopend op 2 aug 2026 — voor wie dit later oppakt
 
-- [x] ~~Menselijke elementen-onderzoek~~ **Geland op 2 aug 2026: `docs/menselijke-elementen.md`** — de rangschikking van wat alleen Jason kan toevoegen, inclusief het DaVinci Resolve-antwoord en de eerste stap voor komende maand.
+- [x] ~~Menselijke elementen-onderzoek~~ **Geland op 2 aug 2026: .**
+  De stand van deze draad, in drie sporen:
+  - **Besloten en vastgelegd:** de top 7 (introvideo's, fotografie, post uit Den Haag,
+    College Live, kwartaal-dagboek, leesclub, pers via VIDM), de afwijzingen mét reden
+    (podcast, NRTO-keurmerk — eist €150.000 jaaromzet, algemeen forum), de forumrichting
+    vragen-per-les (), en de Resolve-keten. Jason bezit Resolve **Studio**,
+    dus de scripting-API en het volledige AI-gereedschap zijn er al.
+  - **Wacht op Jason (buiten het scherm):** de kanttekening-avond (één pen, één zitting,
+    gratis cursus eerst), de gecombineerde foto-/videodag, en de bestelling van
+    bedankkaarten + certificaatpapier (~€70–140).
+  - **Wacht op bouwwerk (klaar om te starten zodra Jason het zegt):** het
+    kanttekening-component + contentveld in , de "Vragen bij deze les"-tabel,
+    API-route en moderatiescherm, en de Resolve-montagestraat (pas ná de eerste vijf
+    handmatige video's — automatiseer niet wat je nog niet begrijpt).
+  De klok telt hier mee: het archief wordt pas onkopieerbaar door tijd, dus elke maand
+  eerder beginnen is voorsprong die niet in te halen is.
 
 ## 10. Onderzocht en in orde — niet opnieuw uitzoeken
 
