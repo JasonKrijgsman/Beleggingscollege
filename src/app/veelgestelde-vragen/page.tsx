@@ -62,9 +62,9 @@ const faqGroepen: Groep[] = [
       {
         vraag: "Moet ik een account maken?",
         antwoord: [
-          "Op dit moment niet. Er is nog geen inlog. Je voortgang, XP, badges en quizscores worden opgeslagen in je eigen browser, niet op onze servers.",
-          "Dat heeft een keerzijde die je moet weten: je voortgang hoort bij dit apparaat én deze browser. Wis je je browsergegevens of stap je over op een andere computer, dan begin je daar met een schone lei. De lesinhoud blijft natuurlijk gewoon beschikbaar.",
-          "Zodra accounts live gaan, kun je je voortgang koppelen en overal verder waar je gebleven was.",
+          "Voor de gratis beginnerscursus niet: die kun je meteen volgen zonder iets aan te maken. Wil je een betaalde cursus kopen, dan log je in met je Google-account. Dat is nodig om de cursus aan jou te kunnen koppelen, zodat je hem terugvindt.",
+          "Je voortgang — XP, badges, streak en quizscores — wordt op dit moment opgeslagen in je eigen browser, niet op onze servers. Dat heeft een keerzijde die je moet weten: die voortgang hoort bij dit apparaat én deze browser. Wis je je browsergegevens of stap je over op een andere computer, dan begin je daar met een schone lei.",
+          "Je aankoop zelf staat wél bij ons en raak je dus nooit kwijt: log je elders in met hetzelfde Google-account, dan staat de cursus gewoon open. Alleen je punten en badges beginnen daar opnieuw. Voortgang die met je account meereist staat op de planning.",
         ],
       },
       {
@@ -92,14 +92,14 @@ const faqGroepen: Groep[] = [
         vraag: "Wat kost het?",
         antwoord: [
           "Beleggen voor Beginners is gratis en blijft gratis. Geen proefperiode, geen creditcard, geen halve cursus die na les drie op slot gaat.",
-          `Voor de verdiepende cursussen komen er bij lancering twee opties: een losse cursus voor ${PRICING.losseCursus} eenmalig, met levenslange toegang tot die cursus, of College+ voor ${PRICING.abonnementMaand} per maand met toegang tot alle cursussen, inclusief nieuwe die erbij komen.`,
-          "Betaalde toegang is nog niet live. Zolang dat zo is, betaal je hier nergens voor.",
+          `Een verdiepende cursus koop je los voor ${PRICING.losseCursus} eenmalig. Daarmee heb je levenslang toegang tot die cursus — geen abonnement dat doorloopt, geen verlenging die je moet opzeggen.`,
+          `College+, het abonnement van ${PRICING.abonnementMaand} per maand met toegang tot alle cursussen, is er nog niet. Dat wachten we af tot automatische incasso is goedgekeurd. Tot die tijd koop je cursussen los.`,
         ],
       },
       {
-        vraag: "Hoe kan ik straks betalen?",
+        vraag: "Hoe kan ik betalen?",
         antwoord: [
-          "Bij lancering loopt het betalen via Mollie, een Nederlandse betaaldienstverlener. Je kunt dan betalen met iDEAL, creditcard of debitcard, PayPal en Apple Pay.",
+          "Het betalen loopt via Mollie, een Nederlandse betaaldienstverlener. Je kunt betalen met iDEAL, creditcard of debitcard, PayPal en Apple Pay.",
           "Je betaalgegevens gaan rechtstreeks naar Mollie. Wij zien en bewaren je kaart- of rekeninggegevens niet.",
         ],
       },

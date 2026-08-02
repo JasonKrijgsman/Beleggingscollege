@@ -130,9 +130,10 @@ export default function VoorwaardenPage() {
         </div>
       </div>
       <p className="mt-4 leading-relaxed text-body">
-        Betaalde toegang en het abonnement zijn op dit moment nog niet live. De
-        bepalingen over betaling, opzeggen en herroeping gelden vanaf het moment
-        dat je daadwerkelijk iets bij ons kunt kopen.
+        Losse cursussen kun je op dit moment kopen; alles wat hier over betaling
+        en herroeping staat, geldt dus vanaf nu. College+ is er nog niet — de
+        bepalingen over het abonnement en het opzeggen daarvan gelden pas zodra
+        je je er daadwerkelijk op kunt abonneren.
       </p>
 
       <h2 className="mt-12 flex items-center gap-2 text-2xl font-bold text-ink">

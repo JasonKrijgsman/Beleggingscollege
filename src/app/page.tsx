@@ -205,7 +205,8 @@ export default function HomePage() {
             <h2 className="text-3xl font-extrabold text-ink">Onze cursussen</h2>
             <p className="mt-2 max-w-xl text-body">
               Begin gratis met de basis, groei door naar waardebeleggen en
-              technische analyse. Elk kwartaal komt er een cursus bij.
+              technische analyse. De volgende cursus in de maak is
+              Beleggingspsychologie.
             </p>
           </div>
         </div>

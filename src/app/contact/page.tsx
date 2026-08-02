@@ -61,8 +61,8 @@ export default function ContactPage() {
       <p className="mt-4 leading-relaxed text-body">
         Loop je vast in een les, werkt er iets niet, of wil je gewoon even
         sparren over onze aanpak? Mail ons. Achter Beleggingscollege zit geen
-        callcenter maar een klein team, dus je krijgt antwoord van iemand die de
-        cursussen zelf heeft gemaakt.
+        callcenter, maar de maker zelf — je krijgt dus antwoord van degene die
+        de cursussen geschreven heeft.
       </p>
 
       {/* Primaire actie */}

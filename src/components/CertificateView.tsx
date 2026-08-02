@@ -124,8 +124,8 @@ export default function CertificateView(props: Props) {
             {props.courseSubtitle}
           </div>
           <p className="mt-4 text-sm text-body">
-            heeft afgerond — {props.totalLessons} lessen, alle quizzen behaald,{" "}
-            {props.totalXp.toLocaleString("nl-NL")}+ XP verdiend.
+            heeft doorlopen — {props.totalLessons} lessen met bijbehorende
+            quizzen, {props.totalXp.toLocaleString("nl-NL")}+ XP verdiend.
           </p>
           <div className="mt-12 flex items-end justify-between text-left">
             <div>

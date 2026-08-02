@@ -118,8 +118,9 @@ export default function PrivacyPage() {
         2. Wat we nu verwerken
       </h2>
       <p className="mt-3 leading-relaxed text-body">
-        Je kunt de site op dit moment volledig gebruiken zonder account. Er is
-        dus ook nauwelijks iets te verwerken.
+        De gratis beginnerscursus kun je volledig volgen zonder account. Dan
+        verwerken we alleen de technische logs hieronder. Log je in of koop je
+        een cursus, dan komt daar bij wat in hoofdstuk 3 staat.
       </p>
 
       <h3 className="mt-6 text-lg font-bold text-ink">
@@ -170,23 +171,28 @@ export default function PrivacyPage() {
 
       <h2 className="mt-12 flex items-center gap-2 text-2xl font-bold text-ink">
         <CreditCard className="h-6 w-6 text-brand-600" aria-hidden="true" />
-        3. Wat erbij komt zodra accounts en betalingen live gaan
+        3. Wat we verwerken als je inlogt of iets koopt
       </h2>
       <p className="mt-3 leading-relaxed text-body">
-        Accounts en betaalde toegang zijn nog niet live. Zodra dat wel zo is,
-        verwerken we ook de volgende gegevens. We noemen ze hier alvast, zodat
-        je vooraf weet waar je aan toe bent.
+        Inloggen en losse cursussen kopen werken. Doe je dat, dan verwerken we
+        de gegevens hieronder.
       </p>
       <ul className="mt-4 list-disc space-y-3 pl-5 leading-relaxed text-body">
         <li>
-          <strong className="text-ink">Accountgegevens:</strong> je naam en
-          e-mailadres, plus een versleutelde weergave van je wachtwoord (het
-          wachtwoord zelf slaan we niet leesbaar op).
+          <strong className="text-ink">Accountgegevens:</strong> inloggen gaat
+          uitsluitend via je Google-account. Wij vragen bij Google alleen je
+          naam, je e-mailadres en je profielfoto op — meer niet. Een wachtwoord
+          leggen wij dus nergens vast; dat houd je bij Google. Van die koppeling
+          bewaren we de technische sleutels die nodig zijn om je sessie te laten
+          werken.
         </li>
         <li>
-          <strong className="text-ink">Voortgangsgegevens op de server:</strong>{" "}
-          afgeronde lessen, quizresultaten, XP en behaalde certificaten, zodat
-          je op elk apparaat verder kunt waar je gebleven was.
+          <strong className="text-ink">Bewijs van je akkoord:</strong> koop je
+          een cursus, dan leggen we vast op welk moment je akkoord ging met het
+          direct starten (en daarmee met het opgeven van je herroepingsrecht),
+          welke versie van die tekst je zag, en het IP-adres van dat moment. Dat
+          doen we omdat we bij een geschil moeten kunnen aantonen wat je precies
+          hebt geaccepteerd. Dit bewaren we tot dertien maanden na de aankoop.
         </li>
         <li>
           <strong className="text-ink">Betaalgegevens:</strong> betalingen lopen
@@ -198,9 +204,17 @@ export default function PrivacyPage() {
           volledige bankrekening- of kaartnummer krijgen wij niet te zien.
         </li>
         <li>
-          <strong className="text-ink">Bestel- en factuurgegevens:</strong> wat
-          je hebt gekocht, wanneer, voor welk bedrag en welke btw daarover is
-          berekend.
+          <strong className="text-ink">Bestelgegevens:</strong> welke cursus je
+          hebt gekocht, wanneer, voor welk bedrag en met welke status. Deze
+          gegevens moeten we voor de belastingdienst zeven jaar bewaren, ook als
+          je je account laat verwijderen.
+        </li>
+        <li>
+          <strong className="text-ink">Voortgangsgegevens:</strong> je XP,
+          badges, streak en quizscores staan op dit moment nog uitsluitend in je
+          eigen browser, ook als je bent ingelogd. Ze gaan dus niet mee naar een
+          ander apparaat. Zodra dat verandert passen we deze verklaring aan,
+          vóórdat we ermee beginnen.
         </li>
         <li>
           <strong className="text-ink">Nieuwsbrief:</strong> alleen als je je
@@ -294,16 +308,26 @@ export default function PrivacyPage() {
       </p>
       <ul className="mt-4 list-disc space-y-3 pl-5 leading-relaxed text-body">
         <li>
-          <strong className="text-ink">Mollie B.V.</strong> — afhandeling van
-          betalingen (bij lancering).
+          <strong className="text-ink">Google Ireland Ltd.</strong> — inloggen.
+          Google weet daardoor dát je hier inlogt. Wij vragen alleen je naam,
+          e-mailadres en profielfoto op.
         </li>
         <li>
-          <strong className="text-ink">Onze hostingpartij</strong> — draaien van
-          de website en de database.
+          <strong className="text-ink">Mollie B.V.</strong> (Amsterdam) —
+          afhandeling van betalingen.
         </li>
         <li>
-          <strong className="text-ink">Onze e-mailprovider</strong> — versturen
-          en ontvangen van e-mail.
+          <strong className="text-ink">Vercel Inc.</strong> — hosting van de
+          website, inclusief de technische logs.
+        </li>
+        <li>
+          <strong className="text-ink">Neon Inc.</strong> — de database waarin
+          je account en je aankopen staan. Die database draait in Frankfurt,
+          binnen de EU.
+        </li>
+        <li>
+          <strong className="text-ink">STRATO AG</strong> — het e-mailverkeer
+          naar en van beheer@beleggingscollege.nl.
         </li>
         <li>
           <strong className="text-ink">Onze boekhouder en de Belastingdienst</strong>{" "}
