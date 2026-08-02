@@ -2,6 +2,29 @@
 
 *Researched: 2 August 2026. Prices verified on registrar websites on that date — re-check at checkout, promos and tariffs change.*
 
+> **Status 3 augustus 2026 — lees dit eerst.**
+>
+> De site staat inmiddels **live op https://beleggingscollege.com** (Cloudflare-DNS → Vercel).
+> Die `.com` is bewust als tijdelijk adres gebruikt omdat de `.nl` vastzit bij Strato.
+>
+> **De verhuizing van de `.nl` is geblokkeerd** door Strato's DNSSEC-deactivering: het DS-record
+> stond op 3 aug nog steeds bij SIDN en Strato's paneel meldt "Wordt gedeactiveerd". Zolang dat
+> loopt is het domein op slot — de naamserverpagina is grijs en de Providerwissel eindigt in
+> "Er is een fout opgetreden". Zie de sectie **⚠️ Gotcha** verderop.
+>
+> Controleer de stand met (Windows PowerShell — `nslookup` kan géén DS-records opvragen en geeft
+> een misleidend antwoord):
+> ```powershell
+> Resolve-DnsName beleggingscollege.nl -Type DS -Server 1.1.1.1
+> ```
+> Geen antwoord = DNSSEC is eraf, en dan kunnen de naamserverwissel én de Providerwissel wél door.
+>
+> **Wat er daarna nog moet gebeuren:** naamservers naar Cloudflare (mail via Migadu wordt dan
+> live, daarna beheer@ aanmaken), Providerwissel → verhuiscode per e-mail naar
+> jason_k56@hotmail.com, transfer naar Porkbun (~$7,83), `NEXT_PUBLIC_SITE_URL` in Vercel op de
+> `.nl` zetten, permanente redirect `.com` → `.nl` toevoegen, en pas als laatste het
+> Strato-pakket opzeggen.
+
 ## Goal
 
 Move `beleggingscollege.nl` away from Strato to the cheapest sensible registrar, manage its DNS on Cloudflare's free plan (next to `beleggingscollege.com`), and point it at the new Next.js site on Vercel. No traditional webhosting package needed — registration + DNS only.
