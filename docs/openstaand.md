@@ -65,9 +65,34 @@ juridisch niet mag verkopen, of kun je een geschil niet winnen.
         klopt de huidige 21%-regel.
       - **Vestigingsadres** — verplicht op de bevestiging, staat nu op `null`.
       - **Btw-identificatienummer** — idem.
-- [ ] **Echte factuur.** De bevestiging is geen factuur. Nummering is er nu wel
-      (`purchases.order_number`, reeks `BC-2026-0001`), btw-uitsplitsing ook, maar bewijs van
-      waar de klant zit nog niet.
+- [ ] **Echte factuur.** Bij B2C is een volledige factuur níét wettelijk verplicht (art. 34c
+      Wet OB geldt alleen B2B) — een bon volstaat. Maar `/voorwaarden` belooft er wél een, en
+      die eigen toezegging bindt. Nummering is er nu (`purchases.order_number`), btw-uitsplitsing
+      ook; bewijs van waar de klant zit nog niet.
+- [ ] **Herkansing als de bevestigingsmail mislukt.** Nu wordt een mislukte verzending alleen
+      naar de console gelogd. Omdat juist die mail bepaalt of het herroepingsrecht vervalt, is
+      "hij ging niet weg en niemand weet het" het slechtst denkbare gat. Er hoort een
+      herhaalpoging te zijn, of op zijn minst een waarschuwing naar Jason zelf.
+- [ ] **Voorwaarden meesturen als tekst of bijlage.** Strikt genomen moeten de algemene
+      voorwaarden mee op de duurzame gegevensdrager, niet alleen als link. De mail claimt nu
+      geen bijlage (dat zou een onwaarheid zijn), maar het gat blijft.
+- [ ] **Volgorde van uitvoeren en bevestigen.** De wet zegt "voordat de dienst wordt
+      uitgevoerd". Bij ons gaat de cursus open zodra de webhook binnenkomt en vertrekt de mail
+      daarna. Strikt gelezen is dat de verkeerde volgorde. In de praktijk schelen ze seconden,
+      maar een jurist moet zeggen of dat volstaat.
+
+### Twee juridische vragen die een mens moet beantwoorden
+
+- [ ] **Is deze cursus "digitale inhoud" of een "dienst"?** Dat verschil is materieel. Bij
+      digitale inhoud vervalt het ontbindingsrecht zodra de nakoming begint (art. 6:230p
+      onderdeel g BW) — daar is de hele checkout op gebouwd. Bij een dienst vervalt het pas na
+      vólledige nakoming (art. 6:230p onderdeel d BW), en dan klopt onze aanname niet. Een
+      cursus met levenslange platformtoegang zit op de grens.
+- [ ] **Btw-behandeling laten bevestigen door de boekhouder.** Reken níét op de
+      onderwijsvrijstelling (art. 11 lid 1 onderdeel o Wet OB): voor online onderwijs eist de
+      Belastingdienst interactie tussen docent en cursist, en die is er niet. Verkoop je boven
+      € 10.000 per jaar aan consumenten in andere EU-landen, dan verschuift de btw naar het
+      land van de afnemer, met aangifte via de One Stop Shop.
 - [ ] **Een werkende weg om een herroeping af te handelen.** Terugbetalen trekt de toegang
       nu niet in; er is geen knop en geen procedure. De wettelijke termijn is 14 dagen.
 - [ ] **Juridische pagina's door een jurist.** `/voorwaarden`, `/privacy` en

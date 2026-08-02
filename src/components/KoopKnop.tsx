@@ -116,7 +116,11 @@ export default function KoopKnop({
         }`}
       >
         {bezig && <Loader2 className="h-4 w-4 animate-spin" />}
-        {bezig ? "Bezig…" : `Afrekenen — ${prijs}`}
+        {/* De tekst moet ondubbelzinnig duidelijk maken dat er een
+            betalingsverplichting ontstaat (art. 6:230v lid 3 BW). "Bestellen"
+            of "Doorgaan" volstaat daarvoor niet; "Betaal" met het bedrag erbij
+            laat geen ruimte voor misverstand. */}
+        {bezig ? "Bezig…" : `Betaal ${prijs}`}
       </button>
 
       <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-body">
