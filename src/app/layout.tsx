@@ -4,6 +4,7 @@ import "./globals.css";
 import { ProgressProvider } from "@/lib/progress";
 import { SITE_URL } from "@/lib/site";
 import SiteHeader from "@/components/SiteHeader";
+import AuthKnop from "@/components/AuthKnop";
 import SiteFooter from "@/components/SiteFooter";
 
 const openSans = Open_Sans({
@@ -39,7 +40,7 @@ export default function RootLayout({
     <html lang="nl" className={openSans.variable}>
       <body className="font-sans flex min-h-screen flex-col">
         <ProgressProvider>
-          <SiteHeader />
+          <SiteHeader authSlot={<AuthKnop />} />
           <main className="flex-1">{children}</main>
           <SiteFooter />
         </ProgressProvider>

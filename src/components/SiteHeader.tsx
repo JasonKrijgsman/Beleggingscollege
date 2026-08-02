@@ -25,7 +25,15 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-export default function SiteHeader() {
+/** `authSlot` wordt als server component doorgegeven vanuit de layout. Deze
+ *  header is een client component (voor XP en streak uit localStorage) en kan
+ *  daarom zelf de sessie niet lezen; via een slot kan dat wél zonder de sessie
+ *  naar de browser te sturen. */
+export default function SiteHeader({
+  authSlot,
+}: {
+  authSlot?: React.ReactNode;
+}) {
   const { state, ready } = useProgress();
   const { level, next, progress } = levelForXp(state.xp);
   const hasStreak = ready && state.streak.current > 0;
@@ -76,6 +84,7 @@ export default function SiteHeader() {
               Start gratis
             </Link>
           )}
+          {authSlot}
           <nav className="flex items-center gap-1 sm:hidden">
             <NavLink href="/cursussen" label="Cursussen" />
             <NavLink href="/leerpad" label="Leerpad" />
