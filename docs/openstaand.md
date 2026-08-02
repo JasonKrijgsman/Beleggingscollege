@@ -193,6 +193,11 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       uit Vercel. Maak één vaste Neon Development-branch en zet uitsluitend die lokaal; laat
       scripts en migraties weigeren als ze per ongeluk tegen productie draaien. Zie
       CODEX-002 in de Codex-review.
+      Twee kanttekeningen: previewbranches zijn kopieën en bevatten dus persoonsgegevens
+      zodra er echte klanten zijn (waarschuwing uit `docs/implementatie-accounts-betalen.md`),
+      en méér databases (aparte voor gebruikers, cursussen, certificaten) of een
+      datalakehouse is op deze schaal niet aan de orde — één Postgres met per omgeving een
+      eigen branch ís de professionele opzet.
 - [ ] **Geen monitoring, geen alarmering.** Elke storing hierboven verloopt geruisloos:
       je hoort het pas van een klant. Alle fouten in webhook en mail zijn `console.error`
       in Vercels vluchtige logboeken. (De foutpagina's zijn er inmiddels wél:
@@ -321,18 +326,18 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
 
 ## 9b. Lopend op 2 aug 2026 — voor wie dit later oppakt
 
-- [x] ~~Menselijke elementen-onderzoek~~ **Geland op 2 aug 2026: .**
+- [x] ~~Menselijke elementen-onderzoek~~ **Geland op 2 aug 2026: `docs/menselijke-elementen.md`.**
   De stand van deze draad, in drie sporen:
   - **Besloten en vastgelegd:** de top 7 (introvideo's, fotografie, post uit Den Haag,
     College Live, kwartaal-dagboek, leesclub, pers via VIDM), de afwijzingen mét reden
     (podcast, NRTO-keurmerk — eist €150.000 jaaromzet, algemeen forum), de forumrichting
-    vragen-per-les (), en de Resolve-keten. Jason bezit Resolve **Studio**,
+    vragen-per-les (`docs/ideeen.md`), en de Resolve-keten. Jason bezit Resolve **Studio**,
     dus de scripting-API en het volledige AI-gereedschap zijn er al.
   - **Wacht op Jason (buiten het scherm):** de kanttekening-avond (één pen, één zitting,
     gratis cursus eerst), de gecombineerde foto-/videodag, en de bestelling van
     bedankkaarten + certificaatpapier (~€70–140).
   - **Wacht op bouwwerk (klaar om te starten zodra Jason het zegt):** het
-    kanttekening-component + contentveld in , de "Vragen bij deze les"-tabel,
+    kanttekening-component + contentveld in `src/content/types.ts`, de "Vragen bij deze les"-tabel,
     API-route en moderatiescherm, en de Resolve-montagestraat (pas ná de eerste vijf
     handmatige video's — automatiseer niet wat je nog niet begrijpt).
   De klok telt hier mee: het archief wordt pas onkopieerbaar door tijd, dus elke maand
