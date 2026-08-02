@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Clock, Lightbulb, Quote } from "lucide-react";
 import { formatDate, getPost, posts } from "@/content/blog";
+import { SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }));
@@ -48,7 +49,7 @@ export default async function BlogPostPage({
     inLanguage: "nl",
     author: { "@type": "Organization", name: "Beleggingscollege" },
     publisher: { "@type": "Organization", name: "Beleggingscollege" },
-    mainEntityOfPage: `https://beleggingscollege.nl/blog/${post.slug}`,
+    mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
   };
 
   return (

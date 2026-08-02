@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { activeCourses, courses, flatLessons } from "@/content";
 import { sortedPosts } from "@/content/blog";
+import { SITE_URL } from "@/lib/site";
 
-const BASE = "https://beleggingscollege.nl";
+const BASE = SITE_URL;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

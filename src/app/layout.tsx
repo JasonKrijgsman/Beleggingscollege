@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Open_Sans } from "next/font/google";
 import "./globals.css";
 import { ProgressProvider } from "@/lib/progress";
+import { SITE_URL } from "@/lib/site";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -12,7 +13,7 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://beleggingscollege.nl"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Beleggingscollege — Stap veilig in de wereld van beleggen",
     template: "%s — Beleggingscollege",

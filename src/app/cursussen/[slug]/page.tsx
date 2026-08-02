@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { courseDurationMin, courses, getCourse } from "@/content";
 import CourseDetail from "@/components/CourseDetail";
+import { SITE_URL } from "@/lib/site";
 
 export function generateStaticParams() {
   return courses.map((c) => ({ slug: c.slug }));
@@ -48,7 +49,7 @@ export default async function CoursePage({
         provider: {
           "@type": "Organization",
           name: "Beleggingscollege",
-          url: "https://beleggingscollege.nl",
+          url: SITE_URL,
         },
         ...(course.free ? { isAccessibleForFree: true } : {}),
         offers: {
