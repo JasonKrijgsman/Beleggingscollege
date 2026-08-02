@@ -53,9 +53,34 @@ Het enige echt waardevolle is de Mollie-koppeling en de prijshistorie.
 2. **Prijsinformatie** als referentie voor de College+-prijsstelling.
 3. Verder niets: geen klanten, geen bestellingen, geen teksten.
 
+## Mollie-account: gecontroleerd op 3 augustus 2026 — véél beter dan verwacht
+
+Ingelogd op my.mollie.com. Status: **"Je bent klaar om betaald te worden."**
+
+- **Organisatie**: Beleggingscollege, gebruiksovereenkomst geaccepteerd 4 juni 2023.
+- **Live profiel "Beleggingscollege"** (www.beleggingscollege.nl), status **Online** = goedgekeurd
+  voor echte betalingen. Daarnaast een oud, geblokkeerd testprofiel (example.org).
+- **Bankrekening geverifieerd en gekoppeld**, geselecteerd voor uitbetalingen, valuta EUR,
+  toegevoegd 6 juni 2023. (IBAN bewust niet vastgelegd in deze repo.)
+- **Actieve betaalmethoden**: iDEAL, krediet-/debetkaarten, PayPal, Apple Pay.
+- **Niet geactiveerd, wel nodig**: **SEPA-incasso**. Dat is de methode waarmee Mollie
+  maandelijks automatisch incasseert nadat een klant via iDEAL een machtiging heeft afgegeven —
+  onmisbaar voor een College+-abonnement. Aanzetten kost één klik in het Mollie-dashboard.
+- Mollie heeft een eigen **Abonnementen**-product in het dashboard; recurring hoeft dus niet
+  helemaal zelf gebouwd te worden.
+
+**Conclusie: betalingen zijn niet het knelpunt.** De KYC-molen (identificatie, bankrekening,
+profielgoedkeuring) — normaal het traagste onderdeel — is in 2023 al doorlopen. Wat ontbreekt is
+alleen de koppeling vanuit de nieuwe site plus accounts/login, niet de betaalinfrastructuur zelf.
+
+## Google Site Kit: niets over te zetten
+
+Site Kit staat nog op het "Sign in with Google"-scherm: geïnstalleerd maar **nooit gekoppeld**.
+Geen Search Console-property, geen Analytics, geen historische zoekdata. Bij lancering gewoon
+de nieuwe site vers aanmelden bij Search Console en de sitemap indienen.
+
 ## Wat te controleren vóór opzegging van het pakket
 
-- [ ] Mollie-dashboard: is het account volledig geverifieerd en zit er een bankrekening aan vast?
-- [ ] Google Site Kit: is er een Search Console/Analytics-property gekoppeld die we moeten
-      overzetten naar de nieuwe site (i.v.m. historische zoekdata)?
+- [x] Mollie-dashboard: account volledig geverifieerd, bankrekening gekoppeld, profiel Online.
+- [x] Google Site Kit: nooit gekoppeld, niets te migreren.
 - [ ] E-mail: postvakken op het domein zijn al afgevangen — mail gaat straks via Migadu.
