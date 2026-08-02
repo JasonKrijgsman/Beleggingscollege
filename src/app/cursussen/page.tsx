@@ -3,6 +3,10 @@ import { courses } from "@/content";
 import CourseCard from "@/components/CourseCard";
 import { samenvatting } from "@/content/view";
 import { PRICING } from "@/lib/pricing";
+import { gekochteCursussen } from "@/lib/entitlements";
+
+// De catalogus toont per bezoeker wat hij al bezit, dus per verzoek renderen.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Cursussen",
@@ -11,7 +15,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/cursussen" },
 };
 
-export default function CursussenPage() {
+export default async function CursussenPage() {
+  const inBezit = new Set(await gekochteCursussen());
   return (
     <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
       <h1 className="text-4xl font-extrabold text-ink">Cursussen</h1>
@@ -28,7 +33,11 @@ export default function CursussenPage() {
       </p>
       <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {courses.map((c) => (
-          <CourseCard key={c.slug} course={samenvatting(c)} />
+          <CourseCard
+            key={c.slug}
+            course={samenvatting(c)}
+            inBezit={inBezit.has(c.slug)}
+          />
         ))}
       </div>
     </div>

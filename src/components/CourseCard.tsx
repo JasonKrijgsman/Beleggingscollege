@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Clock, Lock, Zap } from "lucide-react";
+import { BookOpen, Clock, Crown, Lock, Zap } from "lucide-react";
 import type { CursusSamenvatting } from "@/content/view";
 import { ACCENTS } from "@/lib/accent";
 import { useProgress } from "@/lib/progress";
 import CourseIcon from "./CourseIcon";
 
-export default function CourseCard({ course }: { course: CursusSamenvatting }) {
+export default function CourseCard({
+  course,
+  inBezit = false,
+}: {
+  course: CursusSamenvatting;
+  /** Door de server bepaald: deze bezoeker heeft de cursus gekocht. Een
+   *  gekochte cursus toont trots bezit, nooit meer een prijskaartje. */
+  inBezit?: boolean;
+}) {
   const acc = ACCENTS[course.accent];
   const { courseProgress, ready } = useProgress();
   const total = course.aantalLessen;
@@ -29,6 +37,10 @@ export default function CourseCard({ course }: { course: CursusSamenvatting }) {
         {course.comingSoon ? (
           <span className="flex items-center gap-1.5 rounded-full bg-mist px-3 py-1 text-xs font-bold text-body">
             <Lock className="h-3 w-3" /> Binnenkort
+          </span>
+        ) : inBezit ? (
+          <span className="flex items-center gap-1.5 rounded-full bg-goud-500 px-3 py-1 text-xs font-extrabold text-navy-950 shadow-sm">
+            <Crown className="h-3 w-3" /> Van jou
           </span>
         ) : course.free ? (
           <span className="rounded-full bg-groen-50 px-3 py-1 text-xs font-bold text-groen-700">

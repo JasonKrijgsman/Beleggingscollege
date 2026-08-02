@@ -7,6 +7,7 @@ import {
   getCourse,
 } from "@/content";
 import CertificateView from "@/components/CertificateView";
+import EmailCapture from "@/components/EmailCapture";
 
 export function generateStaticParams() {
   return courses
@@ -37,12 +38,21 @@ export default async function CertificaatPage({
   const course = getCourse(slug);
   if (!course || course.comingSoon) notFound();
   return (
-    <CertificateView
-      courseSlug={course.slug}
-      courseTitle={course.title}
-      courseSubtitle={course.subtitle}
-      totalLessons={courseLessonCount(course)}
-      totalXp={courseXpTotal(course)}
-    />
+    <>
+      <CertificateView
+        courseSlug={course.slug}
+        courseTitle={course.title}
+        courseSubtitle={course.subtitle}
+        totalLessons={courseLessonCount(course)}
+        totalXp={courseXpTotal(course)}
+      />
+      {/* Het moment waarop iemand net een cursus heeft afgerond is het enige
+          moment waarop we om een e-mailadres vragen: de goodwill piekt en de
+          vraag is eerlijk te beantwoorden ("wil je horen wanneer er meer is?").
+          no-print: hoort niet op het papieren certificaat. */}
+      <div className="no-print mx-auto max-w-2xl px-4 pb-16 sm:px-6">
+        <EmailCapture bron={`certificaat/${course.slug}`} />
+      </div>
+    </>
   );
 }

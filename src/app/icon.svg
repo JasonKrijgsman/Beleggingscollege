@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <!-- Zelfde beeldmerk als LogoMark in src/components/Logo.tsx. Wijzig je die,
+       wijzig dan ook dit bestand - het favicon hoort identiek te zijn. -->
+  <rect width="40" height="40" rx="10" fill="#0033A0"/>
+  <rect x="8" y="22" width="5" height="10" rx="1.5" fill="#7fb7ee"/>
+  <rect x="16" y="17" width="5" height="15" rx="1.5" fill="#b9d9f7"/>
+  <rect x="24" y="12" width="5" height="20" rx="1.5" fill="#ffffff"/>
+  <path d="M9 15 L20 9 L31 5" stroke="#ecb93f" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+  <path d="M31 5 l-4.5 0.6 M31 5 l-0.8 4.4" stroke="#ecb93f" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+</svg>

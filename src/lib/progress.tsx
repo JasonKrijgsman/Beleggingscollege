@@ -25,6 +25,10 @@ export type ProgressState = {
   xp: number;
   completed: Record<string, string[]>; // cursusslug -> afgeronde lesslugs
   quizScores: Record<string, QuizOutcome>; // "cursus/les" -> beste score
+  /** "cursus/les" -> gekozen optie-index per vraag, van de BESTE poging.
+   *  Bewust optioneel (oudere opslag heeft dit niet) en bewust alleen
+   *  lokaal: de server bewaart scores, niet de individuele keuzes. */
+  quizAntwoorden?: Record<string, number[]>;
   streak: { current: number; best: number; lastDate: string };
   badges: string[];
 };
@@ -92,7 +96,8 @@ type ProgressApi = {
     courseSlug: string,
     lessonSlug: string,
     quiz: QuizOutcome,
-    baseXp: number
+    baseXp: number,
+    antwoorden?: number[]
   ) => CompletionResult;
   isLessonCompleted: (courseSlug: string, lessonSlug: string) => boolean;
   courseProgress: (courseSlug: string, totalLessons: number) => number; // 0..1
@@ -104,9 +109,13 @@ const ProgressContext = createContext<ProgressApi | null>(null);
 export function ProgressProvider({
   children,
   catalogus,
+  ingelogd = false,
 }: {
   children: React.ReactNode;
   catalogus: CursusOutline[];
+  /** Door de layout (server) bepaald. Ingelogd = de database is de bron van
+   *  waarheid; localStorage blijft het vangnet en de cache. */
+  ingelogd?: boolean;
 }) {
   const [state, setState] = useState<ProgressState>(EMPTY);
   const [ready, setReady] = useState(false);
@@ -114,21 +123,60 @@ export function ProgressProvider({
   stateRef.current = state;
 
   useEffect(() => {
+    let lokaal: ProgressState = EMPTY;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<ProgressState>;
-        setState({
+        lokaal = {
           ...EMPTY,
           ...parsed,
           streak: { ...EMPTY.streak, ...(parsed.streak ?? {}) },
-        });
+        };
       }
     } catch {
       // corrupte opslag: begin met een schone lei
     }
+    setState(lokaal);
     setReady(true);
-  }, []);
+
+    if (!ingelogd) return;
+
+    // Ingelogd: stuur de lokale historie op (de server vult alleen aan en
+    // herrekent alle XP zelf) en neem het antwoord over als waarheid. Zo
+    // reist voortgang mee naar elk apparaat waarop je met hetzelfde account
+    // inlogt, en raakt niemand kwijt wat hij vóór het inloggen al deed.
+    (async () => {
+      try {
+        const res = await fetch("/api/voortgang", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ soort: "snapshot", snapshot: lokaal }),
+        });
+        if (!res.ok) return; // sessie net verlopen? localStorage werkt gewoon
+        const data = (await res.json()) as { state?: ProgressState };
+        if (data.state) {
+          const vanServer: ProgressState = {
+            ...EMPTY,
+            ...data.state,
+            streak: { ...EMPTY.streak, ...(data.state.streak ?? {}) },
+            // De server bewaart geen individuele antwoorden; die blijven van
+            // dit apparaat. Anders wist elke sync je terugkijk-historie.
+            quizAntwoorden: lokaal.quizAntwoorden,
+          };
+          stateRef.current = vanServer;
+          setState(vanServer);
+          try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(vanServer));
+          } catch {
+            // opslag vol: sessie werkt door in het geheugen
+          }
+        }
+      } catch {
+        // netwerk hapert: lokaal doorwerken, volgende paginalading opnieuw
+      }
+    })();
+  }, [ingelogd]);
 
   const persist = useCallback((next: ProgressState) => {
     stateRef.current = next;
@@ -150,7 +198,8 @@ export function ProgressProvider({
       courseSlug: string,
       lessonSlug: string,
       quiz: QuizOutcome,
-      baseXp: number
+      baseXp: number,
+      antwoorden?: number[]
     ): CompletionResult => {
       const prev = stateRef.current;
       const already =
@@ -175,6 +224,11 @@ export function ProgressProvider({
       const quizScores = isBetter
         ? { ...prev.quizScores, [key]: quiz }
         : prev.quizScores;
+      // Antwoorden horen bij de beste poging, net als de score.
+      const quizAntwoorden =
+        isBetter && antwoorden
+          ? { ...(prev.quizAntwoorden ?? {}), [key]: antwoorden }
+          : prev.quizAntwoorden;
 
       const today = localDate();
       const yesterday = localDate(-1);
@@ -197,6 +251,7 @@ export function ProgressProvider({
         xp,
         completed,
         quizScores,
+        quizAntwoorden,
         streak,
       };
       const summary = summarize(interim, catalogus);
@@ -208,6 +263,41 @@ export function ProgressProvider({
       };
       persist(next);
 
+      // Ingelogd: dezelfde les ook op de server bijschrijven. Bewust
+      // fire-and-forget mét overname van het antwoord: de server herrekent
+      // de XP uit de cursusinhoud en is daarmee de waarheid. Mislukt het
+      // verzoek, dan blijft de lokale stand staan en repareert de
+      // snapshot-import het bij de volgende paginalading.
+      if (ingelogd) {
+        fetch("/api/voortgang", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            soort: "les",
+            courseSlug,
+            lessonSlug,
+            correct: quiz.correct,
+            total: quiz.total,
+            dagLokaal: localDate(),
+          }),
+        })
+          .then(async (res) => {
+            if (!res.ok) return;
+            const data = (await res.json()) as { state?: ProgressState };
+            if (data.state) {
+              persist({
+                ...EMPTY,
+                ...data.state,
+                streak: { ...EMPTY.streak, ...(data.state.streak ?? {}) },
+                quizAntwoorden: stateRef.current.quizAntwoorden,
+              });
+            }
+          })
+          .catch(() => {
+            // netwerk hapert: lokaal is al bijgewerkt
+          });
+      }
+
       return {
         xpGained,
         newBadges: newBadgeIds
@@ -218,7 +308,7 @@ export function ProgressProvider({
         alreadyCompleted: already,
       };
     },
-    [persist, catalogus]
+    [persist, catalogus, ingelogd]
   );
 
   const isLessonCompleted = useCallback(

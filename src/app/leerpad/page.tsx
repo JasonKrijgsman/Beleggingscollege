@@ -16,6 +16,7 @@ import { BADGES } from "@/lib/badges";
 import { levelForXp, LEVELS } from "@/lib/levels";
 import { summarize, useProgress } from "@/lib/progress";
 import CourseIcon from "@/components/CourseIcon";
+import EmailCapture from "@/components/EmailCapture";
 
 function NameGreeting() {
   const { state, setName, ready } = useProgress();
@@ -186,14 +187,17 @@ export default function LeerpadPage() {
         </div>
       )}
       {ready && !nextUp && summary.lessonsCompleted > 0 && (
-        <div className="mt-10 rounded-2xl bg-gradient-to-br from-groen-900 to-groen-600 p-7 text-white shadow-pop">
-          <div className="text-2xl font-extrabold">
-            Alles afgerond — meesterlijk! 🎓
+        <div className="mt-10 space-y-4">
+          <div className="rounded-2xl bg-gradient-to-br from-groen-900 to-groen-600 p-7 text-white shadow-pop">
+            <div className="text-2xl font-extrabold">
+              Alles afgerond — meesterlijk! 🎓
+            </div>
+            <p className="mt-1 text-sm font-semibold text-white/85">
+              Nieuwe cursussen zijn in de maak. Tot die tijd: herhaal gerust een
+              les of bekijk je certificaten hieronder.
+            </p>
           </div>
-          <p className="mt-1 text-sm font-semibold text-white/85">
-            Nieuwe cursussen zijn in de maak. Tot die tijd: herhaal gerust een
-            les of bekijk je certificaten hieronder.
-          </p>
+          <EmailCapture bron="leerpad/alles-afgerond" />
         </div>
       )}
 

@@ -275,6 +275,7 @@ const course: Course = {
           slug: "veiligheidsmarge",
           title: "De veiligheidsmarge",
           durationMin: 8,
+          tool: "intrinsieke-waarde",
           intro:
             "Vraag je aan doorgewinterde waardebeleggers wat het allerbelangrijkste concept uit hun vak is, dan krijg je opvallend vaak hetzelfde antwoord: de veiligheidsmarge. Graham noemde het zelfs het geheim van verstandig beleggen, samengevat in drie woorden: margin of safety. In deze les leer je waarom je altijd korting eist, en hoeveel.",
           sections: [

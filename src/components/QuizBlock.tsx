@@ -9,7 +9,9 @@ import { ACCENTS } from "@/lib/accent";
 type Props = {
   quiz: QuizQuestion[];
   accent: CourseAccent;
-  onFinished: (correct: number) => void;
+  /** `antwoorden[i]` is de gekozen optie-index bij vraag i — voor het
+   *  terugkijken van je antwoorden nadat de les is afgerond. */
+  onFinished: (correct: number, antwoorden: number[]) => void;
 };
 
 export default function QuizBlock({ quiz, accent, onFinished }: Props) {
@@ -18,6 +20,7 @@ export default function QuizBlock({ quiz, accent, onFinished }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
   const [checked, setChecked] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
+  const [antwoorden, setAntwoorden] = useState<number[]>([]);
 
   const q = quiz[qIndex];
   const isLast = qIndex === quiz.length - 1;
@@ -26,12 +29,13 @@ export default function QuizBlock({ quiz, accent, onFinished }: Props) {
   function check() {
     if (selected === null) return;
     setChecked(true);
+    setAntwoorden((a) => [...a, selected]);
     if (selected === q.correctIndex) setCorrectCount((c) => c + 1);
   }
 
   function nextQuestion() {
     if (isLast) {
-      onFinished(correctCount);
+      onFinished(correctCount, antwoorden);
       return;
     }
     setQIndex((i) => i + 1);
@@ -102,20 +106,24 @@ export default function QuizBlock({ quiz, accent, onFinished }: Props) {
         })}
       </div>
 
-      {checked && (
-        <div
-          className={`anim-fade-up mt-4 rounded-xl p-4 text-sm leading-relaxed ${
-            wasCorrect
-              ? "bg-groen-50 text-groen-800"
-              : "bg-goud-100/60 text-ink"
-          }`}
-        >
-          <span className="font-bold">
-            {wasCorrect ? "Goed! " : "Helaas. "}
-          </span>
-          {q.explanation}
-        </div>
-      )}
+      {/* role=status + aria-live: een schermlezer hoort zo óók of het goed
+          of fout was — zonder dit was de uitslag alleen visueel. */}
+      <div role="status" aria-live="polite">
+        {checked && (
+          <div
+            className={`anim-fade-up mt-4 rounded-xl p-4 text-sm leading-relaxed ${
+              wasCorrect
+                ? "bg-groen-50 text-groen-800"
+                : "bg-goud-100/60 text-ink"
+            }`}
+          >
+            <span className="font-bold">
+              {wasCorrect ? "Goed! " : "Helaas. "}
+            </span>
+            {q.explanation}
+          </div>
+        )}
+      </div>
 
       <div className="mt-5 flex justify-end">
         {!checked ? (

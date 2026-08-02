@@ -278,6 +278,7 @@ const course: Course = {
           slug: "trends-steun-weerstand",
           title: "Trends, steun en weerstand",
           durationMin: 9,
+          tool: "steun-weerstand",
           intro:
             "\"The trend is your friend\" is misschien wel de bekendste beurswijsheid die er is. In deze les leer je trends objectief herkennen, trendlijnen tekenen en de zones vinden waar kopers en verkopers telkens opnieuw slag leveren.",
           sections: [

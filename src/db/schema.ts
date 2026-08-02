@@ -171,6 +171,31 @@ export const lessonProgress = pgTable(
   ]
 );
 
+/**
+ * Nieuwsbrief-aanmeldingen, verzameld op het moment van afronding — als de
+ * goodwill piekt, niet als een popup bij binnenkomst.
+ *
+ * AVG: we leggen het moment en het IP van de toestemming vast, en wat erbij
+ * beloofd is (bron). Er is nog geen dubbele bevestiging omdat er nog geen
+ * uitgaande mail is (zie docs/e-mail-versturen.md); tot die er is wordt er
+ * dus ook niets naar deze adressen VERSTUURD. Eerst bevestigen, dan mailen.
+ */
+export const newsletterSignups = pgTable("newsletter_signups", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  email: text("email").notNull().unique(),
+  /** Gekoppeld account, als de aanmelder ingelogd was. */
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  /** Waar op de site de aanmelding vandaan komt, bijv. "certificaat/waardebeleggen". */
+  source: text("source").notNull(),
+  consentedAt: timestamp("consented_at", { mode: "date" }).notNull().defaultNow(),
+  consentIp: text("consent_ip"),
+  /** Wordt gezet zodra de dubbele bevestiging bestaat en is aangeklikt. */
+  confirmedAt: timestamp("confirmed_at", { mode: "date" }),
+  unsubscribedAt: timestamp("unsubscribed_at", { mode: "date" }),
+});
+
 /** Afgeleide waarden staan hier zodat de header en het leerpad niet elke
  *  keer alles opnieuw hoeven uit te rekenen. */
 export const userStats = pgTable("user_stats", {

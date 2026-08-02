@@ -3,6 +3,7 @@ import { Open_Sans } from "next/font/google";
 import "./globals.css";
 import { ProgressProvider } from "@/lib/progress";
 import { catalogus } from "@/content/view";
+import { auth } from "@/auth";
 import { SITE_URL } from "@/lib/site";
 import SiteHeader from "@/components/SiteHeader";
 import AuthKnop from "@/components/AuthKnop";
@@ -32,15 +33,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // De provider moet weten of er een sessie is: ingelogd betekent dat de
+  // voortgang met de database synchroniseert in plaats van alleen localStorage.
+  const session = await auth();
   return (
     <html lang="nl" className={openSans.variable}>
       <body className="font-sans flex min-h-screen flex-col">
-        <ProgressProvider catalogus={catalogus()}>
+        <ProgressProvider
+          catalogus={catalogus()}
+          ingelogd={Boolean(session?.user?.id)}
+        >
           <SiteHeader authSlot={<AuthKnop />} />
           <main className="flex-1">{children}</main>
           <SiteFooter />

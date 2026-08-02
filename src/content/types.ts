@@ -22,7 +22,10 @@ export type BookRef = {
   note: string; // waarom dit boek relevant is voor deze les (1-2 zinnen)
 };
 
-export type LessonTool = "rente-op-rente";
+export type LessonTool =
+  | "rente-op-rente" // rekenmachine samengestelde groei (gratis cursus)
+  | "intrinsieke-waarde" // waardering + veiligheidsmarge (Waardebeleggen)
+  | "steun-weerstand"; // niveaus intekenen op een grafiek (Technische Analyse)
 
 export type Lesson = {
   slug: string;

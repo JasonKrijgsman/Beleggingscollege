@@ -86,6 +86,7 @@ export default async function CoursePage({
       )}
       <CourseDetail
         course={detail(course)}
+        inBezit={alGekocht && !course.free}
         koopSlot={
           course.free || course.comingSoon || alGekocht ? null : (
             <KoopKnop

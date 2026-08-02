@@ -18,6 +18,7 @@ import {
   type CompletionResult,
 } from "@/lib/progress";
 import QuizBlock from "./QuizBlock";
+import QuizReview from "./QuizReview";
 import Confetti from "./Confetti";
 
 type Props = {
@@ -52,7 +53,7 @@ function XpCounter({ target }: { target: number }) {
 
 export default function LessonRunner(props: Props) {
   const acc = ACCENTS[props.accent];
-  const { completeLesson, isLessonCompleted, courseProgress, ready } =
+  const { completeLesson, isLessonCompleted, courseProgress, ready, state } =
     useProgress();
   const [result, setResult] = useState<CompletionResult | null>(null);
   const [score, setScore] = useState(0);
@@ -62,12 +63,13 @@ export default function LessonRunner(props: Props) {
     result !== null &&
     courseProgress(props.courseSlug, props.courseTotalLessons) >= 1;
 
-  function handleFinished(correct: number) {
+  function handleFinished(correct: number, antwoorden: number[]) {
     const r = completeLesson(
       props.courseSlug,
       props.lessonSlug,
       { correct, total: props.quiz.length },
-      props.lessonXp
+      props.lessonXp,
+      antwoorden
     );
     setScore(correct);
     setResult(r);
@@ -76,11 +78,20 @@ export default function LessonRunner(props: Props) {
   return (
     <div>
       {alreadyDone && !result && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl bg-groen-50 px-4 py-3 text-sm font-semibold text-groen-800">
-          <BadgeCheck className="h-5 w-5" />
-          Je hebt deze les al afgerond. Je kunt de quiz opnieuw maken (zonder
-          extra XP).
-        </div>
+        <>
+          <div className="mb-4 flex items-center gap-2 rounded-xl bg-groen-50 px-4 py-3 text-sm font-semibold text-groen-800">
+            <BadgeCheck className="h-5 w-5" />
+            Je hebt deze les al afgerond. Je kunt de quiz opnieuw maken (zonder
+            extra XP).
+          </div>
+          <QuizReview
+            quiz={props.quiz}
+            antwoorden={
+              state.quizAntwoorden?.[`${props.courseSlug}/${props.lessonSlug}`]
+            }
+            accent={props.accent}
+          />
+        </>
       )}
 
       {!result && (

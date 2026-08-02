@@ -15,6 +15,13 @@
       "when": 1785692321484,
       "tag": "0001_bevestigingsmail",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785699752032,
+      "tag": "0002_nieuwsbrief",
+      "breakpoints": true
     }
   ]
 }

@@ -21,11 +21,15 @@ import CourseIcon from "./CourseIcon";
 export default function CourseDetail({
   course,
   koopSlot,
+  inBezit = false,
 }: {
   course: CursusDetail;
   /** Server component met de koopknop; als slot doorgegeven zodat de sessie
    *  en de aankoopstatus op de server blijven. */
   koopSlot?: React.ReactNode;
+  /** Door de server bepaald: deze bezoeker heeft de cursus gekocht. Dan tonen
+   *  we trots bezit in plaats van een prijskaartje. */
+  inBezit?: boolean;
 }) {
   const acc = ACCENTS[course.accent];
   const { isLessonCompleted, courseProgress, ready } = useProgress();
@@ -86,9 +90,11 @@ export default function CourseDetail({
               </span>
               <span className="text-xs font-bold uppercase tracking-widest text-white/80">
                 {course.level} ·{" "}
-                {course.free
-                  ? "Gratis"
-                  : `${course.price ?? PRICING.losseCursus} eenmalig`}
+                {inBezit
+                  ? "In jouw bezit"
+                  : course.free
+                    ? "Gratis"
+                    : `${course.price ?? PRICING.losseCursus} eenmalig`}
               </span>
             </div>
             <h1 className="mt-4 text-4xl font-extrabold leading-tight">
@@ -136,7 +142,13 @@ export default function CourseDetail({
                 </Link>
               )}
             </div>
-            {!course.free && (
+            {!course.free && inBezit && (
+              <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-goud-500/20 px-4 py-2 text-sm font-bold text-goud-300 ring-1 ring-goud-500/40">
+                <Award className="h-4 w-4" aria-hidden="true" />
+                Deze cursus is van jou — levenslang. Veel plezier ermee.
+              </p>
+            )}
+            {!course.free && !inBezit && (
               <p className="mt-4 text-sm text-white/70">
                 {course.price ?? PRICING.losseCursus} eenmalig — daarna
                 levenslang toegang. Of volg deze cursus samen met alle andere
