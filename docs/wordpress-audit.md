@@ -1,4 +1,4 @@
-# Audit van de oude WordPress-site (wp-admin), 3 augustus 2026
+# Audit van de oude WordPress-site (wp-admin), 2 augustus 2026
 
 Inventarisatie vóór het opzeggen van het Strato-pakket. Conclusie vooraf:
 **er gaat niets verloren** — geen omzet, geen klanten, geen gepubliceerde inhoud.
@@ -53,7 +53,7 @@ Het enige echt waardevolle is de Mollie-koppeling en de prijshistorie.
 2. **Prijsinformatie** als referentie voor de College+-prijsstelling.
 3. Verder niets: geen klanten, geen bestellingen, geen teksten.
 
-## Mollie-account: gecontroleerd op 3 augustus 2026 — véél beter dan verwacht
+## Mollie-account: gecontroleerd op 2 augustus 2026 — véél beter dan verwacht
 
 Ingelogd op my.mollie.com. Status: **"Je bent klaar om betaald te worden."**
 

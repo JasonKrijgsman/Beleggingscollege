@@ -16,7 +16,7 @@ Zie ook `docs/wordpress-audit.md` (hoe we dit ontdekten) en `CLAUDE.md` (archite
 | Live profiel | **Beleggingscollege** (www.beleggingscollege.nl) — status **Online** |
 | Bankrekening | Geverifieerd, gekoppeld, geselecteerd voor uitbetalingen, EUR (IBAN staat bewust niet in deze repo) |
 | Actieve methoden | iDEAL, krediet-/debetkaarten, PayPal, Apple Pay |
-| SEPA-incasso | **Aangevraagd op 3 aug 2026** — status: klok-icoon = in beoordeling bij Mollie |
+| SEPA-incasso | **Aangevraagd op 2 aug 2026** — status: klok-icoon = in beoordeling bij Mollie |
 | Oud testprofiel | example.org — geblokkeerd, kan genegeerd worden |
 | Test-key in gebruik | `test_…` staat in Vercel (Production + Preview) én in `.env.local` |
 

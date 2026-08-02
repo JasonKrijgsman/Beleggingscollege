@@ -401,7 +401,7 @@ eenmalige aankopen converteren beter.
 **Voorwaarde A: cursus 4 (Beleggingspsychologie) is af.** Een abonnement met 12 betaalde lessen en
 geen instroom heeft geen retentiegrond; dan verkoop je iets dat na één maand op is.
 **Voorwaarde B: Mollie heeft SEPA-incasso goedgekeurd** — nodig voor het maandplan (aangevraagd
-3 augustus 2026, status: in beoordeling).
+2 augustus 2026, status: in beoordeling).
 
 | Wat | Vereist SEPA? |
 |---|---|

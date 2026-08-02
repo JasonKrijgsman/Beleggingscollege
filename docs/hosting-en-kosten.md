@@ -1,6 +1,6 @@
 # Waar alles draait en wat het kost
 
-Bijgewerkt: 3 augustus 2026. Zie ook `docs/domain-migration-plan.md` (de .nl-verhuizing)
+Bijgewerkt: 2 augustus 2026. Zie ook `docs/domain-migration-plan.md` (de .nl-verhuizing)
 en `docs/betalingen-mollie.md` (betalen).
 
 ## De vier losse onderdelen
@@ -35,7 +35,7 @@ De site toont nu al prijzen (€49 per cursus, €14,99/mnd voor College+). Daar
 strikt genomen al tegen die grens aan, en zodra de Mollie-checkout live gaat zijn we er
 zeker overheen. **Reken op Vercel Pro ($20/mnd) op het moment dat er verkocht kan worden.**
 
-Bron: https://vercel.com/docs/limits/fair-use-guidelines (geraadpleegd 3 aug 2026)
+Bron: https://vercel.com/docs/limits/fair-use-guidelines (geraadpleegd 2 aug 2026)
 
 ### Alternatieven, mocht dat storen
 

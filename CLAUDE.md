@@ -5,23 +5,24 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 ## Stack
 
 - Next.js 15 (App Router) + React 19 + TypeScript, Tailwind CSS v4 (`@theme` tokens in `src/app/globals.css`), lucide-react icons.
-- Geen backend/database in v1: cursusinhoud is typed data (`src/content/`), voortgang leeft in localStorage.
+- Cursusinhoud is typed data (`src/content/`). Accounts en aankopen staan in Postgres (Neon + Drizzle); **lesvoortgang leeft nog altijd in localStorage** en reist dus niet mee naar een ander apparaat — de tabellen `lesson_progress` en `user_stats` bestaan wel maar worden door geen enkele regel code gelezen of geschreven.
 - Dev server: `npm run dev` (poort 3000). Build: `npm run build`.
+- **`docs/openstaand.md` is de lijst met alles wat nog niet af is.** Lees die vóór je iets belooft of live zet.
 
 ## Architectuur
 
 - `src/content/types.ts` — contentschema (Course → Module → Lesson → QuizQuestion). Nieuwe cursus = nieuw bestand in `src/content/courses/` + import in `src/content/index.ts`.
 - `src/lib/progress.tsx` — gamification-engine (client): XP, levels, streaks, badges, quizscores; persistentie in localStorage key `beleggingscollege-voortgang-v1`. `completeLesson()` is het enige muterende pad.
 - `src/lib/levels.ts` (8 levels: Toeschouwer → Meesterbelegger), `src/lib/badges.ts` (10 badges met predicaten), `src/lib/accent.ts` (kleurvarianten per cursus).
-- `src/lib/pricing.ts` — **enige bron voor prijzen**: losse cursus €49 eenmalig, College+ €14,99/mnd (€149/jr). Onderbouwing: `docs/prijsstrategie.md`.
-- `src/lib/site.ts` — `SITE_URL`, leest `NEXT_PUBLIC_SITE_URL`, standaard `https://beleggingscollege.com`. Canonicals, sitemap, robots, Open Graph en schema.org lezen hier allemaal uit. **Eén variabele omzetten verhuist de hele site naar de .nl.**
+- `src/lib/pricing.ts` — bron voor de prijzen zoals ze op de site **staan**: losse cursus €49 eenmalig, College+ €14,99/mnd (€149/jr). Onderbouwing: `docs/prijsstrategie.md`. Let op: wat er daadwerkelijk wordt afgerekend komt uit `prijsInCenten()` in de checkout, dat de weergavetekst met een regex terugrekent naar centen. Wijzig je hier een prijs, controleer dan dat die conversie meeloopt.
+- `src/lib/site.ts` — `SITE_URL`, leest `NEXT_PUBLIC_SITE_URL`, standaard `https://beleggingscollege.com`. Canonicals, sitemap, robots, Open Graph en schema.org lezen hier allemaal uit. Bij de verhuizing gaat het meeste dus vanzelf mee — maar níét alles: het e-mailadres, de teksten in de voettekst en het certificaat noemen de `.nl` los in de code. Grep op `beleggingscollege.` vóór je de knop omzet.
 - `src/content/blog.ts` — blogartikelen als data. Nieuw artikel = blok toevoegen aan `posts`; overzicht, artikelpagina, sitemap en SEO volgen vanzelf.
 - Pages: `/` (marketing), `/cursussen`, `/cursussen/[slug]`, `/cursussen/[slug]/les/[les]`, `/cursussen/[slug]/certificaat` (printbaar), `/leerpad` (dashboard), `/blog` + `/blog/[slug]`, `/over-ons`, `/veelgestelde-vragen`, `/contact`, `/privacy`, `/voorwaarden`, `/herroepingsrecht` (die laatste drie zijn **concepten** en staan op noindex tot een jurist ernaar kijkt), `/lab` (intern stijllab, noindex).
 - XP-regels: 50 XP per les + quizbonus tot 25 XP; herhaalde les = 0 XP.
 
 ## Accounts, database en toegang
 
-**Live sinds 3 augustus 2026.** Inloggen met Google werkt op productie; er staan echte gebruikers, sessies en gekoppelde providers in de database.
+**Live sinds 2 augustus 2026.** Inloggen met Google werkt op productie; er staan echte gebruikers, sessies en gekoppelde providers in de database.
 
 - **Neon-database draait** (PostgreSQL 17, regio Frankfurt), 8 tabellen aangemaakt via `npx drizzle-kit migrate`. De SQL staat in `drizzle/` en hoort mee de repo in.
 - **Omgevingsvariabelen staan in Vercel** (Production + Preview): `AUTH_SECRET` (een ándere dan lokaal — een lek op de laptop mag geen productiesessies raken), `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, plus alles wat de Neon-integratie zelf injecteert. Lokaal staat hetzelfde in `.env.local` (nooit committen; zie `.env.example`).
@@ -49,12 +50,13 @@ Accounts, aankopen en voortgang hangen aan gebruikers-id's, niet aan een URL. Bi
 
 ## Domein & hosting
 
-**De site staat LIVE op https://beleggingscollege.com** (sinds 3 aug 2026).
+**De site staat LIVE op https://beleggingscollege.com** (sinds 2 aug 2026).
 
 - **Code**: GitHub `JasonKrijgsman/Beleggingscollege`, branch `main`.
 - **Hosting**: Vercel, team "Visual Future", project `beleggingscollege`. **Elke push naar `main` deployt automatisch**; elke branch krijgt een preview-URL. Login: accounts@jasonkrijgsman.com (wachtwoordloos + passkeys, bewust geen SSO).
 - **`beleggingscollege.com`** — registrar Cloudflare (betaald t/m nov 2027), DNS bij Cloudflare, CNAME `@` → `6d87ec9bdcf67bce.vercel-dns-017.com`, **DNS only (grijze wolk)**. Dit is tijdelijk het canonieke adres.
-- **`beleggingscollege.nl`** — nog bij Strato, migratie loopt vast op hun DNSSEC-deactivering. Zie `docs/domain-migration-plan.md` (inclusief de valkuil dat DNSSEC het hele domein blokkeert). Cloudflare-zone bestaat al met 11 records klaar; naamservers wijzen nog naar Strato.
+- **`beleggingscollege.nl`** — nog bij Strato. De verhuizing wacht op DNSSEC-deactivering, en die **loopt**: in het Strato-paneel staat onder Domeinen → DNS → DNSSEC "Wordt gedeactiveerd". Er is geen knop om het te versnellen. Zodra `Resolve-DnsName -Name beleggingscollege.nl -Type DS -Server 1.1.1.1` niets meer teruggeeft (nu nog keytag 43361), kan de naamserverwissel door. Cloudflare-zone bestaat al met 11 records klaar. Zie `docs/domain-migration-plan.md`.
+- **De `.nl` draait nog de oude WordPress-site**, inclusief drie verzonnen testimonials die we juist uit de nieuwe site hebben gehaald — en dat is het adres in onze eigen footer en op elk certificaat. Dat is de eigenlijke reden dat de verhuizing haast heeft.
 - **Zodra de .nl verhuisd is**: `NEXT_PUBLIC_SITE_URL` in Vercel op `https://beleggingscollege.nl` zetten en een permanente redirect `.com` → `.nl` toevoegen. Verder hoeft er niets in de code.
 - **Kosten en de Vercel-valkuil rond commercieel gebruik**: `docs/hosting-en-kosten.md`. Kort: Vercel Hobby is alleen voor niet-commercieel gebruik; zodra er betaald kan worden is Pro (~$20/mnd) verplicht.
 - Gered materiaal van de oude WordPress-site: `docs/salvage/`.
@@ -80,7 +82,7 @@ Dit merk verkoopt zichzelf als de eerlijke tegenhanger van get-rich-quick-aanbie
 
 - **Losse cursussen kopen wérkt** — op 2 aug 2026 end-to-end getest op de live site: koopknop → Mollie → webhook → `purchases.status = 'paid'` → les ontgrendelt. Bewijs en testmatrix in `docs/betalingen-mollie.md`.
 - **Er staat nu een `test_`-key in Vercel.** De winkel lijkt dus open, maar niemand kan echt betalen. Vervang `MOLLIE_API_KEY` door de live-key vóór de eerste verkoop, en deploy daarna opnieuw.
-- Mollie-account is live-klaar (KYC afgerond in 2023, bankrekening geverifieerd, profiel Online). iDEAL, kaarten, PayPal en Apple Pay staan actief; SEPA-incasso is 3 aug 2026 aangevraagd en wacht nog op goedkeuring — dat blokkeert alleen het abonnement, niet de losse verkoop.
+- Mollie-account is live-klaar (KYC afgerond in 2023, bankrekening geverifieerd, profiel Online). iDEAL, kaarten, PayPal en Apple Pay staan actief; SEPA-incasso is 2 aug 2026 aangevraagd en wacht nog op goedkeuring — dat blokkeert alleen het abonnement, niet de losse verkoop.
 - **MOI-risico (€65), tarieven en verplichte tegenmaatregelen: `docs/betalingen-mollie.md`.** Lees dat vóór er aan het abonnement gebouwd wordt.
 - API-keys horen in omgevingsvariabelen, **nooit** in de repo.
 
@@ -93,10 +95,17 @@ Dit merk verkoopt zichzelf als de eerlijke tegenhanger van get-rich-quick-aanbie
 
 `heeftToegangTot()` in `src/lib/entitlements.ts` is de **enige** toegangspoort — voeg geen tweede check elders toe, dan lopen ze uit elkaar.
 
-Twee valkuilen die we al een keer in productie hebben gehad:
+Drie valkuilen die we al een keer in productie hebben gehad. Alle drie waren stil.
 
 - **Props naar client components komen in de HTML terecht.** Geef daarom nooit een `Course` door; gebruik de view-modellen in `src/content/view.ts`. Zo lekten ooit alle lesteksten én de quizantwoorden (`correctIndex`) mee in de publieke cursuspagina.
+- **Imports lekken net zo hard als props — en dat is de gemenere van de twee.** Een module met `"use client"` die `@/content` importeert, sleept de complete modulegraaf mee de browserbundel in, ook als hij er alleen een lestelling uit gebruikt. Zo stonden 21 lessen en 88 quizantwoorden in een publiek JS-bestand van 197 kB, terwijl de HTML schoon was en de propkant al was dichtgezet. **`@/content` heeft daarom `import "server-only"`**: de build faalt nu zodra iemand dit opnieuw doet. Heeft een client component cursusgegevens nodig, gebruik dan `catalogus()` uit `view.ts` op de server en geef het resultaat door. Types importeren mag wél, maar uitsluitend met `import type` — dat verdwijnt bij het compileren.
 - **Betaalde lespagina's mogen niet vooraf gebouwd worden.** `generateStaticParams` levert alleen de gratis cursus; de rest rendert per verzoek. Anders bevriest de toegangscheck tijdens de bouw — zonder sessie — en zien kopers voor altijd het slot.
+
+**Controleer een lek nooit alleen in de HTML.** Dat was de fout waardoor de tweede valkuil maandenlang onopgemerkt bleef: de pagina zag er schoon uit. Haal de bundel er ook bij:
+
+```bash
+npm run build && grep -rl "correctIndex" .next/static/chunks/
+```
 
 ## Roadmap (v2+)
 

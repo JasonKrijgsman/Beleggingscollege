@@ -2,7 +2,7 @@
 
 *Researched: 2 August 2026. Prices verified on registrar websites on that date — re-check at checkout, promos and tariffs change.*
 
-> **Status 3 augustus 2026 — lees dit eerst.**
+> **Status 2 augustus 2026 — lees dit eerst.**
 >
 > De site staat inmiddels **live op https://beleggingscollege.com** (Cloudflare-DNS → Vercel).
 > Die `.com` is bewust als tijdelijk adres gebruikt omdat de `.nl` vastzit bij Strato.
