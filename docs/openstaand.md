@@ -211,7 +211,7 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       laag kan maar 6 uur terug in de tijd. Zie CODEX-005.
 - [ ] **CI is er, maar het is een struikeldraad en nog geen slagboom** (rest van
       CODEX-003). Gebouwd op 3 aug 2026 (branch `ci-fundament`): typecheck, ESLint (mét de
-      toegankelijkheidsregels uit next/core-web-vitals), 118 Vitest-tests voor de
+      toegankelijkheidsregels uit next/core-web-vitals), 121 Vitest-tests voor de
       geldpaden — prijsconversie, checkout-bedrag, webhook-idempotentie én
       bedrag/valutacontrole, `heeftToegangTot()`, voortgang/XP, de terug-redirect — plus
       productiebuild en een bundel-lekcontrole die óók op de 85 quizvragen zelf zoekt.

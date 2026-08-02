@@ -61,6 +61,23 @@ describe("stuurOrderbevestiging", () => {
     expect(aankoop.orderNumber).toMatch(/^BC-\d{4}-\d{4}$/);
   });
 
+  it("nummert opeenvolgende aankopen doorlopend: -0001, dan -0002", async () => {
+    // De Belastingdienst eist een reeks zonder gaten; dít is waarvoor
+    // geefOrdernummer() bestaat, dus het patroon alleen volstaat niet.
+    const jaar = new Date().getFullYear();
+    await maakAankoop();
+    await maakAankoop({
+      courseSlug: "technische-analyse",
+      molliePaymentId: "tr_mail_2",
+    });
+
+    await stuurOrderbevestiging("tr_mail_1");
+    await stuurOrderbevestiging("tr_mail_2");
+
+    expect((await rij("tr_mail_1")).orderNumber).toBe(`BC-${jaar}-0001`);
+    expect((await rij("tr_mail_2")).orderNumber).toBe(`BC-${jaar}-0002`);
+  });
+
   it("stuurt bij een tweede aanroep GEEN tweede mail (webhook-idempotentie)", async () => {
     await maakAankoop();
     await stuurOrderbevestiging("tr_mail_1");

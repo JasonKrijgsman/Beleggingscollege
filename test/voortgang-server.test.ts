@@ -20,8 +20,10 @@ import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
 
 // Echte cursusdata, zodat de tests meebewegen met de inhoud.
 const CURSUS = getCourse("beleggen-voor-beginners")!;
-const LES_1 = CURSUS.modules[0].lessons[0];
-const LES_2 = CURSUS.modules[0].lessons[1] ?? CURSUS.modules[1].lessons[0];
+const ALLE_LESSEN = CURSUS.modules.flatMap((m) => m.lessons);
+const LES_1 = ALLE_LESSEN[0];
+const LES_2 = ALLE_LESSEN[1];
+const LES_3 = ALLE_LESSEN[2];
 
 function dag(offsetDagen = 0): string {
   const d = new Date();
@@ -232,14 +234,28 @@ describe("verwerkLes — streak", () => {
     );
     expect(state.streak).toMatchObject({ current: 0, best: 0 });
 
+    // Een vast ver-toekomstig jaartal, geen dag(+3): bij extreme tijdzones
+    // schuurt een kleine offset langs de 48-uursgrens en wordt de test flaky.
+    // Zonder deze case zou de symmetrische Math.abs-controle kunnen
+    // degraderen tot alleen-verleden zonder dat een test het merkt — met
+    // één fetch per dag valt een streak dan vooruit te boeren.
     const state2 = await verwerkLes(
       "u1",
       CURSUS.slug,
       LES_2.slug,
       { correct: 0, total: LES_2.quiz.length },
-      "geen-datum"
+      "2099-01-01"
     );
     expect(state2.streak).toMatchObject({ current: 0, best: 0 });
+
+    const state3 = await verwerkLes(
+      "u1",
+      CURSUS.slug,
+      LES_3.slug,
+      { correct: 0, total: LES_3.quiz.length },
+      "geen-datum"
+    );
+    expect(state3.streak).toMatchObject({ current: 0, best: 0 });
   });
 });
 
@@ -297,6 +313,12 @@ describe("importeerSnapshot — de teller uit de browser gaat de prullenbak in",
     });
     expect(eerste.streak.current).toBe(3650);
     expect(eerste.streak.best).toBe(3650);
+
+    // Een verzonnen datum (ver in de toekomst) komt niet door de importpoort.
+    const nep = await importeerSnapshot("u1", {
+      streak: { current: 5, best: 5, lastDate: "2099-01-01" },
+    });
+    expect(nep.streak.lastDate).toBe(VANDAAG);
 
     // Een tweede import met een lagere streak pakt niets af.
     const tweede = await importeerSnapshot("u1", {

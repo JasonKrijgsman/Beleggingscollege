@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { purchases } from "@/db/schema";
 import { bedragNaarCenten, mollie, mollieIsGeconfigureerd } from "@/lib/mollie";
@@ -78,12 +78,19 @@ export async function POST(request: Request) {
         return new Response("OK", { status: 200 });
       }
 
-      // Idempotent: dezelfde webhook komt gegarandeerd vaker binnen. Deze
-      // update is een no-op als de rij al op "paid" staat.
+      // Idempotent: dezelfde webhook komt gegarandeerd vaker binnen. De
+      // ne-voorwaarde maakt dit een echte no-op als de rij al op "paid"
+      // staat — zonder die voorwaarde schoof paidAt (de orderdatum op de
+      // bevestiging) bij elke herhaling op.
       await db
         .update(purchases)
         .set({ status: "paid", paidAt: new Date() })
-        .where(eq(purchases.molliePaymentId, paymentId));
+        .where(
+          and(
+            eq(purchases.molliePaymentId, paymentId),
+            ne(purchases.status, "paid")
+          )
+        );
 
       // De wettelijk verplichte bevestiging. Bewust ná het vrijgeven van de
       // toegang, en bewust een functie die nooit gooit: gaat het versturen mis,

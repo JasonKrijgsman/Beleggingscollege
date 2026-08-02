@@ -39,12 +39,12 @@ De hele pijplijn draait zonder één omgevingsvariabele. Dat is geverifieerd
 Heeft een stap ooit "toch even een echte key" nodig, dan is dat een
 ontwerpfout in die stap.
 
-## Wat de tests afdekken (118 tests, `test/`)
+## Wat de tests afdekken (121 tests, `test/`)
 
 | Gebied | Bestand(en) |
 | --- | --- |
 | Catalogusprijs → exact bedrag bij Mollie, "prijs nooit uit het verzoek" | `prijs.test.ts`, `checkout.route.test.ts` |
-| Webhook: bedrag- én valutacontrole, idempotentie, payload wordt niet geloofd | `mollie-webhook.test.ts`, `orderbevestiging.test.ts` |
+| Webhook: bedrag- én valutacontrole, idempotentie (incl. stabiele `paidAt`), payload wordt niet geloofd, dichte winkel zonder key | `mollie-webhook.test.ts`, `orderbevestiging.test.ts`, `mollie-niet-geconfigureerd.test.ts` |
 | Toegang: alleen ingelogd mét `purchases.status = 'paid'` | `entitlements.test.ts` |
 | XP-regels, herhaalde lessen, streak, badges — client én server | `voortgang-regels.test.ts`, `voortgang-server.test.ts`, `levels.test.ts` |
 | Open redirect `/inloggen?terug=` (CODEX-102, opgelost) | `veilig-pad.test.ts`, `inloggen-terug.test.ts` |
@@ -61,10 +61,14 @@ paginaniveau.
 ## De bundel-lekcontrole
 
 `scripts/controleer-bundel.mjs` doorzoekt ná de build álle publieke JS-chunks
-(`.next/static/chunks/`) op twee dingen: de datavorm `correctIndex:` en elke
-quizvraag-zin uit `src/content/courses/` (85 stuks, vers uit de bron gelezen).
-Idee: de HTML controleren was precies de fout waardoor het importlek van
-augustus 2026 maandenlang onzichtbaar bleef; de bundel is de waarheid.
+(`.next/static/chunks/`) op twee dingen: de datavorm van het antwoordveld
+(`correctIndex:` én de JSON-variant `"correctIndex":`) en de quizvraag-zinnen
+uit `src/content/courses/`, vers uit de bron gelezen (85 van de 88; vragen
+korter dan 20 tekens of met een backslash-escape matchen na minificatie niet
+betrouwbaar en worden overgeslagen — een cursusbestand dat helemáál geen
+naalden meer oplevert laat het script luid falen). Idee: de HTML controleren
+was precies de fout waardoor het importlek van augustus 2026 maandenlang
+onzichtbaar bleef; de bundel is de waarheid.
 
 **Let op: de oude handmatige grep uit CLAUDE.md (`grep -rl "correctIndex"`)
 geeft inmiddels een vals alarm.** QuizBlock en QuizReview lezen
@@ -100,6 +104,9 @@ exit 1, de echte build exit 0.
 
 Verse worktree op `ci-fundament`, `npm ci`, geen `.env.local`:
 `npm run controle` → exit 0. Typecheck schoon; lint 0 errors (5 bekende
-warnings); **118 tests, 11 bestanden, alles groen** (~4 s); productiebuild
+warnings); **121 tests, 12 bestanden, alles groen** (~4 s); productiebuild
 compleet; bundelcontrole "52 chunks doorzocht op `correctIndex:` en 85
-quizvragen; niets gevonden".
+quizvragen; niets gevonden". De branch is daarna nog door een adversariële
+review gehaald (16 agents, elke bevinding door een scepticus geverifieerd,
+inclusief mutation testing op de datumcontrole); de zeven bevestigde
+bevindingen zijn verwerkt en de poort is opnieuw groen gedraaid.

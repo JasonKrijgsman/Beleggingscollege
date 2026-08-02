@@ -20,7 +20,9 @@ on:
 
 jobs:
   controle:
-    name: Typecheck, lint, tests, build en bundelcontrole
+    # Kort gehouden: dít is de naam die je in GitHub bij branch protection
+    # als vereiste status check selecteert (GitHub toont jobnamen).
+    name: CI
     runs-on: ubuntu-latest
     steps:
       - name: Code ophalen

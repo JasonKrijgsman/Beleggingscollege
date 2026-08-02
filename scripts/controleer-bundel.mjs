@@ -48,14 +48,30 @@ function jsBestanden(map) {
 // niet betrouwbaar. De veldnaam en de overige vragen vangen dat ruimschoots.)
 const naalden = new Map([
   ["correctIndex:", "quizdata (het juiste antwoord) in een object-literal"],
+  // Zelfde veld, maar zoals JSON.stringify hem schrijft — voor het geval de
+  // data ooit als geserialiseerde string in een chunk belandt.
+  ['"correctIndex":', "quizdata (het juiste antwoord) in JSON-vorm"],
 ]);
 
 for (const bestand of readdirSync(CURSUS_MAP)) {
   if (!bestand.endsWith(".ts")) continue;
   const bron = readFileSync(join(CURSUS_MAP, bestand), "utf8");
+  const aantalVoor = naalden.size;
   for (const match of bron.matchAll(/question:\s*"([^"]{20,})"/g)) {
     if (match[1].includes("\\")) continue;
     naalden.set(match[1], `quizvraag uit ${bestand}`);
+  }
+  // Struikeldraad tegen stil verval: schrijft een toekomstig cursusbestand
+  // zijn vragen anders (template literals, enkele quotes), dan levert de
+  // extractie hier nul naalden op en zou de controle geruisloos verzwakken.
+  const heeftVragen = /question\s*:/.test(bron);
+  if (heeftVragen && naalden.size === aantalVoor) {
+    console.error(
+      `Extractie leverde geen enkele quizvraag op uit ${bestand}, terwijl er ` +
+        "wel vragen in staan. Pas de regex in dit script aan op de nieuwe " +
+        "schrijfwijze; anders bewaakt de lekcontrole dat bestand niet meer."
+    );
+    process.exit(2);
   }
 }
 
@@ -71,7 +87,7 @@ for (const bestand of bestanden) {
   }
 }
 
-const aantalVragen = naalden.size - 1;
+const aantalVragen = naalden.size - 2; // minus de twee vaste veldnaam-naalden
 if (lekken.length > 0) {
   console.error("LEK: cursusinhoud gevonden in de publieke JS-bundel.\n");
   for (const lek of lekken.slice(0, 20)) {

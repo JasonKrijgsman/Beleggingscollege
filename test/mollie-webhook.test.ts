@@ -85,6 +85,8 @@ describe("betaald en correct", () => {
     h.paymentsGet.mockResolvedValue(betaling("paid"));
 
     await POST(webhookRequest(new URLSearchParams({ id: "tr_test_1" })));
+    const eersteKeer = await aankoopRij("tr_test_1");
+
     const tweede = await POST(
       webhookRequest(new URLSearchParams({ id: "tr_test_1" }))
     );
@@ -96,6 +98,9 @@ describe("betaald en correct", () => {
       .where(eq(purchases.molliePaymentId, "tr_test_1"));
     expect(rijen).toHaveLength(1);
     expect(rijen[0].status).toBe("paid");
+    // Ook de betaaldatum blijft exact staan: dat is de orderdatum op de
+    // bevestiging, en herhaalde webhooks mogen die niet laten opschuiven.
+    expect(rijen[0].paidAt).toEqual(eersteKeer.paidAt);
     // De bevestiging wordt opnieuw aangeroepen; de functie zelf bewaakt met
     // confirmationSentAt dat er maar één mail uitgaat (aparte test).
     expect(h.bevestiging).toHaveBeenCalledTimes(2);
