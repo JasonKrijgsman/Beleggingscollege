@@ -11,11 +11,6 @@ import {
   Play,
   Zap,
 } from "lucide-react";
-import {
-  activeCourses,
-  courseLessonCount,
-  flatLessons,
-} from "@/content";
 import { ACCENTS } from "@/lib/accent";
 import { BADGES } from "@/lib/badges";
 import { levelForXp, LEVELS } from "@/lib/levels";
@@ -61,28 +56,32 @@ function NameGreeting() {
 }
 
 export default function LeerpadPage() {
-  const { state, ready, courseProgress, isLessonCompleted, resetAll } =
-    useProgress();
-  const summary = summarize(state);
+  const {
+    state,
+    ready,
+    catalogus: activeCourses,
+    courseProgress,
+    isLessonCompleted,
+    resetAll,
+  } = useProgress();
+  const summary = summarize(state, activeCourses);
   const { level, next, progress: levelProgress } = levelForXp(state.xp);
 
   // Volgende aanbevolen les: eerste niet-afgeronde les in cursusvolgorde,
   // met voorrang voor cursussen waar je al aan begonnen bent.
   const started = activeCourses.filter((c) => {
-    const p = courseProgress(c.slug, courseLessonCount(c));
+    const p = courseProgress(c.slug, c.aantalLessen);
     return p > 0 && p < 1;
   });
   const candidates = started.length > 0 ? started : activeCourses;
   let nextUp: { courseTitle: string; href: string; lessonTitle: string; accent: keyof typeof ACCENTS } | null = null;
   for (const c of candidates) {
-    const open = flatLessons(c).find(
-      (x) => !isLessonCompleted(c.slug, x.lesson.slug)
-    );
+    const open = c.lessen.find((les) => !isLessonCompleted(c.slug, les.slug));
     if (open) {
       nextUp = {
         courseTitle: c.title,
-        lessonTitle: open.lesson.title,
-        href: `/cursussen/${c.slug}/les/${open.lesson.slug}`,
+        lessonTitle: open.title,
+        href: `/cursussen/${c.slug}/les/${open.slug}`,
         accent: c.accent,
       };
       break;
@@ -90,9 +89,7 @@ export default function LeerpadPage() {
   }
 
   const completedCourses = activeCourses.filter(
-    (c) =>
-      courseLessonCount(c) > 0 &&
-      courseProgress(c.slug, courseLessonCount(c)) >= 1
+    (c) => c.aantalLessen > 0 && courseProgress(c.slug, c.aantalLessen) >= 1
   );
 
   return (
@@ -147,7 +144,7 @@ export default function LeerpadPage() {
             {summary.lessonsCompleted}
           </div>
           <div className="mt-1 text-sm font-semibold text-body">
-            van {activeCourses.reduce((n, c) => n + courseLessonCount(c), 0)}{" "}
+            van {activeCourses.reduce((n, c) => n + c.aantalLessen, 0)}{" "}
             afgerond
           </div>
         </div>
@@ -204,7 +201,7 @@ export default function LeerpadPage() {
       <h2 className="mt-12 text-2xl font-extrabold text-ink">Mijn cursussen</h2>
       <div className="mt-5 space-y-3">
         {activeCourses.map((c) => {
-          const total = courseLessonCount(c);
+          const total = c.aantalLessen;
           const p = ready ? courseProgress(c.slug, total) : 0;
           const acc = ACCENTS[c.accent];
           return (

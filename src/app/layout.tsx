@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Open_Sans } from "next/font/google";
 import "./globals.css";
 import { ProgressProvider } from "@/lib/progress";
+import { catalogus } from "@/content/view";
 import { SITE_URL } from "@/lib/site";
 import SiteHeader from "@/components/SiteHeader";
 import AuthKnop from "@/components/AuthKnop";
@@ -39,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="nl" className={openSans.variable}>
       <body className="font-sans flex min-h-screen flex-col">
-        <ProgressProvider>
+        <ProgressProvider catalogus={catalogus()}>
           <SiteHeader authSlot={<AuthKnop />} />
           <main className="flex-1">{children}</main>
           <SiteFooter />

@@ -8,9 +8,15 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { activeCourses, courseLessonCount } from "@/content";
+import type { CursusOutline } from "@/content/view";
 import { BADGES, badgeById, type Badge, type ProgressSummary } from "./badges";
 import { levelForXp } from "./levels";
+
+// LET OP: dit bestand draait in de browser. Importeer hier nooit `@/content` —
+// dat sleept alle lesteksten en quizantwoorden mee de bundel in. De catalogus
+// komt binnen als prop, berekend op de server met `catalogus()` uit
+// `@/content/view`. Het type hierboven is een `import type` en verdwijnt bij
+// het compileren.
 
 export type QuizOutcome = { correct: number; total: number };
 
@@ -50,12 +56,15 @@ function localDate(offsetDays = 0): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-export function summarize(state: ProgressState): ProgressSummary {
+export function summarize(
+  state: ProgressState,
+  catalogus: CursusOutline[]
+): ProgressSummary {
   const completedLessonSlugs = Object.entries(state.completed).flatMap(
     ([course, lessons]) => lessons.map((l) => `${course}/${l}`)
   );
-  const coursesCompleted = activeCourses.filter((c) => {
-    const total = courseLessonCount(c);
+  const coursesCompleted = catalogus.filter((c) => {
+    const total = c.aantalLessen;
     const done = state.completed[c.slug]?.length ?? 0;
     return total > 0 && done >= total;
   }).length;
@@ -66,7 +75,7 @@ export function summarize(state: ProgressState): ProgressSummary {
     xp: state.xp,
     lessonsCompleted: completedLessonSlugs.length,
     coursesCompleted,
-    totalCourses: activeCourses.length,
+    totalCourses: catalogus.length,
     perfectQuizzes,
     streakCurrent: state.streak.current,
     completedLessonSlugs,
@@ -76,6 +85,8 @@ export function summarize(state: ProgressState): ProgressSummary {
 type ProgressApi = {
   state: ProgressState;
   ready: boolean;
+  /** Cursussen zonder lesinhoud, aangeleverd door de server. */
+  catalogus: CursusOutline[];
   setName: (name: string) => void;
   completeLesson: (
     courseSlug: string,
@@ -90,7 +101,13 @@ type ProgressApi = {
 
 const ProgressContext = createContext<ProgressApi | null>(null);
 
-export function ProgressProvider({ children }: { children: React.ReactNode }) {
+export function ProgressProvider({
+  children,
+  catalogus,
+}: {
+  children: React.ReactNode;
+  catalogus: CursusOutline[];
+}) {
   const [state, setState] = useState<ProgressState>(EMPTY);
   const [ready, setReady] = useState(false);
   const stateRef = useRef(state);
@@ -182,7 +199,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         quizScores,
         streak,
       };
-      const summary = summarize(interim);
+      const summary = summarize(interim, catalogus);
       const earnedNow = BADGES.filter((b) => b.when(summary)).map((b) => b.id);
       const newBadgeIds = earnedNow.filter((id) => !prev.badges.includes(id));
       const next: ProgressState = {
@@ -201,7 +218,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         alreadyCompleted: already,
       };
     },
-    [persist]
+    [persist, catalogus]
   );
 
   const isLessonCompleted = useCallback(
@@ -224,6 +241,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const api: ProgressApi = {
     state,
     ready,
+    catalogus,
     setName,
     completeLesson,
     isLessonCompleted,

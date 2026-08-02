@@ -1,3 +1,14 @@
+// Dit bestand bevat álle lesteksten en álle quizantwoorden. Het mag daarom
+// nooit in een browserbundel terechtkomen: een module met "use client" die dit
+// importeert sleept de complete betaalde catalogus mee, ook als hij er maar één
+// getal uit gebruikt. Dat is precies wat er gebeurd is — 21 lessen en 88
+// antwoorden stonden in een publiek JS-bestand.
+//
+// `server-only` laat de build falen zodra dat opnieuw dreigt te gebeuren.
+// Heeft een client component cursusgegevens nodig, gebruik dan `catalogus()`
+// of `samenvatting()` uit ./view en geef het resultaat door als prop.
+import "server-only";
+
 import type { Course, Lesson, Module } from "./types";
 import beleggenVoorBeginners from "./courses/beleggen-voor-beginners";
 import waardebeleggen from "./courses/waardebeleggen";
