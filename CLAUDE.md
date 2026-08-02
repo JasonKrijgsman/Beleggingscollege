@@ -35,6 +35,14 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 - Aanwezig: sitemap (`src/app/sitemap.ts`), robots (`src/app/robots.ts`, blokkeert /leerpad + certificaten), Open Graph-defaults (layout), canonicals per pagina, schema.org Course-markup (cursusdetailpagina). Certificaatpagina's zijn noindex.
 - Bij deploy nog: OG-afbeelding, Google Search Console aanmelden + sitemap indienen, .nl canoniek houden boven .com.
 
+## Betalingen
+
+- Mollie-account is **volledig live-klaar** (KYC afgerond in 2023, bankrekening geverifieerd, profiel Online). iDEAL, kaarten, PayPal en Apple Pay staan actief; SEPA-incasso is 3 aug 2026 aangevraagd en wacht op goedkeuring.
+- **Volledige status, tarieven, MOI-risico (€65) en verplichte tegenmaatregelen: `docs/betalingen-mollie.md`.** Lees dat bestand vóór er iets aan de checkout gebouwd wordt.
+- Live API-key hoort in omgevingsvariabelen, **nooit** in de repo.
+
 ## Roadmap (v2+)
 
-Accounts/auth + serverkant voortgang, betalingen (College+ €14,99/mnd), AI-studiecoach, cursus Beleggingspsychologie (nu comingSoon-teaser), risicoprofiel-tool, blog.
+Accounts/auth + serverkant voortgang, betalingen (College+ €14,99/mnd — zie `docs/betalingen-mollie.md`), AI-studiecoach, cursus Beleggingspsychologie (nu comingSoon-teaser), risicoprofiel-tool, blog.
+
+**Let op bij v2:** betaalde lesinhoud moet naar de server. Nu wordt alle content naar de browser gestuurd — prima voor gratis materiaal, onhoudbaar zodra er betaald wordt.
