@@ -24,7 +24,59 @@ export const dbIsConfigured = true;
 
 await migrate(db, { migrationsFolder: "drizzle" });
 
+/* ------------------------------------------------------------------
+ * Gecontroleerd interleaven
+ *
+ * PGlite deelt één verbinding, dus twee gelijktijdige aanroepen wisselen
+ * elkaar per STATEMENT af; een statement zelf draait altijd helemaal af.
+ * De volgorde daarvan is niet te sturen, en dan slaagt zo'n test toevallig.
+ * Met `houdVast()` zet je het éérste statement dat op een patroon past stil,
+ * laat je een ander verzoek er volledig langs, en geef je het daarna vrij.
+ *
+ * WAT DIT WÉL EN NIET AANTOONT. Wel: "de andere schrijver was al helemaal
+ * klaar toen deze begon" — de volgorde die vroeger een dubbele-sleutelfout of
+ * een dubbele streak opleverde. Niet: twee statements die elkaar echt
+ * overlappen, zoals op Neon met meerdere verbindingen. Dat valt met één
+ * verbinding niet na te bootsen; of dat goed gaat hangt aan het
+ * schrijfpatroon (optellen bij de rij, nooit herrekenen uit een snapshot) en
+ * dát wordt apart getest.
+ * ---------------------------------------------------------------- */
+
+type Haak = { patroon: RegExp; aangekomen: () => void; slot: Promise<void> };
+let haak: Haak | null = null;
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const echteQuery = client.query.bind(client) as (...a: any[]) => Promise<any>;
+(client as any).query = async (sql: string, ...rest: any[]) => {
+  if (haak && haak.patroon.test(sql)) {
+    const h = haak;
+    haak = null; // maar één statement vasthouden, niet elk volgend
+    h.aangekomen();
+    await h.slot;
+  }
+  return echteQuery(sql, ...rest);
+};
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/**
+ * Houd het eerstvolgende statement dat op `patroon` past tegen.
+ * `bereikt` gaat open zodra dat statement klaarstaat (maar nog niets deed);
+ * `laatLos()` geeft het daarna vrij.
+ */
+export function houdVast(patroon: RegExp): {
+  bereikt: Promise<void>;
+  laatLos: () => void;
+} {
+  let aangekomen!: () => void;
+  const bereikt = new Promise<void>((r) => (aangekomen = r));
+  let laatLos!: () => void;
+  const slot = new Promise<void>((r) => (laatLos = r));
+  haak = { patroon, aangekomen, slot };
+  return { bereikt, laatLos };
+}
+
 export async function leegAlleTabellen(): Promise<void> {
+  haak = null;
   // Entitlements éérst: die verwijzen (zonder cascade) naar payment_attempts.
   await db.delete(schema.entitlements);
   await db.delete(schema.paymentAttempts);

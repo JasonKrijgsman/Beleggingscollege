@@ -1,16 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 vi.mock("@/db", () => import("./helpers/pglite-db"));
 
 import { getCourse } from "@/content";
-import { lessonProgress } from "@/db/schema";
+import { lessonProgress, userStats } from "@/db/schema";
 import {
   haalVoortgang,
   importeerSnapshot,
   verwerkLes,
 } from "@/lib/voortgang-server";
-import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
+import {
+  db,
+  houdVast,
+  leegAlleTabellen,
+  maakGebruiker,
+} from "./helpers/pglite-db";
 
 /**
  * De serverkant van de voortgang — voor ingelogde gebruikers de bron van
@@ -335,6 +340,240 @@ describe("importeerSnapshot — de teller uit de browser gaat de prullenbak in",
       streak: "geen-object",
     });
     expect(state2.xp).toBe(0);
+  });
+});
+
+/**
+ * De schrijfkant onder gelijktijdigheid.
+ *
+ * De invariant die alles draagt:
+ *
+ *     user_stats.xp = SUM(lesson_progress.xp_awarded)
+ *
+ * Die hield het niet toen dit nog drie losse statements waren ("kijken of de
+ * les er al is → rij bijschrijven → stats bijwerken"). Twee gelijktijdige
+ * afrondingen van dezelfde les zagen allebei "nog niet afgerond", en de
+ * tweede insert klapte op de primaire sleutel: een 500 voor de cursist. En
+ * de snapshot-import zette XP absoluut, dus een les die er tussen het
+ * optellen en het wegschrijven bij kwam werd stilletjes overschreven.
+ *
+ * `houdVast()` maakt de volgorde reproduceerbaar: het eerste statement dat op
+ * het patroon past blijft staan, het andere verzoek loopt er volledig langs,
+ * en pas daarna gaat het door. Zonder die haak slaagt zo'n test toevallig.
+ *
+ * WEES PRECIES OVER WAT DIT BEWIJST. PGlite heeft één verbinding, dus een
+ * statement draait altijd helemaal af voordat het volgende begint. Wat je
+ * hieronder afdwingt is dus: "de andere schrijver was al klaar toen deze
+ * begon" — dat de tweede afronding dan niet klapt, niets dubbeltelt en de
+ * streak niet twee keer opschuift. Twee statements die elkaar ÉCHT overlappen
+ * (Neon, meerdere verbindingen) valt met deze harnas niet na te bootsen; dat
+ * hangt aan het schrijfpatroon zelf, en dat staat in het blok daaronder.
+ */
+async function xpKlopt(userId: string): Promise<{ stats: number; som: number }> {
+  const [{ som }] = await db
+    .select({
+      som: sql<number>`coalesce(sum(${lessonProgress.xpAwarded}), 0)::int`,
+    })
+    .from(lessonProgress)
+    .where(eq(lessonProgress.userId, userId));
+  const [rij] = await db
+    .select()
+    .from(userStats)
+    .where(eq(userStats.userId, userId))
+    .limit(1);
+  return { stats: rij?.xp ?? 0, som: Number(som) };
+}
+
+/** Het patroon dat zowel het oude losse statement als het huidige
+ *  CTE-statement raakt: de plek waar de lesrij wordt bijgeschreven. */
+const LESRIJ_SCHRIJVEN = /insert\s+into\s+"?lesson_progress"?/i;
+/** Idem voor de statsrij — in het huidige statement zit die in dezelfde CTE. */
+const STATSRIJ_SCHRIJVEN = /insert\s+into\s+"?user_stats"?/i;
+
+describe("gelijktijdigheid — user_stats.xp = SUM(lesson_progress.xp_awarded)", () => {
+  it("twee afrondingen van dezelfde les die elkaar kruisen: geen fout, XP één keer", async () => {
+    const totaal = LES_1.quiz.length;
+    const quiz = { correct: totaal, total: totaal };
+
+    // A wordt stilgezet vlak vóór het schrijven van de lesrij...
+    const haak = houdVast(LESRIJ_SCHRIJVEN);
+    const a = verwerkLes("u1", CURSUS.slug, LES_1.slug, quiz, VANDAAG);
+    await haak.bereikt;
+    // ...B rondt dezelfde les ondertussen volledig af...
+    await verwerkLes("u1", CURSUS.slug, LES_1.slug, quiz, VANDAAG);
+    // ...en pas dan mag A verder. Dit is exact de volgorde die vroeger een
+    // 500 opleverde (dubbele sleutel) of de XP verdubbelde.
+    haak.laatLos();
+    await expect(a).resolves.toBeDefined();
+
+    const rijen = await db
+      .select()
+      .from(lessonProgress)
+      .where(eq(lessonProgress.userId, "u1"));
+    expect(rijen).toHaveLength(1);
+
+    const { stats, som } = await xpKlopt("u1");
+    expect(stats).toBe(som);
+    expect(stats).toBe(LES_1.xp + bonus(totaal, totaal));
+  });
+
+  it("twee verschillende lessen die elkaar kruisen: alle XP komt aan", async () => {
+    const haak = houdVast(LESRIJ_SCHRIJVEN);
+    const a = verwerkLes("u1", CURSUS.slug, LES_1.slug, { correct: 0, total: LES_1.quiz.length }, VANDAAG);
+    await haak.bereikt;
+    await verwerkLes("u1", CURSUS.slug, LES_2.slug, { correct: 0, total: LES_2.quiz.length }, VANDAAG);
+    haak.laatLos();
+    await a;
+
+    const { stats, som } = await xpKlopt("u1");
+    expect(stats).toBe(som);
+    expect(stats).toBe(LES_1.xp + LES_2.xp);
+    // En de streak is er niet twee keer vandoor gegaan: één dag is één dag.
+    const state = await haalVoortgang("u1");
+    expect(state.streak).toMatchObject({ current: 1, best: 1 });
+  });
+
+  it("een snapshot-import die een afgeronde les kruist: niemand raakt XP kwijt", async () => {
+    // Het gevaarlijke geval van vroeger: de import telde de XP-som op vóórdat
+    // de les erbij kwam en schreef die daarna absoluut weg. De les was dan
+    // wél afgerond, maar de XP ervan verdampte.
+    const totaal = LES_1.quiz.length;
+
+    const haak = houdVast(STATSRIJ_SCHRIJVEN);
+    const importeren = importeerSnapshot("u1", {
+      completed: { [CURSUS.slug]: [LES_2.slug, LES_3.slug] },
+      streak: { current: 4, best: 7, lastDate: VANDAAG },
+    });
+    await haak.bereikt;
+    await verwerkLes("u1", CURSUS.slug, LES_1.slug, { correct: totaal, total: totaal }, VANDAAG);
+    haak.laatLos();
+    await importeren;
+
+    const { stats, som } = await xpKlopt("u1");
+    expect(stats).toBe(som);
+    expect(stats).toBe(LES_1.xp + bonus(totaal, totaal) + LES_2.xp + LES_3.xp);
+  });
+
+  it("dezelfde les via snapshot én via afronding, kruisend: telt één keer", async () => {
+    const totaal = LES_1.quiz.length;
+
+    const haak = houdVast(LESRIJ_SCHRIJVEN);
+    const importeren = importeerSnapshot("u1", {
+      completed: { [CURSUS.slug]: [LES_1.slug] },
+    });
+    await haak.bereikt;
+    await verwerkLes("u1", CURSUS.slug, LES_1.slug, { correct: totaal, total: totaal }, VANDAAG);
+    haak.laatLos();
+    await expect(importeren).resolves.toBeDefined();
+
+    const rijen = await db
+      .select()
+      .from(lessonProgress)
+      .where(eq(lessonProgress.userId, "u1"));
+    expect(rijen).toHaveLength(1);
+
+    const { stats, som } = await xpKlopt("u1");
+    expect(stats).toBe(som);
+    expect(stats).toBe(LES_1.xp + bonus(totaal, totaal));
+  });
+
+  it("twee kruisende snapshot-imports met dezelfde inhoud: geen dubbele XP", async () => {
+    const snapshot = {
+      completed: { [CURSUS.slug]: [LES_1.slug, LES_2.slug] },
+      streak: { current: 3, best: 3, lastDate: VANDAAG },
+    };
+
+    const haak = houdVast(STATSRIJ_SCHRIJVEN);
+    const eerste = importeerSnapshot("u1", snapshot);
+    await haak.bereikt;
+    await importeerSnapshot("u1", snapshot);
+    haak.laatLos();
+    await eerste;
+
+    const { stats, som } = await xpKlopt("u1");
+    expect(stats).toBe(som);
+    expect(stats).toBe(LES_1.xp + LES_2.xp);
+  });
+
+  it("een hele reeks tegelijk: de invariant overleeft ook zonder regie", async () => {
+    await Promise.all([
+      ...[LES_1, LES_2, LES_3].map((les) =>
+        verwerkLes("u1", CURSUS.slug, les.slug, { correct: 0, total: les.quiz.length }, VANDAAG)
+      ),
+      importeerSnapshot("u1", {
+        completed: { [CURSUS.slug]: [LES_1.slug, LES_2.slug, LES_3.slug] },
+      }),
+    ]);
+
+    const { stats, som } = await xpKlopt("u1");
+    expect(stats).toBe(som);
+    expect(stats).toBe(LES_1.xp + LES_2.xp + LES_3.xp);
+  });
+});
+
+/**
+ * Het schrijfpatroon zelf — het hart van de fix, en het enige stuk dat de
+ * haak hierboven niet kan aantonen.
+ *
+ * Op Neon overlappen twee statements wél. De schrijver die dan als tweede aan
+ * de statsrij komt, wacht op de rijvergrendeling en ziet daarna de nieuwe
+ * waarde — maar alleen als hij OPTELT bij wat er in de rij staat (`s.xp +
+ * delta`). Herrekent hij in plaats daarvan uit een snapshot van
+ * lesson_progress, dan is die snapshot ouder dan de commit van de ander en
+ * schrijft hij diens winst weg: de klassieke verloren update.
+ *
+ * Dat verschil is hier na te bootsen door de statsrij vooruit te zetten. Die
+ * voorsprong is precies het spoor dat een gelijktijdige schrijver achterlaat:
+ * de rij staat verder dan de lesson_progress-snapshot die ons statement nam.
+ * Telt de code op, dan blijft de voorsprong staan; herrekent hij, dan
+ * verdampt hij. De invariant `user_stats.xp = SUM(xp_awarded)` is hier dus
+ * bewust even doorbroken — anders is er niets te meten.
+ */
+describe("het schrijfpatroon — XP wordt opgeteld, nooit herrekend", () => {
+  const VOORSPRONG = 1000;
+
+  /** Zet de statsrij vooruit alsof een ander verzoek net gecommit heeft. */
+  async function alsofEenAnderNetCommitte(): Promise<void> {
+    await db
+      .update(userStats)
+      .set({ xp: sql`${userStats.xp} + ${VOORSPRONG}` })
+      .where(eq(userStats.userId, "u1"));
+  }
+
+  it("verwerkLes telt op bij de statsrij, niet bij de som uit de tabel", async () => {
+    const eerste = await verwerkLes(
+      "u1",
+      CURSUS.slug,
+      LES_1.slug,
+      { correct: 0, total: LES_1.quiz.length },
+      VANDAAG
+    );
+    await alsofEenAnderNetCommitte();
+
+    const tweede = await verwerkLes(
+      "u1",
+      CURSUS.slug,
+      LES_2.slug,
+      { correct: 0, total: LES_2.quiz.length },
+      VANDAAG
+    );
+    expect(tweede.xp).toBe(eerste.xp + VOORSPRONG + LES_2.xp);
+  });
+
+  it("importeerSnapshot telt óók op, en herrekent niet", async () => {
+    const eerste = await verwerkLes(
+      "u1",
+      CURSUS.slug,
+      LES_1.slug,
+      { correct: 0, total: LES_1.quiz.length },
+      VANDAAG
+    );
+    await alsofEenAnderNetCommitte();
+
+    const na = await importeerSnapshot("u1", {
+      completed: { [CURSUS.slug]: [LES_2.slug] },
+    });
+    expect(na.xp).toBe(eerste.xp + VOORSPRONG + LES_2.xp);
   });
 });
 
