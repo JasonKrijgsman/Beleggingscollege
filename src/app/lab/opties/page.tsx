@@ -23,6 +23,7 @@ const TOOLS: { tool: LessonTool; les: string }[] = [
   { tool: "hefboom-simulator", les: "Hefboomproducten · De hefboom" },
   { tool: "paniek-simulator", les: "Beleggingspsychologie · Kuddegedrag, manie en paniek" },
   { tool: "bias-test", les: "Beleggingspsychologie · Ken je eigen neigingen" },
+  { tool: "kosten-vreter", les: "Indexbeleggen & ETF's · De kosten-vreter" },
 ];
 
 export default function LabOptiesPage() {

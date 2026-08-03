@@ -18,6 +18,7 @@ import optiesBegrijpen from "./courses/opties-begrijpen";
 import beschermenEnVerdienen from "./courses/beschermen-en-verdienen-met-opties";
 import volatiliteitEnSpreads from "./courses/volatiliteit-en-spreads";
 import hefboomproducten from "./courses/hefboomproducten";
+import indexbeleggen from "./courses/indexbeleggen";
 
 export const courses: Course[] = [
   beleggenVoorBeginners,
@@ -28,6 +29,7 @@ export const courses: Course[] = [
   beschermenEnVerdienen,
   volatiliteitEnSpreads,
   hefboomproducten,
+  indexbeleggen,
 ].sort((a, b) => a.order - b.order);
 
 export const activeCourses = courses.filter((c) => !c.comingSoon);

@@ -36,7 +36,8 @@ export type LessonTool =
   | "optie-greeks" // Greeks-speeltuin (Volatiliteit & Spreads)
   | "hefboom-simulator" // knock-out en financieringskosten (Hefboomproducten)
   | "bias-test" // 15 situatievragen, drie neigingen + tegenmaatregel (Beleggingspsychologie)
-  | "paniek-simulator"; // historische crash dag voor dag doorstaan (Beleggingspsychologie)
+  | "paniek-simulator" // historische crash dag voor dag doorstaan (Beleggingspsychologie)
+  | "kosten-vreter"; // wat lopende kosten over 30 jaar opeten (Indexbeleggen & ETF's)
 
 export type Lesson = {
   slug: string;
@@ -64,7 +65,8 @@ export type CourseAccent =
   | "navy"
   | "paars"
   | "petrol" // de opties-leerlijn (drie cursussen, één familie)
-  | "oranje"; // Hefboomproducten (waarschuwingskleur, bewust)
+  | "oranje" // Hefboomproducten (waarschuwingskleur, bewust)
+  | "leisteen"; // Indexbeleggen & ETF's (kalm staalblauw — saai wint)
 export type CourseIcon =
   | "sprout"
   | "scale"
@@ -73,7 +75,8 @@ export type CourseIcon =
   | "target" // Opties Begrijpen (de uitoefenprijs als doel)
   | "shield" // Beschermen & Verdienen met Opties
   | "activity" // Volatiliteit & Spreads
-  | "gauge"; // Hefboomproducten
+  | "gauge" // Hefboomproducten
+  | "globe"; // Indexbeleggen & ETF's (de wereldindex)
 
 export type Course = {
   slug: string;
