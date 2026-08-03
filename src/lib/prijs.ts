@@ -28,3 +28,26 @@ export function prijsTekstNaarCenten(tekst: string): number | null {
   );
   return Number.isFinite(centen) && centen > 0 ? centen : null;
 }
+
+/**
+ * De prijs zoals schema.org hem adverteert, afgeleid uit exact dezelfde
+ * berekening als de checkout (prijsInCenten). Zo kan de geadverteerde prijs
+ * nooit afwijken van wat er wordt afgerekend — een afwijking is misleidende
+ * reclame. Voorheen had de cursuspagina hier een eigen fallback ("€14,99")
+ * terwijl de checkout terugviel op PRICING.losseCursus (€49).
+ *
+ * - Gratis cursus   -> "0"
+ * - Koopbare cursus -> "49.00"-stijl: punt als decimaalteken, twee decimalen —
+ *   hetzelfde formaat als centenNaarBedrag() in mollie.ts en geldig voor
+ *   schema.org.
+ * - comingSoon (of een kapotte prijstekst) -> null: er valt niets te
+ *   adverteren, dus géén Offer. De cursuspagina zet voor comingSoon sowieso
+ *   geen schema.org-markup; dit houdt dat gedrag in stand.
+ */
+export function schemaOrgPrijs(
+  course: Pick<Course, "free" | "comingSoon" | "price">
+): string | null {
+  if (course.free) return "0";
+  const centen = prijsInCenten(course);
+  return centen === null ? null : (centen / 100).toFixed(2);
+}
