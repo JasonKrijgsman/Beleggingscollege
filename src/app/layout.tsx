@@ -31,6 +31,11 @@ export const metadata: Metadata = {
     description:
       "Eerlijk beleggingsonderwijs, geworteld in de beste boeken. Interactieve cursussen, quizzen, badges en certificaten.",
   },
+  // Zonder deze regel toont X bij elke deling een kleine vierkante afbeelding,
+  // ook nu de og:image er wél is. Titel, tekst en beeld laten we bewust weg:
+  // die vallen terug op Open Graph, zodat er één bron blijft en de twee
+  // kaarten niet uit elkaar kunnen lopen.
+  twitter: { card: "summary_large_image" },
 };
 
 export default async function RootLayout({
