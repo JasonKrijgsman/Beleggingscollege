@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { lessonQuestions } from "@/db/schema";
 import { getCourse } from "@/content";
@@ -122,30 +122,44 @@ export async function plaatsVraag(
     return { ok: false, reden: "Onbekende les." };
   }
 
-  const [{ wachtend }] = await db
-    .select({ wachtend: count() })
-    .from(lessonQuestions)
-    .where(
-      and(
-        eq(lessonQuestions.userId, userId),
-        eq(lessonQuestions.status, "wachtend")
-      )
-    );
-  if (wachtend >= MAX_WACHTEND_PER_GEBRUIKER) {
+  const voornaam = naam.trim().split(/\s+/)[0]?.slice(0, 40) ?? "";
+
+  /*
+   * Tellen en invoegen in ÉÉN statement.
+   *
+   * Het was eerst een SELECT count(...) gevolgd door een INSERT, en daar zat
+   * een gat tussen: twee gelijktijdige inzendingen lazen allebei "twee
+   * wachtend", en allebei mochten door — vier openstaande vragen bij een
+   * limiet van drie. Nu staat de telling in de WHERE van de INSERT zelf, dus
+   * hij wordt pas op het moment van invoegen bepaald.
+   *
+   * Eerlijk over de rest van het gat: onder READ COMMITTED werkt elk statement
+   * met de momentopname van zijn eigen start, dus twee inzendingen op precies
+   * hetzelfde moment kunnen in theorie nog steeds allebei ruimte zien. De
+   * schade is dan één vraag te veel in de moderatiewachtrij. Sluitend krijg je
+   * dat alleen met een slot of SERIALIZABLE, en dat is te zwaar geschut voor
+   * een spamdrempel — geen transacties dus, wat ook nodig is omdat de
+   * neon-http-driver ze niet ondersteunt.
+   *
+   * Geen rij terug = de limiet gold. Dat is meteen het antwoord.
+   */
+  const geplaatst = await db.execute(sql`
+    INSERT INTO lesson_questions (id, user_id, naam, course_slug, lesson_slug, vraag)
+    SELECT gen_random_uuid(), ${userId}, ${voornaam}, ${courseSlug}, ${lessonSlug}, ${vraag}
+    WHERE (
+      SELECT count(*) FROM lesson_questions
+      WHERE user_id = ${userId} AND status = 'wachtend'
+    ) < ${MAX_WACHTEND_PER_GEBRUIKER}::int
+    RETURNING id
+  `);
+
+  if (geplaatst.rows.length === 0) {
     return {
       ok: false,
       reden:
         "Je hebt al een paar vragen ingestuurd — dank! Geef me even de kans die te bekijken voordat je er meer stuurt.",
     };
   }
-
-  await db.insert(lessonQuestions).values({
-    userId,
-    naam: naam.trim().split(/\s+/)[0]?.slice(0, 40) ?? "",
-    courseSlug,
-    lessonSlug,
-    vraag,
-  });
   return { ok: true };
 }
 
