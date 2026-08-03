@@ -24,7 +24,52 @@ export const dbIsConfigured = true;
 
 await migrate(db, { migrationsFolder: "drizzle" });
 
+/* ------------------------------------------------------------------
+ * Gecontroleerd interleaven
+ *
+ * PGlite deelt één verbinding, dus twee gelijktijdige aanroepen wisselen
+ * elkaar per statement af — net als twee verzoeken op productie. Alleen is
+ * de volgorde daarvan niet te sturen, en dan bewijst een racetest niets:
+ * hij slaagt toevallig. Met `houdVast()` zet je het éérste statement dat op
+ * een patroon past stil, laat je een ander verzoek er volledig langs, en
+ * geef je het daarna vrij. Zo is de gevaarlijke volgorde reproduceerbaar.
+ * ---------------------------------------------------------------- */
+
+type Haak = { patroon: RegExp; aangekomen: () => void; slot: Promise<void> };
+let haak: Haak | null = null;
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const echteQuery = client.query.bind(client) as (...a: any[]) => Promise<any>;
+(client as any).query = async (sql: string, ...rest: any[]) => {
+  if (haak && haak.patroon.test(sql)) {
+    const h = haak;
+    haak = null; // maar één statement vasthouden, niet elk volgend
+    h.aangekomen();
+    await h.slot;
+  }
+  return echteQuery(sql, ...rest);
+};
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/**
+ * Houd het eerstvolgende statement dat op `patroon` past tegen.
+ * `bereikt` gaat open zodra dat statement klaarstaat (maar nog niets deed);
+ * `laatLos()` geeft het daarna vrij.
+ */
+export function houdVast(patroon: RegExp): {
+  bereikt: Promise<void>;
+  laatLos: () => void;
+} {
+  let aangekomen!: () => void;
+  const bereikt = new Promise<void>((r) => (aangekomen = r));
+  let laatLos!: () => void;
+  const slot = new Promise<void>((r) => (laatLos = r));
+  haak = { patroon, aangekomen, slot };
+  return { bereikt, laatLos };
+}
+
 export async function leegAlleTabellen(): Promise<void> {
+  haak = null;
   // Entitlements éérst: die verwijzen (zonder cascade) naar payment_attempts.
   await db.delete(schema.entitlements);
   await db.delete(schema.paymentAttempts);
