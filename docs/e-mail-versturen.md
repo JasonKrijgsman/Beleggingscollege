@@ -151,9 +151,9 @@ Jason heeft er twee, en ze lijken op elkaar:
 
 - **`NL004813328B30`** — het **btw-identificatienummer**. Dit is het openbare nummer; het hoort
   in de voettekst (art. 3:15d BW) en in de orderbevestiging. Staat er inmiddels in.
-- **`214739879B02`** — het **omzetbelastingnummer**. Dit is afgeleid van Jasons BSN en hoort
+- Het **omzetbelastingnummer** — afgeleid van Jasons BSN, staat bewust niet in de repo — hoort
   **nergens** gepubliceerd te worden. Niet in de repo, niet in de footer, niet in een mail, niet
-  in documentatie. Het staat hier alleen omdat je moet weten dát het bestaat en waarom je het
+  in documentatie. We noemen het hier alleen bij naam, zodat je weet dát het bestaat en waarom je het
   niet moet gebruiken.
 
 ## Ontwerpkeuzes in de code

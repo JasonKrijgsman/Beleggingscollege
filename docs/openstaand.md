@@ -79,7 +79,7 @@ juridisch niet mag verkopen, of kun je een geschil niet winnen.
         nérgens in de repo. **Schrijf het woonadres ook niet in documentatie.**
       - ~~Btw-identificatienummer~~ **Opgelost op 2 aug 2026: `NL004813328B30`.** Staat in de
         voettekst en in de orderbevestiging. **Let op:** Jason heeft twee nummers. Het
-        omzetbelastingnummer (`214739879B02`) is afgeleid van zijn BSN en mag nergens
+        omzetbelastingnummer (afgeleid van zijn BSN, staat bewust niet in de repo) mag nergens
         gepubliceerd worden — niet in code, niet in een mail, niet in documentatie.
 - [ ] **Btw-nummer nog invullen bij Mollie.** Het veld daar is leeg (gecontroleerd 2 aug 2026):
       Instellingen → Bedrijfsgegevens → Btw informatie.
@@ -406,9 +406,11 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
     gratis cursus eerst), de gecombineerde foto-/videodag, en de bestelling van
     bedankkaarten + certificaatpapier (~€70–140).
   - **Wacht op bouwwerk (klaar om te starten zodra Jason het zegt):** het
-    kanttekening-component + contentveld in `src/content/types.ts`, de "Vragen bij deze les"-tabel,
-    API-route en moderatiescherm, en de Resolve-montagestraat (pas ná de eerste vijf
-    handmatige video's — automatiseer niet wat je nog niet begrijpt).
+    kanttekening-component + contentveld in `src/content/types.ts`, en de
+    Resolve-montagestraat (pas ná de eerste vijf handmatige video's — automatiseer
+    niet wat je nog niet begrijpt).
+    (De "Vragen bij deze les"-tabel, API-route en moderatiescherm zijn op 3 aug 2026
+    gebouwd en staan live — zie `src/lib/lesvragen.ts` en `/beheer/vragen`.)
   De klok telt hier mee: het archief wordt pas onkopieerbaar door tijd, dus elke maand
   eerder beginnen is voorsprong die niet in te halen is.
 

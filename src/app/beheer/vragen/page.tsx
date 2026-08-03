@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Moderatie van lesvragen — alleen voor de beheerder (BEHEER_EMAILS).
+ * Moderatie van lesvragen — alleen voor de beheerder (ADMIN_EMAILS, met BEHEER_EMAILS als terugval).
  * Voor ieder ander gedraagt deze pagina zich als onbestaand (404), zodat er
  * niets te ontdekken valt.
  */
