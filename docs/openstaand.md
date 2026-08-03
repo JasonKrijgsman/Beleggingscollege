@@ -523,11 +523,18 @@ Wat de review verder opleverde en nog openstaat:
       Opnieuw proberen; blijft het falen, dan een supportticket met de Info-ID's uit
       `docs/domain-migration-plan.md`. **Zonder code geen transfer naar Porkbun — en Porkbun
       pikt niets vanzelf op.** Geen haast: het domein loopt tot 20-08-2027.
-- [ ] **`beheer@beleggingscollege.nl` bestaat nog niet bij Migadu.** Er staat alleen een
-      ongebruikte `admin@` (postmaster, aangemaakt bij het toevoegen van het domein). De code
-      en de publieke teksten op `/contact`, `/privacy` en `/herroepingsrecht` noemen `beheer@`.
-      Aanmaken, daarna `MAIL_SMTP_GEBRUIKER` en `MAIL_SMTP_WACHTWOORD` in Vercel
-      (Production + Preview), en pas dán DMARC terug van `quarantine` naar `reject`.
+- [x] ~~**`beheer@beleggingscollege.nl` bestaat nog niet bij Migadu.**~~ **Aangemaakt 3 aug
+      2026.** Naam "Beleggingscollege", mag verzenden én ontvangen, IMAP/POP3/ManageSieve aan,
+      verloopt nooit. Daarnaast staat er nog een ongebruikte `admin@` (postmaster, automatisch
+      aangemaakt bij het toevoegen van het domein) — die doet niets en mag blijven staan.
+- [ ] **De verzendgegevens staan nog niet in Vercel.** `MAIL_SMTP_GEBRUIKER`
+      (= `beheer@beleggingscollege.nl`) en `MAIL_SMTP_WACHTWOORD` in Production + Preview,
+      daarna opnieuw deployen. Zolang ze leeg zijn logt de app een waarschuwing en gaat er geen
+      bevestiging de deur uit; de aankoop werkt wel gewoon door. **Test daarna één echte
+      bestelling** vóór je DMARC terugzet van `quarantine` naar `reject` — dat is precies de
+      volgorde die voorkomt dat een fout stil in een weigering eindigt.
+- [ ] **Zet DMARC terug op `p=reject`** in de Cloudflare-zone, zodra verzenden bewezen werkt.
+      Het staat nu bewust op `quarantine` (met een comment bij het record dat dat tijdelijk is).
 - [ ] **De `.nl` serveert nu de oude WordPress-site.** De A-records in Cloudflare wijzen nog
       naar `81.169.145.93` bij Strato. Dat was bewust zo tijdens de verhuizing, maar het
       betekent dat het adres in onze eigen voettekst en op elk certificaat de site met de drie
@@ -541,16 +548,15 @@ Wat de review verder opleverde en nog openstaat:
   naamserverwissel heen levend houdt door de MX te kopiëren, klopt dus niet — en de
   Cloudflare-zone wijst sowieso al naar Migadu. Jason heeft op 3 aug bevestigd dat de inhoud
   van die postbussen gemist kan worden.
-- **De e-mail werkt gewoon.** `beheer@beleggingscollege.nl` bestaat als postbus bij Strato
-  en bevat mail; `info@` ook. Uitgaande post wordt door Strato met DKIM ondertekend
-  (`strato-dkim-0002`, `strato-dkim-0003`), dus de DMARC-regel op `p=reject` slaagt ondanks
-  het ontbrekende SPF-record. Migadu meldt "No mails can reach us" — dat gaat over Migadu,
-  niet over het adres.
-- [ ] **Er kijkt alleen niemand in die postbus.** Op `/contact` staat "antwoord binnen twee
+- **De e-mail draait sinds 3 aug 2026 bij Migadu.** De oude Strato-postbussen (`beheer@`,
+  `info@`) zijn met de naamserverwissel vervallen; Jason heeft bevestigd dat die inhoud gemist
+  kon worden. De MX wijst nu naar `aspmx1`/`aspmx2.migadu.com` en de nieuwe `beheer@` ontvangt.
+- [ ] **Er kijkt nog steeds niemand in die postbus.** Op `/contact` staat "antwoord binnen twee
       werkdagen", en `/herroepingsrecht` en `/privacy` noemen dit adres voor respectievelijk
-      ontbinding en AVG-verzoeken. Zet hem op je telefoon of laat hem doorsturen.
-- [ ] **Bij de verhuizing eerst de bestaande postbussen exporteren**, dan pas de records uit
-      `docs/migadu-records.txt` in Cloudflare zetten. Andersom ben je de inhoud kwijt.
+      ontbinding en AVG-verzoeken. Bij Migadu staat **Forwarding op Inactive**, dus binnenkomende
+      post blijft daar liggen tot iemand inlogt. Zet de postbus op je telefoon (IMAP staat aan)
+      of zet doorsturen aan. Dit is nu urgenter dan het was: dit adres is straks óók de afzender
+      van elke orderbevestiging, dus antwoorden van klanten komen hier binnen.
 
 ## 9. De documentatie spreekt zichzelf tegen
 
