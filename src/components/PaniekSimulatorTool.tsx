@@ -9,6 +9,14 @@ import {
   Play,
   RotateCcw,
 } from "lucide-react";
+import {
+  INLEG,
+  berekenWaarde,
+  maakReeks,
+  paniekverkoperWaarde,
+  type PaniekActie,
+  type ReeksSpec,
+} from "@/lib/paniek";
 
 // Hoort bij de les "Kuddegedrag, manie en paniek" (Beleggingspsychologie,
 // accent paars). De cursist "belegt" EUR 10.000 en speelt een historisch
@@ -19,8 +27,10 @@ import {
 // De koersreeksen zijn deterministisch (vaste seed): iedereen ziet exact
 // dezelfde oefening. Ze zijn geïnspireerd op echte episodes maar het zijn
 // leerreeksen, geen datasets — en al helemaal geen voorspelling.
-
-const INLEG = 10_000;
+//
+// Het rekenwerk (reeks genereren, waarde van de pot, de typische
+// paniekverkoper) staat in src/lib/paniek.ts en wordt getest in
+// test/paniek.test.ts.
 
 function eur(n: number): string {
   return n.toLocaleString("nl-NL", {
@@ -37,26 +47,12 @@ function pct(n: number): string {
   })}%`;
 }
 
-/* Zelfde deterministische generator als in SteunWeerstandTool. */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 type Kop = { maand: number; tekst: string };
 
-type Scenario = {
+type Scenario = ReeksSpec & {
   key: string;
   naam: string;
   duiding: string; // waar het patroon op geïnspireerd is
-  seed: number;
-  /** [maandindex, indexstand] — tussenliggende maanden worden vloeiend ingevuld */
-  waypoints: [number, number][];
   koppen: Kop[];
   naschrift: string; // wat er ná het venster gebeurde (historische context)
 };
@@ -152,32 +148,11 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-function maakReeks(scenario: Scenario): number[] {
-  const willekeur = mulberry32(scenario.seed);
-  const laatste = scenario.waypoints[scenario.waypoints.length - 1][0];
-  const reeks: number[] = [];
-  for (let m = 0; m <= laatste; m++) {
-    // Vind het omliggende waypoint-paar.
-    let i = 0;
-    while (scenario.waypoints[i + 1][0] < m) i++;
-    const [m0, v0] = scenario.waypoints[i];
-    const [m1, v1] = scenario.waypoints[i + 1];
-    const t = m1 === m0 ? 0 : (m - m0) / (m1 - m0);
-    const glad = t * t * (3 - 2 * t);
-    const basis = v0 + (v1 - v0) * glad;
-    const ruis = m === 0 || m === laatste ? 0 : (willekeur() - 0.5) * 2.4;
-    reeks.push(Math.max(5, basis + ruis));
-  }
-  return reeks;
-}
-
-type Actie = { maand: number; type: "verkoop" | "instap"; stand: number };
-
 export default function PaniekSimulatorTool() {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [maand, setMaand] = useState(0);
   const [belegd, setBelegd] = useState(true);
-  const [acties, setActies] = useState<Actie[]>([]);
+  const [acties, setActies] = useState<PaniekActie[]>([]);
   const [speelt, setSpeelt] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -186,38 +161,11 @@ export default function PaniekSimulatorTool() {
   const laatste = reeks.length - 1;
   const klaar = maand >= laatste;
 
-  // Waarde van jouw pot: door de reeks lopen en bij elke actie wisselen
-  // tussen "beweegt mee" en "staat stil in cash".
-  const berekenWaarde = (totMaand: number): number => {
-    let waarde = INLEG;
-    let inMarkt = true;
-    let vorigeStand = reeks[0];
-    for (let m = 1; m <= totMaand; m++) {
-      const actieHier = acties.find((a) => a.maand === m);
-      if (inMarkt) waarde *= reeks[m] / vorigeStand;
-      if (actieHier) inMarkt = actieHier.type === "instap";
-      vorigeStand = reeks[m];
-    }
-    return waarde;
-  };
-
-  const jouwWaarde = berekenWaarde(maand);
+  // Waarde van jouw pot en van de vergelijkingsstrategieën; het rekenwerk
+  // staat in src/lib/paniek.ts.
+  const jouwWaarde = berekenWaarde(reeks, acties, maand);
   const blijvenZitten = (INLEG * reeks[maand]) / reeks[0];
-
-  // De typische paniekverkoper: verkoopt zodra de stand 25% onder de start
-  // zakt en stapt pas weer in nadat de markt 30% van de bodem is opgeveerd.
-  const paniekverkoper = useMemo(() => {
-    let waarde = INLEG;
-    let inMarkt = true;
-    let bodem = reeks[0];
-    for (let m = 1; m <= laatste; m++) {
-      if (inMarkt) waarde *= reeks[m] / reeks[m - 1];
-      bodem = Math.min(bodem, reeks[m]);
-      if (inMarkt && reeks[m] <= reeks[0] * 0.75) inMarkt = false;
-      else if (!inMarkt && reeks[m] >= bodem * 1.3) inMarkt = true;
-    }
-    return waarde;
-  }, [reeks, laatste]);
+  const paniekverkoper = useMemo(() => paniekverkoperWaarde(reeks), [reeks]);
 
   const actueleKop = [...scenario.koppen].reverse().find((k) => k.maand <= maand);
 
@@ -341,28 +289,35 @@ export default function PaniekSimulatorTool() {
             start
           </text>
           <path d={pad} fill="none" stroke="#6d3fc4" strokeWidth={2.5} />
-          {acties.map((a) => (
-            <g key={`${a.type}-${a.maand}`}>
-              <circle
-                cx={naarX(a.maand)}
-                cy={naarY(a.stand)}
-                r={5}
-                fill={a.type === "verkoop" ? "#c2410c" : "#239a67"}
-                stroke="#fff"
-                strokeWidth={2}
-              />
-              <text
-                x={naarX(a.maand)}
-                y={naarY(a.stand) - 9}
-                textAnchor="middle"
-                fontSize={9}
-                fontWeight={700}
-                fill={a.type === "verkoop" ? "#c2410c" : "#239a67"}
-              >
-                {a.type === "verkoop" ? "verkocht" : "ingestapt"}
-              </text>
-            </g>
-          ))}
+          {acties.map((a, i) => {
+            // In één gepauzeerde maand kun je verkopen én weer instappen; de
+            // stippen vallen dan samen, dus de labels stapelen we omhoog.
+            const eerderDezeMaand = acties
+              .slice(0, i)
+              .filter((b) => b.maand === a.maand).length;
+            return (
+              <g key={`${i}-${a.type}-${a.maand}`}>
+                <circle
+                  cx={naarX(a.maand)}
+                  cy={naarY(a.stand)}
+                  r={5}
+                  fill={a.type === "verkoop" ? "#c2410c" : "#239a67"}
+                  stroke="#fff"
+                  strokeWidth={2}
+                />
+                <text
+                  x={naarX(a.maand)}
+                  y={naarY(a.stand) - 9 - eerderDezeMaand * 11}
+                  textAnchor="middle"
+                  fontSize={9}
+                  fontWeight={700}
+                  fill={a.type === "verkoop" ? "#c2410c" : "#239a67"}
+                >
+                  {a.type === "verkoop" ? "verkocht" : "ingestapt"}
+                </text>
+              </g>
+            );
+          })}
           {maand > 0 && (
             <circle cx={naarX(maand)} cy={naarY(reeks[maand])} r={4.5} fill="#6d3fc4" stroke="#fff" strokeWidth={2} />
           )}

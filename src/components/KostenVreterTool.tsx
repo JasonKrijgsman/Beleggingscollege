@@ -2,11 +2,13 @@
 
 import { useId, useMemo, useState } from "react";
 import { Globe } from "lucide-react";
+import { verloop } from "@/lib/kostenvreter";
 
 // Hoort bij de les "De kosten-vreter" (Indexbeleggen & ETF's, accent
 // leisteen). Twee identieke beleggingen, één verschil: de jaarlijkse kosten.
 // De cursist schuift aan de kosten en ziet dertig jaar groei opgegeten
-// worden — het punt van Bogle in één grafiek.
+// worden — het punt van Bogle in één grafiek. Het rekenwerk staat in
+// src/lib/kostenvreter.ts en wordt getest in test/kostenvreter.test.ts.
 
 function eur(n: number): string {
   return n.toLocaleString("nl-NL", {
@@ -89,24 +91,6 @@ function SchuifVeld({
       {hint && <p className="mt-1.5 text-xs text-body">{hint}</p>}
     </div>
   );
-}
-
-/** Vermogensopbouw met maandinleg, netto jaarrendement = bruto − kosten. */
-function verloop(
-  maandinleg: number,
-  jaren: number,
-  brutoPct: number,
-  kostenPct: number
-): number[] {
-  const netto = (brutoPct - kostenPct) / 100;
-  const groeiPerMaand = Math.pow(1 + netto, 1 / 12);
-  const punten: number[] = [0];
-  let waarde = 0;
-  for (let m = 1; m <= jaren * 12; m++) {
-    waarde = waarde * groeiPerMaand + maandinleg;
-    if (m % 12 === 0) punten.push(waarde);
-  }
-  return punten;
 }
 
 export default function KostenVreterTool() {
