@@ -6,12 +6,15 @@ import type { LessonTool } from "@/content/types";
 // pagina, zonder een cursus te hoeven kopen. Zelfde regime als /lab: uit de
 // sitemap gehouden en op noindex.
 export const metadata: Metadata = {
-  title: "Stijllab · Optietools",
-  description: "Interne testpagina voor de interactieve optie- en hefboomtools.",
+  title: "Stijllab · Lestools",
+  description: "Interne testpagina voor alle interactieve lestools.",
   robots: { index: false, follow: false },
 };
 
 const TOOLS: { tool: LessonTool; les: string }[] = [
+  { tool: "rente-op-rente", les: "Beleggen voor Beginners · Rente op rente" },
+  { tool: "intrinsieke-waarde", les: "Ontdek Waardebeleggen · De veiligheidsmarge" },
+  { tool: "steun-weerstand", les: "Introductie Technische Analyse · Trends, steun en weerstand" },
   { tool: "optie-uitbetaling", les: "Opties Begrijpen · De vier posities" },
   { tool: "optie-keten", les: "Opties Begrijpen · De optieketen lezen" },
   { tool: "optie-tijdswaarde", les: "Opties Begrijpen · Intrinsieke waarde en tijdswaarde" },
@@ -32,11 +35,12 @@ export default function LabOptiesPage() {
       <span className="inline-block rounded-full bg-paars-100 px-3 py-1 text-xs font-bold text-paars-700">
         Intern · niet zichtbaar voor bezoekers
       </span>
-      <h1 className="mt-3 text-4xl font-extrabold text-ink">Optietools</h1>
+      <h1 className="mt-3 text-4xl font-extrabold text-ink">Lestools</h1>
       <p className="mt-3 leading-relaxed text-body">
-        Alle negen interactieve tools van het opties-curriculum op één pagina,
-        om ze te testen zonder een cursus te kopen. In de cursussen staat elke
-        tool in precies één les (de strategiebouwer in twee).
+        Alle interactieve lestools van het platform op één pagina, om ze te
+        testen zonder een cursus te kopen. In de cursussen staat elke tool in
+        precies één les (de strategiebouwer in twee). Nieuwe tool gebouwd?
+        Registreer hem hier én in lesson-tools.tsx — zie docs/cursusfabriek.md.
       </p>
       {TOOLS.map(({ tool, les }) => (
         <section key={tool} className="mt-10">

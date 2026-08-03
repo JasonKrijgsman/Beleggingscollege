@@ -204,9 +204,9 @@ export default function HomePage() {
           <div>
             <h2 className="text-3xl font-extrabold text-ink">Onze cursussen</h2>
             <p className="mt-2 max-w-xl text-body">
-              Begin gratis met de basis en groei door naar waardebeleggen,
-              technische analyse of de opties-leerlijn. De volgende cursus in
-              de maak is Beleggingspsychologie.
+              Begin gratis met de basis en groei door — van waardebeleggen,
+              technische analyse en indexbeleggen tot beleggingspsychologie
+              en de opties-leerlijn.
             </p>
           </div>
         </div>
@@ -387,7 +387,7 @@ export default function HomePage() {
               <span className="text-sm font-semibold text-body"> eenmalig</span>
             </div>
             <p className="mt-1 text-sm font-semibold text-body">
-              Voor één onderwerp
+              Voor één onderwerp — kortere cursussen €29
             </p>
             <ul className="mt-5 space-y-2.5 text-sm text-body">
               {LOSSE_CURSUS_VOORDELEN.map((f) => (

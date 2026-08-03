@@ -117,7 +117,8 @@ export default function VoorwaardenPage() {
         <div className="rounded-2xl border border-lijn bg-white p-6 shadow-card">
           <h3 className="font-bold text-ink">Losse cursus</h3>
           <p className="mt-2 text-sm leading-relaxed text-body">
-            {PRICING.losseCursus} eenmalig, inclusief btw. Levenslange toegang
+            de prijs die bij de cursus staat ({PRICING.losseCursus} of €29)
+            eenmalig, inclusief btw. Levenslange toegang
             tot die ene cursus — zie punt 4.
           </p>
         </div>

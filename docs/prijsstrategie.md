@@ -182,9 +182,10 @@ hetzelfde ding; verkoop twee verschillende dingen:
 | Wat de bezoeker overweegt | Prijs | = maanden College+ | Werkt het? |
 |---|---|---|---|
 | Eén cursus los | €49 | 3,3 | ✅ Ruim boven de ondergrens van 3 |
-| Duo-bundel (fase 1) | €79 | 5,3 | ✅ In fase 1 bestaat het abonnement nog niet |
+| Duo-bundel (fase 1) | €79 | 5,3 | ⚠️ **Vervallen op 3 aug 2026**: "beide betaalde cursussen" bestaat niet meer — er zijn er acht. Nooit gebouwd; een eventuele bundel is een nieuw besluit. |
 | Twee cursussen los, geen bundel | €98 | 6,5 | ✅ Abonnement wint bij wie álles wil |
-| Drie cursussen los (na cursus 4) | €147 | 9,8 | ✅ Jaarplan €149 wint direct, mét toekomstige cursussen |
+| Drie cursussen los | €147 | 9,8 | ✅ Jaarplan €149 wint direct, mét toekomstige cursussen |
+| Alles los (stand 3 aug 2026: 7×€49 + €29) | €372 | 24,8 | ✅ Het relevante anker geworden: College+ jaar is 2,5× goedkoper dan alles los |
 | College+ jaar | €149 | 10 | ✅ Rekent zichzelf uit vanaf ~2 cursussen |
 
 De conclusie die je op de pagina mag zetten zonder te overdrijven: **wil je één onderwerp, koop dan
@@ -398,8 +399,11 @@ eenmalige aankopen converteren beter.
 
 ### Fase 2 — wacht op twee dingen tegelijk
 
-**Voorwaarde A: cursus 4 (Beleggingspsychologie) is af.** Een abonnement met 12 betaalde lessen en
-geen instroom heeft geen retentiegrond; dan verkoop je iets dat na één maand op is.
+**Voorwaarde A: cursus 4 (Beleggingspsychologie) is af.** ✅ **Vervuld op 3 aug 2026** — sterker:
+er zijn nu 8 betaalde cursussen met 60 betaalde lessen (~540 minuten), dus het
+"na één maand op"-argument is vervallen. Wat College+ nu nog blokkeert is voorwaarde B
+hieronder plus de groeipoort en lanceervoorwaarden uit `docs/college-plus-concept.md` §5
+(tien echte losse verkopen, werkend e-mailkanaal, live betaalsleutel, juridische toets).
 **Voorwaarde B: Mollie heeft SEPA-incasso goedgekeurd** — nodig voor het maandplan (aangevraagd
 2 augustus 2026, status: in beoordeling).
 

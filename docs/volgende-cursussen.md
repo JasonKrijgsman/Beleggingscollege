@@ -1,7 +1,8 @@
 # Volgende cursussen — onderzoek en prioriteitsvolgorde
 
-Vastgelegd op 3 augustus 2026, direct na het live gaan van het opties-curriculum
-(catalogus: 8 cursussen, orders 1–8). Gebaseerd op drie onafhankelijke
+Vastgelegd op 3 augustus 2026, direct na het live gaan van het opties-curriculum;
+later die dag zijn de nummers 1 en 2 hieronder óók gebouwd (catalogus sindsdien:
+9 cursussen, orders 1–9). Gebaseerd op drie onafhankelijke
 onderzoeken: (1) een doorlichting van onze eigen strategiedocumenten, (2) een
 marktonderzoek naar Nederlandse vraag en concurrentie (met bronnen), en (3) een
 curriculumontwerp dat tien kandidaten uitwerkte en scoorde. Dit document is de
@@ -38,34 +39,26 @@ nummer 3, Portefeuillebouw & Risicobeheer** — bouwrecept in
 
 ### 1. ✅ Beleggingspsychologie — GEBOUWD en live, 3 aug 2026 (PR #8)
 
-Geen strategische keuze meer maar een schuld: de teaser staat live met prijs,
-niveau, vijf learnPoints en drie genoemde auteurs (Kahneman, Thaler, Housel).
-Drie documenten noemen hem als harde voorwaarde; `docs/ideeen.md` stelt het
-ultimatum "óf schrijven, óf uit de sitemap halen". De marktvraag is sindsdien
-alleen maar gegroeid (Housel is al jaren dé bestseller; het AFM Gen Z-rapport
-2025 gaat in de kern over gedrag). Alles ligt klaar: teaserbestand, accent,
-icoon; alleen `modules` vullen — geschat 4–6 weken in de bestaande stijl.
-**Vlaggenschiptool:** de biastest uit `docs/productonderzoek.md` (15
-situatievragen, drie neigingen + tegenmaatregel, hermeting na 3 maanden; géén
-persoonlijkheidslabel, géén risicoprofiel) en/of een paniek-simulator die een
-historische crash dag voor dag afspeelt met een verleidelijke verkoop-knop.
-**Let op:** het teaserlabel zegt "onderdeel van College+" terwijl de kaart €49
-losse verkoop toont — dat moet vóór de lancering gelijkgetrokken worden.
+Waarom hij nummer 1 was: geen strategische keuze meer maar een schuld — de
+teaser stond live met prijs en learnPoints, drie documenten noemden hem als
+harde voorwaarde, en `docs/ideeen.md` stelde het ultimatum "óf schrijven, óf
+uit de sitemap halen". **Zo is hij gebouwd:** 8 lessen in 3 modules, metadata
+en learnPoints ongewijzigd, mét de biastest uit `docs/productonderzoek.md`
+(15 situatievragen, drie neigingen + tegenmaatregel, hermeting na 3 maanden,
+géén persoonlijkheidslabel, géén risicoprofiel) én de paniek-simulator (drie
+historisch geïnspireerde crashes met verkoop-knop en afrekening). Het
+teaserlabel-probleem loste zichzelf op toen `comingSoon` verdween.
 
 ### 2. ✅ Indexbeleggen & ETF's — GEBOUWD en live, 3 aug 2026 (PR #11)
 
-Het grootste publiek én het geloofwaardigheidsgat: de betaalde catalogus leert
-nu uitsluitend actieve technieken — precies de plank die een cynicus verwacht
-bij de verkopers waar dit merk zich tegen afzet. De passieve tegenhanger maakt
-de hele catalogus geloofwaardig, inclusief de vertrouwenszet om op de
-verkooppagina toe te geven dat de meeste kopers van de ándere cursussen aan
-deze ene genoeg zouden hebben. Witruimte zit niet bij "wat is een ETF" (gratis
-bij elke broker) maar bij de NL-verdieping: dividendlek, fondsdomicilie, TER
-versus werkelijke kosten, de eeuwige VWRL-discussies van r/DutchFIRE.
-Concurrenten vragen €199 voor minder eerlijks.
-**Vlaggenschiptool:** de kosten-vreter — schuif de TER van 0,07% naar 1,5% en
-zie dertig jaar groei opgegeten worden; direct hergebruik van de
-rente-op-rente-motor. **Boekankers:** Bogle, Malkiel.
+Waarom hij nummer 2 was: het grootste publiek én het geloofwaardigheidsgat —
+de betaalde catalogus leerde uitsluitend actieve technieken, precies de plank
+die een cynicus verwacht bij de verkopers waar dit merk zich tegen afzet.
+**Zo is hij gebouwd:** 8 lessen (Beginner, leisteen, order 9) met de
+eerlijkheidszet in les 1 én het slotwoord, de NL-verdieping als kern
+(dividendlek, fondsdomicilie, fysiek/synthetisch, uitkerend/herbeleggend) en
+de kosten-vreter als tool. Boekankers: Bogle (met de hooiberg als heroQuote),
+Malkiel, Collins, Housel.
 
 ### 3. Portefeuillebouw & Risicobeheer (€49, Gevorderd)
 

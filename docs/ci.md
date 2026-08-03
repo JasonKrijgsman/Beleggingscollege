@@ -39,7 +39,7 @@ De hele pijplijn draait zonder één omgevingsvariabele. Dat is geverifieerd
 Heeft een stap ooit "toch even een echte key" nodig, dan is dat een
 ontwerpfout in die stap.
 
-## Wat de tests afdekken (121 tests, `test/`)
+## Wat de tests afdekken (±140 tests, `test/` — het aantal groeit mee met de catalogus doordat de content-invarianten per cursus en per vraag draaien)
 
 | Gebied | Bestand(en) |
 | --- | --- |
@@ -63,15 +63,15 @@ paginaniveau.
 `scripts/controleer-bundel.mjs` doorzoekt ná de build álle publieke JS-chunks
 (`.next/static/chunks/`) op twee dingen: de datavorm van het antwoordveld
 (`correctIndex:` én de JSON-variant `"correctIndex":`) en de quizvraag-zinnen
-uit `src/content/courses/`, vers uit de bron gelezen (85 van de 88; vragen
+uit `src/content/courses/`, vers uit de bron gelezen (vrijwel alle — vragen
 korter dan 20 tekens of met een backslash-escape matchen na minificatie niet
 betrouwbaar en worden overgeslagen — een cursusbestand dat helemáál geen
 naalden meer oplevert laat het script luid falen). Idee: de HTML controleren
 was precies de fout waardoor het importlek van augustus 2026 maandenlang
 onzichtbaar bleef; de bundel is de waarheid.
 
-**Let op: de oude handmatige grep uit CLAUDE.md (`grep -rl "correctIndex"`)
-geeft inmiddels een vals alarm.** QuizBlock en QuizReview lezen
+**Let op: de oude handmatige grep (`grep -rl "correctIndex"`, tot 3 aug het
+voorschrift in CLAUDE.md) geeft inmiddels een vals alarm.** QuizBlock en QuizReview lezen
 `q.correctIndex` client-side om de quiz van de geopende les na te kijken; die
 property-toegang staat legitiem in de chunk van de lespagina. De data zelf
 (`correctIndex:` in een object-literal) hoort daar nooit te staan. De
@@ -112,11 +112,14 @@ GitHub-issue met commit en run-link, zodat het nooit stil blijft.
 
 ## Bewuste beperkingen — lees dit vóór je erop leunt
 
-1. **Vijf bestaande lint-warnings** (ongebruikte variabelen in
+1. **Een handvol bestaande lint-warnings** (ongebruikte variabelen in o.a.
    `scripts/plattegrond.mjs`, `src/app/cursussen/[slug]/page.tsx`,
-   `src/app/leerpad/page.tsx`, `src/components/lab/SceneStad.tsx`) zijn
+   `src/app/leerpad/page.tsx`, `src/components/lab/SceneStad.tsx`) is
    bewust blijven staan: die bestanden waren op het moment van bouwen in
-   bewerking door parallelle sessies. Errors laten CI falen; warnings niet.
+   bewerking door parallelle sessies. Errors laten CI falen; warnings niet —
+   controleer bij nieuwe code dus zélf `npm run lint`, anders groeit de stapel
+   stilletjes (dat gebeurde op 3 aug met twee hook-warnings in nieuwe tools;
+   die zijn inmiddels opgelost).
 2. **Client en server tellen de streak verschillend.** De client houdt de
    streak in leven bij élke afgeronde les op een nieuwe dag (ook een
    herhaalde); de server alleen bij een níéuwe les. Beide gedragingen zijn nu
@@ -130,10 +133,10 @@ GitHub-issue met commit en run-link, zodat het nooit stil blijft.
 ## Uitslag van de verificatierun (3 aug 2026)
 
 Verse worktree op `ci-fundament`, `npm ci`, geen `.env.local`:
-`npm run controle` → exit 0. Typecheck schoon; lint 0 errors (5 bekende
-warnings); **121 tests, 12 bestanden, alles groen** (~4 s); productiebuild
-compleet; bundelcontrole "52 chunks doorzocht op `correctIndex:` en 85
-quizvragen; niets gevonden". De branch is daarna nog door een adversariële
+`npm run controle` → exit 0. Typecheck schoon; lint 0 errors (een handvol
+bekende warnings); **alle tests groen** (12 bestanden, ~4 s; 121 op het
+bouwmoment, het aantal groeit mee met de catalogus); productiebuild
+compleet; bundelcontrole vond niets (aantallen chunks/vragen groeien mee). De branch is daarna nog door een adversariële
 review gehaald (16 agents, elke bevinding door een scepticus geverifieerd,
 inclusief mutation testing op de datumcontrole); de zeven bevestigde
 bevindingen zijn verwerkt en de poort is opnieuw groen gedraaid.

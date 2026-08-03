@@ -27,7 +27,7 @@ export default async function CursussenPage() {
       </p>
       <p className="mt-4 max-w-2xl rounded-xl bg-white p-4 text-sm leading-relaxed text-body shadow-card">
         <strong className="text-ink">Losse cursus of alles-in-één?</strong> Je
-        koopt elke cursus los voor {PRICING.losseCursus} en houdt hem dan voor
+        koopt elke cursus los — de meeste voor {PRICING.losseCursus} — en houdt hem dan voor
         altijd. Volg je er meer dan één, dan ben je met College+ (
         {PRICING.abonnementMaand} per maand, maandelijks opzegbaar) sneller uit.
       </p>

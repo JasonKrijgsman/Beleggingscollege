@@ -328,7 +328,10 @@ export default function OptiePayoffTool({
     setEindkoers(SPOT);
   };
 
-  const aandelen = metAandelen ? { aantal: 100, koopprijs: SPOT } : undefined;
+  const aandelen = useMemo(
+    () => (metAandelen ? { aantal: 100, koopprijs: SPOT } : undefined),
+    [metAandelen]
+  );
 
   const grafiek = useMemo(() => {
     const van = 24;
@@ -371,7 +374,6 @@ export default function OptiePayoffTool({
     .join(" ");
 
   const isBouwer = mode === "bouwer";
-  const been = benen[0];
 
   return (
     <div className="my-8 rounded-2xl border-2 border-petrol-200 bg-petrol-50/50 p-6 sm:p-8">

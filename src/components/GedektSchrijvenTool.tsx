@@ -116,16 +116,17 @@ export default function GedektSchrijvenTool() {
 
   // Het "weggegeven" gebied: tussen de aandelenlijn en de covered-call-lijn,
   // vanaf de spijtgrens. Dit hoort net zo op te vallen als de premie.
-  const gemistVlak = useMemo(() => {
+  // Bewust geen useMemo: het is goedkoop stringwerk en naarX/naarY wisselen
+  // toch elke render.
+  const gemistVlak = (() => {
     if (spijtgrens >= grafiek.tot) return null;
     const boven = grafiek.aandelen.filter((p) => p.koers >= spijtgrens);
     const onder = grafiek.covered.filter((p) => p.koers >= spijtgrens).reverse();
     if (boven.length < 2) return null;
-    const punten = [...boven, ...onder]
+    return [...boven, ...onder]
       .map((p) => `${naarX(p.koers).toFixed(1)},${naarY(p.w).toFixed(1)}`)
       .join(" ");
-    return punten;
-  }, [grafiek, spijtgrens]);
+  })();
 
   const yLabels = useMemo(() => {
     const labels: number[] = [];
