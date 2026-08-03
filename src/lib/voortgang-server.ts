@@ -165,16 +165,23 @@ async function beoordeelBadges(
  *                  vangt de race af waarin een ander verzoek die rij net
  *                  aanmaakte; ook daar wordt opgeteld, nooit overschreven.
  *
- * SCHERPE RAND BIJ STAP 5, en waarom hij niet snijdt. `excluded.xp` is
- * `b.som + delta`, dus in de ON CONFLICT-tak wordt `b.som` meegeteld. Dat
- * gaat alleen goed zolang geldt: geen statsrij ⇒ ook geen lesrijen, en dus
- * `b.som = 0`. Die aanname klopt — beide schrijvers maken de statsrij in
- * hetzelfde statement aan, en de FK-cascade wist lesson_progress en
- * user_stats samen. `b.som` staat er puur om te herstellen als iemand die
- * statsrij ooit met de hand weghaalt. Wie dat tóch doet én er tegelijk twee
- * verzoeken op loslaat, telt `som` een tweede keer mee. Het alternatief
- * (alleen de delta) kan niet zomaar: Postgres staat geen subquery toe in
- * ON CONFLICT DO UPDATE SET, dus die tak kan de CTE `basis` niet zien.
+ * WAAROM STAP 5 ALLEEN DE DELTA INVOEGT. Een eerdere versie zette hier
+ * `basis.som + delta` neer, met `basis` als de som van de al bestaande
+ * lesrijen. Dat was bedoeld als reparatie voor een ontbrekende statsrij,
+ * maar het maakte de ON CONFLICT-tak kwetsbaar: die telt `excluded.xp` op
+ * bij wat er al staat, dus dan zou `som` een tweede keer meetellen. Bugbot
+ * wees daar terecht op (PR #32). Het gaat alleen goed zolang `som = 0`, en
+ * dat is precies de aanname die we hier níét willen hebben.
+ *
+ * Nu voegt de INSERT alleen `delta` in. Beide takken tellen daarmee exact
+ * één keer de nieuwe les op, ongeacht wat er al stond:
+ *   - geen statsrij (de normale eerste les): xp = delta;
+ *   - race, rij bestond net wél: xp = bestaand + delta.
+ * De invariant `user_stats.xp = SUM(lesson_progress.xp_awarded)` volgt nu uit
+ * de vorm van het statement zelf, niet uit een aanname over de data. Een met
+ * de hand weggehaalde statsrij wordt hiermee niet meer "gerepareerd" — dat
+ * was toch al onbereikbaar via de applicatie, en stil verkeerd optellen is
+ * erger dan niet herstellen.
  */
 export async function verwerkLes(
   userId: string,
@@ -232,10 +239,6 @@ export async function verwerkLes(
             > quiz_correct::numeric / greatest(1, quiz_total)
       RETURNING 1
     ),
-    basis AS (
-      SELECT coalesce(sum(xp_awarded), 0)::int AS som
-      FROM lesson_progress WHERE user_id = ${userId}
-    ),
     bijgewerkt AS (
       UPDATE user_stats s
       SET xp = s.xp + n.xp_awarded,
@@ -249,10 +252,10 @@ export async function verwerkLes(
     )
     INSERT INTO user_stats
       (user_id, xp, streak_current, streak_best, streak_last_date, badges, updated_at)
-    SELECT ${userId}::text, b.som + n.xp_awarded,
+    SELECT ${userId}::text, n.xp_awarded,
            ${startStreak}::int, ${startStreak}::int, ${dag}::text,
            '{}'::text[], now()
-    FROM nieuw n, basis b
+    FROM nieuw n
     WHERE NOT EXISTS (SELECT 1 FROM bijgewerkt)
     ON CONFLICT (user_id) DO UPDATE SET
       xp = user_stats.xp + excluded.xp,
@@ -361,10 +364,6 @@ export async function importeerSnapshot(
     delta AS (
       SELECT coalesce(sum(xp_awarded), 0)::int AS xp FROM ingevoerd
     ),
-    basis AS (
-      SELECT coalesce(sum(xp_awarded), 0)::int AS som
-      FROM lesson_progress WHERE user_id = ${userId}
-    ),
     bijgewerkt AS (
       UPDATE user_stats s
       SET xp = s.xp + d.xp,
@@ -381,10 +380,10 @@ export async function importeerSnapshot(
     INSERT INTO user_stats
       (user_id, xp, streak_current, streak_best, streak_last_date,
        badges, display_name, updated_at)
-    SELECT ${userId}::text, b.som + d.xp,
+    SELECT ${userId}::text, d.xp,
            ${current}::int, ${best}::int, ${lastDate}::text,
            '{}'::text[], ${naam || null}::text, now()
-    FROM basis b, delta d
+    FROM delta d
     WHERE NOT EXISTS (SELECT 1 FROM bijgewerkt)
     ON CONFLICT (user_id) DO UPDATE SET
       xp = user_stats.xp + excluded.xp,
