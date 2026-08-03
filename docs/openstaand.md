@@ -220,8 +220,12 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
         (zie het herroepingspunt in hoofdstuk 2).
       - Vijf bestaande lint-warnings (ongebruikte variabelen) in bestanden die op het
         bouwmoment door parallelle sessies bewerkt werden; zie `docs/ci.md`.
-      - De losse `ci-poort`-branch van een eerdere parallelle poging (smallere opzet,
-        alleen prijstests) is door `ci-fundament` in alles overtroffen en kan weg.
+      - Opruimen van de restanten van de sessiebotsing van 3 aug (alles al gemerged of
+        overbodig, dus weggooien is veilig): de branches `ci-poort` (eerdere smallere
+        poging, in alles overtroffen) en `ci-testfundament` (bevat commit `585f282`
+        waarin twee sessies door elkaar heen werkten), de stash "WIP on ci-testfundament"
+        op de hoofdcheckout (bevat alleen restjes die elders al geland zijn), de al
+        gemergde remote branches en de worktree `.claude/worktrees/ci-fundament`.
       Bijvangst, exact vastgepind in tests maar nog een productkeuze: client en server
       tellen de streak verschillend bij herhaalde lessen (`docs/ci.md` punt 2).
 - [ ] **Chargeback.** Komt er een terugboeking, dan houdt de klant zijn toegang, kost het
@@ -412,6 +416,13 @@ onvolledig zijn (is inmiddels bijgewerkt), drie ongebruikte exports, een dode
 `generateStaticParams`, de streak die bij herhaalde lessen zou oplopen, het recht op
 verwijdering dat van een verhuizende postbus zou afhangen, de teasercursus in de sitemap,
 en de blogpost met een datum van morgen.
+
+Uit de adversariële review van de CI-branch (3 aug, zestien agents) sneuvelden ook een
+paar bevindingen — niet opnieuw uitzoeken: `prijsInCenten()` zonder `!course`-guard is
+bewust (de checkout-route 404't onbekende slugs al vóór de aanroep); een lege
+`?terug=` die op `/leerpad` uitkomt is bedoeld gedrag en getest; en het
+"JSON-vorm-lek" in de bundelcontrole heeft vandaag geen begaanbaar pad — de extra
+naald `"correctIndex":` zit er desondanks in als verharding.
 
 Ook gezien maar niet reproduceerbaar: `npm run build` faalde in de nacht van 2 op 3 aug
 tweemaal met dezelfde prerender-fout (digest `2686592030`) op de export van de gratis les

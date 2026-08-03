@@ -78,6 +78,24 @@ property-toegang staat legitiem in de chunk van de lespagina. De data zelf
 controle is geverifieerd in beide richtingen: een geplante lek-chunk geeft
 exit 1, de echte build exit 0.
 
+## Zelf tests toevoegen — de drie patronen
+
+Nieuwe tests horen in `test/*.test.ts` en draaien automatisch mee. De
+niet-vanzelfsprekende stukken, af te kijken uit de bestaande bestanden:
+
+- **Databasetest:** begin het bestand met
+  `vi.mock("@/db", () => import("./helpers/pglite-db"));` en gebruik
+  `leegAlleTabellen()` + `maakGebruiker()` uit die helper in `beforeEach`.
+  Elk testbestand krijgt automatisch zijn eigen verse PGlite met de echte
+  migraties; binnen een bestand maakt `leegAlleTabellen()` schoon schip.
+- **Mollie/auth/mail mocken:** het `vi.hoisted`-patroon bovenin
+  `test/mollie-webhook.test.ts` — vi.mock wordt gehoist, dus gewone
+  variabelen in de factory geven een "cannot access before initialization".
+- **`server-only` en JSX** regelt `vitest.config.mts` al: het pakket is een
+  stub, en JSX compileert via de `oxc`-optie (Vitest 4 bundelt Vite 8 /
+  Rolldown — het oude `esbuild`-veld wordt stil genegeerd; dáár zoeken als
+  een `.tsx`-import ooit "invalid JS syntax" geeft).
+
 ## De slagboom (sinds 3 aug 2026) en zijn restrisico
 
 Main is beschermd: vereiste status check **"CI"**, óók voor admins, mét
