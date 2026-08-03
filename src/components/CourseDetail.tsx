@@ -32,6 +32,10 @@ export default function CourseDetail({
   inBezit?: boolean;
 }) {
   const acc = ACCENTS[course.accent];
+  // Mag deze bezoeker de lessen openen? Let op: dit is géén autorisatie —
+  // heeftToegangTot() op de server blijft de enige poort. Dit bepaalt
+  // alleen wat we hier tónen, zodat we niemand naar een slot sturen.
+  const mag = course.free || inBezit;
   const { isLessonCompleted, courseProgress, ready } = useProgress();
   const total = course.aantalLessen;
   const progress = ready ? courseProgress(course.slug, total) : 0;
@@ -120,18 +124,33 @@ export default function CourseDetail({
               </span>
             </div>
             <div className="mt-7 flex flex-wrap items-center gap-4">
-              {continueTarget && (
-                <Link
-                  href={`/cursussen/${course.slug}/les/${continueTarget.lesson.slug}`}
+              {/* Wie de cursus (nog) niet heeft, moet hier geen knop krijgen
+                  die op het slotscherm uitkomt: dat is precies de trucdoos
+                  waar dit merk zich tegen afzet. Voor hen wijst de knop naar
+                  het curriculum, zodat ze zien wát ze kopen; de koopknop
+                  ernaast blijft de enige weg naar afrekenen. */}
+              {mag ? (
+                continueTarget && (
+                  <Link
+                    href={`/cursussen/${course.slug}/les/${continueTarget.lesson.slug}`}
+                    className="flex items-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-bold text-ink shadow-lg transition-transform hover:scale-105"
+                  >
+                    <Play className="h-4 w-4" />
+                    {done === 0
+                      ? "Start de cursus"
+                      : isComplete
+                        ? "Bekijk de lessen opnieuw"
+                        : "Ga verder met leren"}
+                  </Link>
+                )
+              ) : (
+                <a
+                  href="#curriculum"
                   className="flex items-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-bold text-ink shadow-lg transition-transform hover:scale-105"
                 >
-                  <Play className="h-4 w-4" />
-                  {done === 0
-                    ? "Start de cursus"
-                    : isComplete
-                      ? "Bekijk de lessen opnieuw"
-                      : "Ga verder met leren"}
-                </Link>
+                  <BookOpen className="h-4 w-4" />
+                  Bekijk het curriculum
+                </a>
               )}
               {isComplete && (
                 <Link
@@ -203,7 +222,10 @@ export default function CourseDetail({
       </section>
 
       {/* Curriculum */}
-      <section className="mx-auto max-w-4xl px-4 py-14 sm:px-6">
+      <section
+        id="curriculum"
+        className="mx-auto max-w-4xl scroll-mt-24 px-4 py-14 sm:px-6"
+      >
         <h2 className="text-2xl font-extrabold text-ink">Het curriculum</h2>
         <div className="mt-6 space-y-8">
           {course.modules.map((mod, mi) => (
@@ -238,7 +260,15 @@ export default function CourseDetail({
                               : "bg-mist text-body"
                         }`}
                       >
-                        {completed ? <Check className="h-4 w-4" /> : li + 1}
+                        {/* Een slotje vóórdat je klikt is eerlijker dan een
+                            slotscherm erna. */}
+                        {completed ? (
+                          <Check className="h-4 w-4" />
+                        ) : mag ? (
+                          li + 1
+                        ) : (
+                          <Lock className="h-3.5 w-3.5" aria-label="Vergrendeld" />
+                        )}
                       </span>
                       <span className="flex-1">
                         <span
@@ -253,7 +283,9 @@ export default function CourseDetail({
                           quizvragen · {lesson.xp} XP
                         </span>
                       </span>
-                      {isNext && (
+                      {/* "Volgende" belooft dat je verder kunt; dat klopt
+                          alleen als de cursus voor je open staat. */}
+                      {isNext && mag && (
                         <span className="hidden rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white sm:block">
                           Volgende
                         </span>

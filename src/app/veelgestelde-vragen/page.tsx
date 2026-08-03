@@ -63,14 +63,14 @@ const faqGroepen: Groep[] = [
         vraag: "Moet ik een account maken?",
         antwoord: [
           "Voor de gratis beginnerscursus niet: die kun je meteen volgen zonder iets aan te maken. Wil je een betaalde cursus kopen, dan log je in met je Google-account. Dat is nodig om de cursus aan jou te kunnen koppelen, zodat je hem terugvindt.",
-          "Je voortgang — XP, badges, streak en quizscores — wordt op dit moment opgeslagen in je eigen browser, niet op onze servers. Dat heeft een keerzijde die je moet weten: die voortgang hoort bij dit apparaat én deze browser. Wis je je browsergegevens of stap je over op een andere computer, dan begin je daar met een schone lei.",
-          "Je aankoop zelf staat wél bij ons en raak je dus nooit kwijt: log je elders in met hetzelfde Google-account, dan staat de cursus gewoon open. Alleen je punten en badges beginnen daar opnieuw. Voortgang die met je account meereist staat op de planning.",
+          "Zonder account blijft je voortgang — XP, badges, streak en quizscores — in je eigen browser. Dat heeft een keerzijde die je moet weten: die voortgang hoort dan bij dit apparaat én deze browser. Wis je je browsergegevens of stap je over op een andere computer, dan begin je daar met een schone lei.",
+          "Log je in, dan bewaren we je voortgang op je account en reist hij mee naar elk apparaat waarop je inlogt. Wat er al in je browser stond, nemen we bij je eerste keer inloggen eenmalig over. Eén ding blijft lokaal: wélk antwoord je bij een quizvraag koos, zodat je het kunt terugkijken. Dat reist dus niet mee.",
         ],
       },
       {
         vraag: "Kan ik pauzeren en later verder gaan?",
         antwoord: [
-          "Ja. Elke les die je afrondt wordt onthouden. Kom je een week of een maand later terug in dezelfde browser, dan zie je op je leerpad precies waar je gebleven bent.",
+          "Ja. Elke les die je afrondt wordt onthouden. Kom je een week of een maand later terug, dan zie je op je leerpad precies waar je gebleven bent — ingelogd op elk apparaat, uitgelogd in dezelfde browser.",
           "Er is geen tijdslimiet, geen huiswerk en geen inhaalschema. Twee lessen per week is prima; alles in één avond mag ook.",
         ],
         link: { href: "/leerpad", tekst: "Bekijk je leerpad" },

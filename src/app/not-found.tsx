@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+// Zonder eigen titel erft de 404 die van de homepage, en dan staat er in het
+// tabblad dat je precies gevonden hebt wat je zocht.
+export const metadata: Metadata = {
+  title: "Pagina niet gevonden",
+  robots: { index: false, follow: true },
+};
 
 export default function NotFound() {
   return (

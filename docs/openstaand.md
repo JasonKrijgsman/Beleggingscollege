@@ -186,8 +186,8 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
 - [ ] **De lespagina-bundel groeide ~40 kB** doordat de toolregistry
       (`src/components/lesson-tools.tsx`) alle tools statisch importeert; dynamic imports
       zijn de voor de hand liggende optimalisatie.
-- [ ] **De sitemap-vraag uit §7 is groter geworden**: er stromen nu tientallen betaalde
-      les-URL's extra in.
+- [x] ~~De sitemap-vraag uit §7 is groter geworden~~ **Opgelost op 3 aug 2026**: betaalde
+      les-URL's worden niet meer aangediend. Zie §7.
 
 ## 5. Certificaten deugen niet
 
@@ -317,9 +317,13 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       (export of verwijdering) afhandelen kan nog niet vanuit `/beheer` — dat vraagt om
       muterende acties mét beheerdersautorisatie en een audittrail. Tot die tijd blijft
       daarvoor de databaseconsole nodig. Zie CODEX-006.
-- [ ] **Algemene browserbeveiligingsheaders ontbreken.** Ontwerp minimaal frame-,
-      content-type-, referrer- en permissions-beleid; ontwerp CSP apart rond Google,
-      Mollie en een eventuele Payload-preview. Zie CODEX-109.
+- [ ] **Content-Security-Policy ontbreekt nog** (de rest van CODEX-109 is af). Frame-,
+      content-type-, referrer- en permissions-beleid staan sinds 3 aug 2026 in
+      `next.config.ts` en zijn op de gebouwde site geverifieerd. HSTS zet Vercel zelf al.
+      Wat overblijft is de CSP, en die moet apart ontworpen worden rond Google (inloggen),
+      Mollie (afrekenen) en een eventuele Payload-preview — een haastige CSP breekt precies
+      de twee paden waar geld en toegang aan hangen. `payment=()` staat om dezelfde reden
+      bewust níét in de Permissions-Policy. Zie CODEX-109.
 
 ## 6b. Uit de Codex-harmonisatiereview van 3 aug 2026 — nog niet elders belegd
 
@@ -343,15 +347,15 @@ acceptatiecheck per punt.
       **Acceptatie:** tests met gecontroleerde vertraging bewijzen dat elke Mollie-id
       reconcilieerbaar blijft, een `paid`-rij nooit stil naar `pending` gaat en betaald geld niet
       zonder zichtbare order eindigt. **Vóór de live-key.**
-- [ ] **P0 — Publieke/juridische teksten beschrijven nog de oude site.** `/herroepingsrecht`
-      beschrijft twee losse toestemmingsvinkjes, maar `src/components/KoopKnop.tsx` heeft er
-      één gecombineerd (geverifieerd). `/privacy` zegt op meerdere plaatsen dat voortgang alleen
-      in de browser leeft (o.a. regels 50, 64, 127, 131, 240, 395), terwijl ingelogde voortgang
-      sinds 2 aug in Neon staat. (De mailtekst-variant hiervan staat al bij "Ordermail".)
-      **Eigenaar:** claimmatrix (belofte → echte UI/API → bewijs), daarna tekst; consent-flow
-      door een jurist.
-      **Acceptatie:** geen publieke pagina claimt nog browser-only voortgang of een tweede vinkje
-      dat niet bestaat; de herroepingstekst komt overeen met de echte KoopKnop en API.
+- [x] ~~P0 — Publieke/juridische teksten beschrijven nog de oude site~~ **Gedaan.**
+      `/herroepingsrecht` en `/privacy` op 3 aug (PR #18); `/veelgestelde-vragen` en
+      `/voorwaarden` §7 op 3 aug in de reviewronde daarna — die twee waren over het hoofd
+      gezien en zeiden nog letterlijk "niet op onze servers", "staat op de planning" en
+      "zolang er nog geen accounts zijn". Ze beschrijven nu allebei de echte situatie:
+      uitgelogd browser, ingelogd account, quizantwoorden blijven lokaal.
+      **Resteert:** de mailtekst-variant (staat bij "Ordermail") en het laten toetsen van de
+      consent-flow door een jurist. Een echte claimmatrix als document is er nog niet — de
+      vier pagina's zijn stuk voor stuk tegen de code nagelopen.
 - [ ] **P1 — Servervoortgang is niet transactioneel** (naast de entitlement-/quizgaten uit
       CODEX-104/105 hierboven). `src/lib/voortgang-server.ts` doet `select` → lesson-insert →
       aparte stats-upsert zonder transactie; twee gelijktijdige afrondingen van dezelfde les
@@ -385,6 +389,56 @@ acceptatiecheck per punt.
       **Acceptatie:** fixtures dekken meerdere acties per maand, grenswaarden en de
       niet-gevalideerde aard van de biastest.
 
+## 6c. Uit de site-review van 3 aug 2026 (buitenkant, uitgelogd bekeken)
+
+Een review van de live site als bezoeker, niet van de code. Twee bevindingen zijn in
+dezelfde ronde gerepareerd en staan hier alleen genoemd zodat ze niet opnieuw worden
+uitgezocht: **cursus- en blogpagina's deelden zonder afbeelding** (een eigen `openGraph`-blok
+in `generateMetadata` vervángt dat van de root-layout, inclusief de afbeelding uit
+`opengraph-image.tsx`) en **de heroknop op een betaalde cursus stuurde niet-kopers naar het
+slotscherm**. Beide zijn gedicht; de 404 heeft nu ook een eigen titel en de homepage
+Organization-/WebSite-markup.
+
+Wat de review verder opleverde en nog openstaat:
+
+- [ ] **Er is geen enkele meting.** Nul analytics, nul trackingscripts — goed voor de privacy
+      en de reden dat er geen cookiebanner nodig is, maar het betekent ook dat er straks
+      verkocht wordt zonder te weten hoeveel mensen de gratis cursus starten, waar ze
+      afhaken of hoeveel er een cursuspagina bereiken. Een cookieloze, zelfgehoste teller
+      (Umami of Plausible op veggie) houdt de privacybelofte heel én maakt de trechter
+      zichtbaar. **Let op:** zodra dit er staat, moet §10 ("geen cookiebanner nodig") en de
+      privacyverklaring mee — die belooft nu expliciet dat we later toestemming vragen.
+- [ ] **Niets vangt een e-mailadres op.** De privacyverklaring beschrijft een nieuwsbrief en
+      er is een inschrijfroute in de database, maar op de site staat nergens een
+      aanmeldveld. De gratis cursus van negen lessen is het beste lokmiddel dat er is en
+      levert op dit moment geen enkel adres op — terwijl juist dat de lanceerlijst voor
+      College+ zou moeten zijn.
+- [ ] **Inloggen kan alleen met Google.** Geen e-mail/wachtwoord, geen magic link, geen
+      Apple. Voor een publiek dat je juist op privacy binnenhaalt is dat een wrange drempel,
+      en het is de enige weg naar een betaalde cursus.
+- [ ] **Geen enkele vorm van sociale bewijskracht.** Bewust geen verzonnen reviews (zie §10,
+      dat blijft), maar er is ook niets echts: geen aantal cursisten, geen voorbeeld van een
+      certificaat, geen citaat van een proeflezer. Bij €49 van een onbekende aanbieder is dit
+      waarschijnlijk de grootste ontbrekende conversiefactor. Eerlijke opties die geen
+      verzinsel zijn: "X mensen rondden de gratis cursus af" (zodra dat een eerlijk getal is)
+      of een afbeelding van het echte certificaat.
+- [ ] **Nul afbeeldingen op de hele site.** Geen enkele `<img>`. Voor een cursus over
+      candlestickpatronen en grafieken lezen is dat een lastige verkoop: je ziet vooraf niet
+      hoe een les eruitziet. (De interactieve tools tekenen wél grafieken — maar pas ná de
+      koop.)
+- [ ] **`/leerpad` zet alle negen cursussen onder "Mijn cursussen"**, ook de acht die je niet
+      bezit, allemaal op 0%. Splits in "Jouw cursussen" en "Verder leren". Hangt samen met
+      het ontbrekende bezitsoverzicht in §4.
+- [ ] **Het btw-identificatienummer staat op twee plekken los van elkaar.**
+      `src/components/SiteFooter.tsx` heeft `NL004813328B30` hard in de tekst, terwijl
+      `BEDRIJF.btwNummer` in `src/lib/mailteksten.ts` uit `BEDRIJF_BTW_NUMMER` komt en zonder
+      die variabele `[btw-nummer nog niet ingevuld]` in de orderbevestiging zet. Voettekst en
+      mail kunnen dus verschillende dingen zeggen. Bewust niet in deze ronde aangeraakt: het
+      grenst aan de regel dat het omzetbelastingnummer nérgens gepubliceerd mag worden, dus
+      dit hoort met aandacht en niet als bijvangst.
+- [ ] **Geen RSS-feed op de blog**, en er staat één artikel. Zolang dat zo is, is de hele
+      vindbaarheid afhankelijk van negen cursuspagina's en negen gratis lessen.
+
 ## 7. Vindbaarheid
 
 - [ ] **De oude WordPress-site draait nog op beleggingscollege.nl**, met de drie verzonnen
@@ -412,11 +466,12 @@ acceptatiecheck per punt.
       de homepage. `robots.ts` blokkeert alleen het crawlen, en dat houdt indexering via
       links niet tegen. De pagina is een `"use client"`-component en kan zelf geen metadata
       exporteren; er moet dus een `layout.tsx` of serverwrapper omheen.
-- [ ] **De sitemap bevat ook alle betaalde les-URL's.** Bepaal bewust of een zoekmachine een
-      vergrendelde lespagina moet indexeren; haal ze eruit als de indexeerbare pagina geen
-      zelfstandige publieke waarde heeft. (Nu krijgt een uitgelogde crawler daar het
-      slotscherm: dunne pagina's, zónder `noindex` en mét lestitel en intro als metadata —
-      `src/app/sitemap.ts` neemt álle lessen van alle niet-comingSoon-cursussen op.)
+- [x] ~~De sitemap bevat ook alle betaalde les-URL's~~ **Besloten en gedaan op 3 aug 2026.**
+      Alleen lessen van gratis cursussen worden nog aangediend; het slotscherm heeft geen
+      zelfstandige publieke waarde. De URL's blijven werken (geen redirect nodig, er
+      verdwijnt niets), we dienen ze alleen niet meer in. Sitemap ging van 85 naar 25 URL's.
+      `test/sitemap.test.ts` bewaakt nu beide kanten: gratis lessen erin, betaalde eruit,
+      cursusdetailpagina's van betaalde cursussen juist wél erin.
 
 ## 8. Domein en e-mail
 

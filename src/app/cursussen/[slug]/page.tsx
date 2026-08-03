@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import { courseDurationMin, courses, getCourse } from "@/content";
 import CourseDetail from "@/components/CourseDetail";
 import { detail } from "@/content/view";
@@ -14,14 +14,21 @@ import { schemaOrgPrijs } from "@/lib/prijs";
 // van wie er kijkt. Daarom per verzoek renderen in plaats van vooraf bouwen.
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata(
+  {
+    params,
+  }: {
+    params: Promise<{ slug: string }>;
+  },
+  parent: ResolvingMetadata
+): Promise<Metadata> {
   const { slug } = await params;
   const course = getCourse(slug);
   if (!course) return {};
+  // Een eigen openGraph-blok vervángt dat van de root-layout, en daarmee ook
+  // de afbeelding uit opengraph-image.tsx. Zonder de regel hieronder deelt
+  // juist de pagina die je wilt laten rondgaan zónder kaartafbeelding.
+  const ouderAfbeeldingen = (await parent).openGraph?.images ?? [];
   return {
     title: course.title,
     description: course.description,
@@ -30,6 +37,7 @@ export async function generateMetadata({
       title: `${course.title} — ${course.subtitle}`,
       description: course.description,
       url: `/cursussen/${course.slug}`,
+      images: ouderAfbeeldingen,
     },
   };
 }
