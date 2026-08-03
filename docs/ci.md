@@ -96,6 +96,24 @@ niet-vanzelfsprekende stukken, af te kijken uit de bestaande bestanden:
   Rolldown — het oude `esbuild`-veld wordt stil genegeerd; dáár zoeken als
   een `.tsx`-import ooit "invalid JS syntax" geeft).
 
+## Twee losse gereedschappen naast de poort (sinds 3 aug 2026)
+
+Beide draaien bewust NIET in `npm run controle` of CI — het zijn
+instrumenten voor de ontwikkelaar, geen slagbomen:
+
+- **`npm run test:coverage`** — dezelfde testrun, met een dekkingsrapport
+  (terminal + `coverage/index.html`). Zonder drempels: componenten draaien
+  in de browser en scoren hier terecht laag. Waar je op let is `src/lib` en
+  `src/app/api` — dáár hoort de dekking hoog, en een nieuw bestand op 0%
+  in die mappen is een gat (zo werd `src/lib/opties.ts` gevonden).
+- **`npm run test:e2e`** — de Playwright-rooktest (`e2e/rooktest.spec.ts`)
+  tegen een echte productieserver (`next start`, poort 3100): homepage,
+  catalogus, een gratis les inclusief volledig doorgeklikte quiz, en de
+  controle dat een betaalde les voor een anonieme bezoeker dicht zit én
+  geen lesinhoud in de HTML lekt. Bouwt zelf als er geen `.next` ligt;
+  geen database of geheimen nodig (zie `playwright.config.ts`). Eerste
+  keer: `npx playwright install chromium`.
+
 ## De slagboom (sinds 3 aug 2026) en zijn restrisico
 
 Main is beschermd: vereiste status check **"CI"**, óók voor admins, mét
