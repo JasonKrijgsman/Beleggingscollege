@@ -13,6 +13,7 @@ import OptieGreeksTool from "./OptieGreeksTool";
 import HefboomSimulatorTool from "./HefboomSimulatorTool";
 import BiasTestTool from "./BiasTestTool";
 import PaniekSimulatorTool from "./PaniekSimulatorTool";
+import KostenVreterTool from "./KostenVreterTool";
 
 // Registry van les-tools: één regel per tool in plaats van een groeiende
 // if-keten in de lespagina. Bewust een volledige `Record`: voeg je een waarde
@@ -35,6 +36,7 @@ const TOOLS: Record<LessonTool, () => ReactElement> = {
   "hefboom-simulator": () => <HefboomSimulatorTool />,
   "bias-test": () => <BiasTestTool />,
   "paniek-simulator": () => <PaniekSimulatorTool />,
+  "kosten-vreter": () => <KostenVreterTool />,
 };
 
 export default function LesTool({ tool }: { tool?: LessonTool }) {

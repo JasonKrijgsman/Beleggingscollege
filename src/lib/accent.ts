@@ -65,4 +65,13 @@ export const ACCENTS: Record<CourseAccent, AccentClasses> = {
     bar: "bg-oranje-600",
     iconBox: "bg-oranje-100 text-oranje-700",
   },
+  leisteen: {
+    solid: "bg-leisteen-600 hover:bg-leisteen-700 text-white",
+    soft: "bg-leisteen-50 text-leisteen-700",
+    text: "text-leisteen-700",
+    border: "border-leisteen-200",
+    gradient: "from-leisteen-950 via-leisteen-800 to-leisteen-600",
+    bar: "bg-leisteen-600",
+    iconBox: "bg-leisteen-100 text-leisteen-700",
+  },
 };

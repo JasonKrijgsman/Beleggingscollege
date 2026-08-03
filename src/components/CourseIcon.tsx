@@ -2,6 +2,7 @@ import {
   Activity,
   Brain,
   Gauge,
+  Globe,
   LineChart,
   Scale,
   Shield,
@@ -20,6 +21,7 @@ const ICONS: Record<CourseIconKey, LucideIcon> = {
   shield: Shield,
   activity: Activity,
   gauge: Gauge,
+  globe: Globe,
 };
 
 export default function CourseIcon({
