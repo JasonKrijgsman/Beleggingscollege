@@ -512,6 +512,18 @@ Wat de review verder opleverde en nog openstaat:
 
 ## 9. De documentatie spreekt zichzelf tegen
 
+- [ ] **`AGENTS.md` is een verouderde kopie van `CLAUDE.md`** (134 tegen 153 regels, ~71
+      regels verschil, geconstateerd 3 aug 2026). Het verschil zit niet in details maar in
+      de dingen die er het meest toe doen: AGENTS.md zegt nog dat lesvoortgang "nog altijd
+      in localStorage" leeft en dat `lesson_progress` en `user_stats` "door geen enkele
+      regel code gelezen of geschreven" worden, en het beschrijft nog het oude
+      `purchases`-model in plaats van `payment_attempts`/`entitlements`. Een agent die
+      AGENTS.md leest in plaats van CLAUDE.md krijgt dus een verkeerd beeld van precies het
+      geldpad en het voortgangspad. Twee opties: bij elke wijziging allebei bijwerken (dat
+      is aantoonbaar al een keer misgegaan), of van AGENTS.md een verwijzing naar CLAUDE.md
+      maken zodat er maar één bron is. Dat laatste heeft de voorkeur, maar het is een keuze
+      over hoe andere gereedschappen deze repo lezen — dus aan Jason.
+
 - `docs/prijsstrategie.md` noemt drie dingen "blokkerend voor de eerste transactie" die
   niet gebouwd zijn, terwijl `CLAUDE.md` en `docs/betalingen-mollie.md` de checkout als af
   presenteren met alleen de key nog te wisselen. Wie alleen `CLAUDE.md` leest, zet de
