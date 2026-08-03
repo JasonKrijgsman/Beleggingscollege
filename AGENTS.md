@@ -52,7 +52,8 @@ Accounts, aankopen en voortgang hangen aan gebruikers-id's, niet aan een URL. Bi
 
 **De site staat LIVE op https://beleggingscollege.com** (sinds 2 aug 2026).
 
-- **Code**: GitHub `JasonKrijgsman/Beleggingscollege`, branch `main`.
+- **Code**: GitHub `JasonKrijgsman/Beleggingscollege`, branch `main`. Werk op een branch en merge via een PR met groene CI (main is beschermd); zie CLAUDE.md voor de volledige werkwijze.
+- **Cursor Bugbot staat aan in handmatige modus** (sinds 3 aug 2026): een agent mag zelf een extra review aanvragen door op de PR de reactie `bugbot run` te plaatsen. Gebruik je oordeel — niet spammen omdat het kan. Vuistregel: **wél** bij PR's die geld-, toegangs- of concurrencypaden raken (checkout, Mollie-webhook, entitlements, voortgang-server, moderatie) of bij een groot nieuw stuk logica; **níét** bij docs-, tekst- of commentwijzigingen en triviale fixes. Eén run per PR-versie; verwerk eerst de bevindingen voordat je opnieuw vraagt.
 - **Hosting**: Vercel, team "Visual Future", project `beleggingscollege`. **Elke push naar `main` deployt automatisch**; elke branch krijgt een preview-URL. Login: accounts@jasonkrijgsman.com (wachtwoordloos + passkeys, bewust geen SSO).
 - **`beleggingscollege.com`** — registrar Cloudflare (betaald t/m nov 2027), DNS bij Cloudflare, CNAME `@` → `6d87ec9bdcf67bce.vercel-dns-017.com`, **DNS only (grijze wolk)**. Dit is tijdelijk het canonieke adres.
 - **`beleggingscollege.nl`** — nog bij Strato. De verhuizing wacht op DNSSEC-deactivering, en die **loopt**: in het Strato-paneel staat onder Domeinen → DNS → DNSSEC "Wordt gedeactiveerd". Er is geen knop om het te versnellen. Zodra `Resolve-DnsName -Name beleggingscollege.nl -Type DS -Server 1.1.1.1` niets meer teruggeeft (nu nog keytag 43361), kan de naamserverwissel door. Cloudflare-zone bestaat al met 11 records klaar. Zie `docs/domain-migration-plan.md`.
