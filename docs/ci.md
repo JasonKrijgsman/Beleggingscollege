@@ -96,6 +96,49 @@ niet-vanzelfsprekende stukken, af te kijken uit de bestaande bestanden:
   Rolldown — het oude `esbuild`-veld wordt stil genegeerd; dáár zoeken als
   een `.tsx`-import ooit "invalid JS syntax" geeft).
 
+## Twee losse gereedschappen naast de poort (sinds 3 aug 2026)
+
+Beide draaien bewust NIET in `npm run controle` of CI — het zijn
+instrumenten voor de ontwikkelaar, geen slagbomen:
+
+- **`npm run test:coverage`** — dezelfde testrun, met een dekkingsrapport
+  (terminal + `coverage/index.html`). Zonder drempels: componenten draaien
+  in de browser en scoren hier terecht laag. Waar je op let is `src/lib` en
+  `src/app/api` — dáár hoort de dekking hoog, en een nieuw bestand op 0%
+  in die mappen is een gat (zo werd `src/lib/opties.ts` gevonden).
+- **`npm run test:e2e`** — de Playwright-rooktest (`e2e/rooktest.spec.ts`)
+  tegen een echte productieserver (`next start`, poort 3100): homepage,
+  catalogus, een gratis les inclusief volledig doorgeklikte quiz, en de
+  controle dat een betaalde les voor een anonieme bezoeker dicht zit én
+  geen lesinhoud in de HTML lekt. Bouwt zelf als er geen `.next` ligt;
+  geen database of geheimen nodig (zie `playwright.config.ts`). Eerste
+  keer: `npx playwright install chromium`.
+
+### De poort wordt van twee kanten getest — en waarom niet allebei in de browser
+
+De rooktest bewijst dat een betaalde les **dicht** zit voor een anonieme
+bezoeker. Het spiegelbeeld — dat hij ook echt **open** gaat voor wie betaald
+heeft — staat in `test/lespagina.test.ts`, en dat is bewust géén browsertest.
+
+Voor de browserversie zou de draaiende server een échte database nodig hebben
+(de Neon-driver praat over HTTP, PGlite draait in-process) plus een geldige
+sessiecookie. De enige manier om die werelden te laten raken is een testluik
+in `src/db/index.ts` — precies het bestand waar CLAUDE.md voor waarschuwt en
+waar authenticatie, aankopen en voortgang samenkomen. Dat risico weegt niet op
+tegen wat het extra bewijst.
+
+`test/lespagina.test.ts` toetst daarom het server component zelf, mét de echte
+`heeftToegangTot` en echte aankooprijen in PGlite; alleen de sessie is nep.
+Gedekt: koper ziet de volledige les, en op slot bij uitgelogd, ingelogd zonder
+aankoop, een aankoop van een ándere cursus, een aankoop van iemand anders, en
+elke niet-`paid` status. Wat er níét in zit is of de browser het vervolgens
+schildert — dat dekt de rooktest af op de gratis les, die dezelfde component
+en dezelfde `LessonRunner` gebruikt.
+
+Beide richtingen zijn met mutatietests geverifieerd: een poort die iedereen
+weigert laat de kopertest omvallen, een poort die iedereen doorlaat laat de
+zeven slot-tests omvallen.
+
 ## De slagboom (sinds 3 aug 2026) en zijn restrisico
 
 Main is beschermd: vereiste status check **"CI"**, óók voor admins, mét

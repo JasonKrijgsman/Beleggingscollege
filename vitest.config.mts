@@ -29,5 +29,15 @@ export default defineConfig({
     include: ["test/**/*.test.ts"],
     // De databasetests draaien elk op een eigen PGlite-instantie (in-memory
     // Postgres); er is dus geen gedeelde toestand tussen bestanden.
+
+    // `npm run test:coverage` laat zien welke broncode de tests raken.
+    // Bewust zonder drempels: het rapport is een kompas, geen poort — de
+    // componenten (src/components, src/app/**/page.tsx) draaien in de
+    // browser en horen hier laag te scoren zonder dat dat iets blokkeert.
+    // Kijk vooral naar src/lib en src/app/api: dáár hoort de dekking hoog.
+    coverage: {
+      include: ["src/**"],
+      reporter: ["text", "html"],
+    },
   },
 });

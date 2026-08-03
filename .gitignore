@@ -13,3 +13,8 @@ next-env.d.ts
 resp.html
 *.tmp.html
 .claude/worktrees/
+
+# Testrapporten (vitest --coverage en Playwright)
+coverage/
+playwright-report/
+test-results/
