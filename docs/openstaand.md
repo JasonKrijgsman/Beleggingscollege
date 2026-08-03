@@ -235,12 +235,40 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       `docs/e-mail-versturen.md` en dit document; op 3 aug 2026 is het er met commit
       `d760378` (PR #14) uitgehaald. **De werkmap is daarmee schoon, de historie niet** —
       één `git show` op die commit haalt het terug. Zolang de repo privé is, is dat een
-      beheerst risico. **Vóór archiveren, publiceren of het toevoegen van een
-      medewerker moet de historie herschreven worden** met `git filter-repo` of BFG,
-      gevolgd door een force-push en het verlopen van de oude objecten bij GitHub. Doe dat
-      niet terloops: het herschrijft elke commit-hash, dus open branches en PR's moeten
-      eerst leeg zijn. Het nummer zelf hoort in geen enkel bestand — ook niet in de
-      opdracht waarmee je het opruimt; zoek op de commit, niet op de waarde.
+      beheerst risico. **Vóór archiveren, publiceren of het toevoegen van een medewerker
+      moet de historie herschreven worden.**
+
+      **Op 3 aug 2026 is dit twee keer geoefend en één keer half uitgevoerd; alles behalve
+      de laatste duw is bewezen.** De herschreven spiegel klopte exact: 154 commits erin en
+      eruit, 191 treffers naar 0, en de boom-hash van `main` bleef byte-identiek — de
+      inhoud van vandaag verandert dus niet, alleen de hashes. De push zélf uploadde alle
+      1089 objecten zonder morren en strandde puur op de branch protection. Wie het afmaakt
+      hoeft niets opnieuw uit te zoeken:
+
+      1. `pip install git-filter-repo` (Python 3 is aanwezig). Kloon met `--mirror` vanaf
+         GitHub — niet lokaal, anders mis je branches.
+      2. **Zoek het nummer niet automatisch op.** In de historie staan **vijf** verschillende
+         strings van de vorm `[0-9]{9}B[0-9]{2}`; "pak de eerste match" pakt de verkeerde.
+         Het doelnummer begint met `214` en is als enige van de vijf al níét meer in de
+         werkboom te vinden — gebruik dat als controle. Zet het nummer in geen enkel
+         bestand dat je bewaart.
+      3. `git filter-repo --replace-text <bestand> --force`. **Let op: filter-repo gooit de
+         remote `origin` weg** (met opzet, zodat je niet per ongeluk de verkeerde repo
+         herschrijft). Daarna dus `git remote add origin …` vóór je pusht.
+      4. **Drie instellingen blokkeren de push, niet één.** In Settings → Branches → `main`
+         moeten tijdelijk uit: *Require status checks to pass* (want strict-mode eist een
+         groene CI-run op précies die commit, en een force-push van historie krijgt er nooit
+         een), *Do not allow bypassing the above settings*, en *Allow force pushes* moet
+         juist áán. Herstel daarna alle drie — de stand vóóraf was: vereiste check `CI`,
+         strict aan, admins inbegrepen, force-push uit, verwijderen uit, geen review-eis.
+      5. Ná afloop: **iedereen moet opnieuw klonen** (alle hashes veranderen, dus ook elke
+         worktree is ongeldig), en de **±19 verwijzingen naar commit-hashes in `docs/` en
+         `CLAUDE.md` worden dode links**. Repareer die met de map die filter-repo achterlaat
+         in `.git/filter-repo/commit-map` (oud → nieuw).
+
+      Doe het pas als er **geen open PR's en geen andere branches dan `main`** zijn, en er
+      geen tweede sessie aan het werk is: elke niet-gemergde branch wordt onbruikbaar. Dat
+      venster was op 3 aug de schaarste factor, niet het werk zelf.
 - [ ] **Neon zit op 10/10 branches en dat gaat de volgende preview breken.** Geconstateerd
       3 aug 2026: de console meldt "Branch limit reached" (gratis laag = 10). Negen daarvan
       zijn `preview/…`-branches die de Vercel-integratie per preview-deployment aanmaakt, en
