@@ -96,6 +96,16 @@ export async function POST(request: NextRequest) {
  * op een gedeelde computer heeft opgepikt. Eén verouderde slug mag de rest
  * van iemands leergeschiedenis niet laten sneuvelen. Wat er afvalt wordt wél
  * gelogd, zodat een patroon van pogingen zichtbaar is.
+ *
+ * WEES EERLIJK OVER DE PRIJS. Voor de gesnoeide cursus zelf is het verlies
+ * definitief: de client neemt dit antwoord over als waarheid en schrijft het
+ * terug naar localStorage (src/lib/progress.tsx). Wat hier afvalt staat niet
+ * in de database, komt dus niet terug in het antwoord, en is bij de
+ * eerstvolgende paginalading ook uit de browseropslag weg. Wat al wél op de
+ * server stond blijft staan — we verwijderen nergens lesson_progress-rijen —
+ * dus het raakt uitsluitend puur-lokale historie van een cursus waar geen
+ * recht (meer) op is. De gebruiker merkt daar niets van; de console.warn
+ * hieronder is het enige spoor.
  */
 async function snoeiSnapshot(userId: string, snapshot: unknown) {
   const s =
@@ -108,13 +118,29 @@ async function snoeiSnapshot(userId: string, snapshot: unknown) {
       ? (s.completed as Record<string, unknown>)
       : {};
 
+  // Eerst de gratis catalogustoets: die kost geen databasewerk, en zo kan een
+  // verzonnen snapshot met duizend slugs geen duizend queries uitlokken — er
+  // blijven hooguit zoveel vragen over als de catalogus cursussen heeft.
+  const kandidaten = Object.entries(completed).filter(([courseSlug]) =>
+    Boolean(getCourse(courseSlug))
+  );
+
+  // De poort blijft `heeftToegangTot()`, maar de vragen gaan tegelijk de deur
+  // uit. Serieel was elke cursus een eigen sessielookup (database-sessies, en
+  // `auth()` cachet niet) plus een entitlement-query, en op neon-http is elke
+  // query een losse rondreis naar Frankfurt. Dit pad loopt bij élke
+  // paginalading van een ingelogde bezoeker, dus dat telt op.
+  const beoordeeld = await Promise.all(
+    kandidaten.map(
+      async ([courseSlug, lessen]) =>
+        [courseSlug, lessen, await heeftToegangTot(courseSlug)] as const
+    )
+  );
+
   const toegestaan: Record<string, unknown> = {};
   const geweigerd: string[] = [];
-  for (const [courseSlug, lessen] of Object.entries(completed)) {
-    // Eerst de gratis catalogustoets: die kost geen databasewerk, en zo kan
-    // een verzonnen snapshot met duizend slugs geen duizend queries uitlokken.
-    if (!getCourse(courseSlug)) continue;
-    if (await heeftToegangTot(courseSlug)) {
+  for (const [courseSlug, lessen, magHet] of beoordeeld) {
+    if (magHet) {
       toegestaan[courseSlug] = lessen;
     } else {
       geweigerd.push(courseSlug);

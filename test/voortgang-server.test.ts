@@ -357,10 +357,17 @@ describe("importeerSnapshot — de teller uit de browser gaat de prullenbak in",
  * de snapshot-import zette XP absoluut, dus een les die er tussen het
  * optellen en het wegschrijven bij kwam werd stilletjes overschreven.
  *
- * `houdVast()` maakt precies die volgordes reproduceerbaar: het eerste
- * statement dat op het patroon past blijft staan, het andere verzoek loopt
- * er volledig langs, en pas daarna gaat het door. Zonder die haak slaagt
- * een racetest toevallig en bewijst hij niets.
+ * `houdVast()` maakt de volgorde reproduceerbaar: het eerste statement dat op
+ * het patroon past blijft staan, het andere verzoek loopt er volledig langs,
+ * en pas daarna gaat het door. Zonder die haak slaagt zo'n test toevallig.
+ *
+ * WEES PRECIES OVER WAT DIT BEWIJST. PGlite heeft één verbinding, dus een
+ * statement draait altijd helemaal af voordat het volgende begint. Wat je
+ * hieronder afdwingt is dus: "de andere schrijver was al klaar toen deze
+ * begon" — dat de tweede afronding dan niet klapt, niets dubbeltelt en de
+ * streak niet twee keer opschuift. Twee statements die elkaar ÉCHT overlappen
+ * (Neon, meerdere verbindingen) valt met deze harnas niet na te bootsen; dat
+ * hangt aan het schrijfpatroon zelf, en dat staat in het blok daaronder.
  */
 async function xpKlopt(userId: string): Promise<{ stats: number; som: number }> {
   const [{ som }] = await db
@@ -501,6 +508,72 @@ describe("gelijktijdigheid — user_stats.xp = SUM(lesson_progress.xp_awarded)",
     const { stats, som } = await xpKlopt("u1");
     expect(stats).toBe(som);
     expect(stats).toBe(LES_1.xp + LES_2.xp + LES_3.xp);
+  });
+});
+
+/**
+ * Het schrijfpatroon zelf — het hart van de fix, en het enige stuk dat de
+ * haak hierboven niet kan aantonen.
+ *
+ * Op Neon overlappen twee statements wél. De schrijver die dan als tweede aan
+ * de statsrij komt, wacht op de rijvergrendeling en ziet daarna de nieuwe
+ * waarde — maar alleen als hij OPTELT bij wat er in de rij staat (`s.xp +
+ * delta`). Herrekent hij in plaats daarvan uit een snapshot van
+ * lesson_progress, dan is die snapshot ouder dan de commit van de ander en
+ * schrijft hij diens winst weg: de klassieke verloren update.
+ *
+ * Dat verschil is hier na te bootsen door de statsrij vooruit te zetten. Die
+ * voorsprong is precies het spoor dat een gelijktijdige schrijver achterlaat:
+ * de rij staat verder dan de lesson_progress-snapshot die ons statement nam.
+ * Telt de code op, dan blijft de voorsprong staan; herrekent hij, dan
+ * verdampt hij. De invariant `user_stats.xp = SUM(xp_awarded)` is hier dus
+ * bewust even doorbroken — anders is er niets te meten.
+ */
+describe("het schrijfpatroon — XP wordt opgeteld, nooit herrekend", () => {
+  const VOORSPRONG = 1000;
+
+  /** Zet de statsrij vooruit alsof een ander verzoek net gecommit heeft. */
+  async function alsofEenAnderNetCommitte(): Promise<void> {
+    await db
+      .update(userStats)
+      .set({ xp: sql`${userStats.xp} + ${VOORSPRONG}` })
+      .where(eq(userStats.userId, "u1"));
+  }
+
+  it("verwerkLes telt op bij de statsrij, niet bij de som uit de tabel", async () => {
+    const eerste = await verwerkLes(
+      "u1",
+      CURSUS.slug,
+      LES_1.slug,
+      { correct: 0, total: LES_1.quiz.length },
+      VANDAAG
+    );
+    await alsofEenAnderNetCommitte();
+
+    const tweede = await verwerkLes(
+      "u1",
+      CURSUS.slug,
+      LES_2.slug,
+      { correct: 0, total: LES_2.quiz.length },
+      VANDAAG
+    );
+    expect(tweede.xp).toBe(eerste.xp + VOORSPRONG + LES_2.xp);
+  });
+
+  it("importeerSnapshot telt óók op, en herrekent niet", async () => {
+    const eerste = await verwerkLes(
+      "u1",
+      CURSUS.slug,
+      LES_1.slug,
+      { correct: 0, total: LES_1.quiz.length },
+      VANDAAG
+    );
+    await alsofEenAnderNetCommitte();
+
+    const na = await importeerSnapshot("u1", {
+      completed: { [CURSUS.slug]: [LES_2.slug] },
+    });
+    expect(na.xp).toBe(eerste.xp + VOORSPRONG + LES_2.xp);
   });
 });
 

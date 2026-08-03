@@ -164,6 +164,17 @@ async function beoordeelBadges(
  *  5. de INSERT  — alleen als er nog geen statsrij was. De ON CONFLICT-tak
  *                  vangt de race af waarin een ander verzoek die rij net
  *                  aanmaakte; ook daar wordt opgeteld, nooit overschreven.
+ *
+ * SCHERPE RAND BIJ STAP 5, en waarom hij niet snijdt. `excluded.xp` is
+ * `b.som + delta`, dus in de ON CONFLICT-tak wordt `b.som` meegeteld. Dat
+ * gaat alleen goed zolang geldt: geen statsrij ⇒ ook geen lesrijen, en dus
+ * `b.som = 0`. Die aanname klopt — beide schrijvers maken de statsrij in
+ * hetzelfde statement aan, en de FK-cascade wist lesson_progress en
+ * user_stats samen. `b.som` staat er puur om te herstellen als iemand die
+ * statsrij ooit met de hand weghaalt. Wie dat tóch doet én er tegelijk twee
+ * verzoeken op loslaat, telt `som` een tweede keer mee. Het alternatief
+ * (alleen de delta) kan niet zomaar: Postgres staat geen subquery toe in
+ * ON CONFLICT DO UPDATE SET, dus die tak kan de CTE `basis` niet zien.
  */
 export async function verwerkLes(
   userId: string,

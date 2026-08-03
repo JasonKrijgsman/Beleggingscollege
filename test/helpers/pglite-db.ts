@@ -28,11 +28,18 @@ await migrate(db, { migrationsFolder: "drizzle" });
  * Gecontroleerd interleaven
  *
  * PGlite deelt één verbinding, dus twee gelijktijdige aanroepen wisselen
- * elkaar per statement af — net als twee verzoeken op productie. Alleen is
- * de volgorde daarvan niet te sturen, en dan bewijst een racetest niets:
- * hij slaagt toevallig. Met `houdVast()` zet je het éérste statement dat op
- * een patroon past stil, laat je een ander verzoek er volledig langs, en
- * geef je het daarna vrij. Zo is de gevaarlijke volgorde reproduceerbaar.
+ * elkaar per STATEMENT af; een statement zelf draait altijd helemaal af.
+ * De volgorde daarvan is niet te sturen, en dan slaagt zo'n test toevallig.
+ * Met `houdVast()` zet je het éérste statement dat op een patroon past stil,
+ * laat je een ander verzoek er volledig langs, en geef je het daarna vrij.
+ *
+ * WAT DIT WÉL EN NIET AANTOONT. Wel: "de andere schrijver was al helemaal
+ * klaar toen deze begon" — de volgorde die vroeger een dubbele-sleutelfout of
+ * een dubbele streak opleverde. Niet: twee statements die elkaar echt
+ * overlappen, zoals op Neon met meerdere verbindingen. Dat valt met één
+ * verbinding niet na te bootsen; of dat goed gaat hangt aan het
+ * schrijfpatroon (optellen bij de rij, nooit herrekenen uit een snapshot) en
+ * dát wordt apart getest.
  * ---------------------------------------------------------------- */
 
 type Haak = { patroon: RegExp; aangekomen: () => void; slot: Promise<void> };
