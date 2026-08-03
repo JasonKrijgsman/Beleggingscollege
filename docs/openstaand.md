@@ -426,9 +426,17 @@ Wat de review verder opleverde en nog openstaat:
       candlestickpatronen en grafieken lezen is dat een lastige verkoop: je ziet vooraf niet
       hoe een les eruitziet. (De interactieve tools tekenen wél grafieken — maar pas ná de
       koop.)
-- [ ] **`/leerpad` zet alle negen cursussen onder "Mijn cursussen"**, ook de acht die je niet
-      bezit, allemaal op 0%. Splits in "Jouw cursussen" en "Verder leren". Hangt samen met
-      het ontbrekende bezitsoverzicht in §4.
+- [ ] **`/leerpad` weet niet wat je bezit, en dat lekt op twee plekken.** De pagina is een
+      `"use client"`-component zonder serverkant, dus ze kent alleen voortgang, geen
+      aankopen. Gevolg: alle negen cursussen staan onder "Mijn cursussen", ook de acht die
+      je niet bezit, allemaal op 0%. De aanbeveling "ga verder waar je was gebleven" viel om
+      dezelfde reden terug op de héle catalogus; die is op 3 aug afgevangen door in dat geval
+      alleen naar gratis cursussen te wijzen — een pleister, geen oplossing, want wie een
+      betaalde cursus kocht maar nog niet begon wordt nu naar de gratis cursus gestuurd.
+      De echte oplossing is een serverwrapper die de gekochte slugs meegeeft; die is er
+      tóch nodig voor de eigen titel/description/noindex uit §7. Doe die twee samen, en
+      splits de lijst dan meteen in "Jouw cursussen" en "Verder leren". Hangt samen met het
+      ontbrekende bezitsoverzicht in §4.
 - [ ] **Het btw-identificatienummer staat op twee plekken los van elkaar.**
       `src/components/SiteFooter.tsx` heeft `NL004813328B30` hard in de tekst, terwijl
       `BEDRIJF.btwNummer` in `src/lib/mailteksten.ts` uit `BEDRIJF_BTW_NUMMER` komt en zonder
