@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { paymentAttempts } from "@/db/schema";
 import { courses, flatLessons, getCourse } from "@/content";
+import { heeftToegangTot } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -31,23 +32,33 @@ export default async function GekochtPage({
   const session = await auth();
   const userId = session?.user?.id;
 
-  // Er kunnen meerdere betaalpogingen naast elkaar bestaan (dubbelklik, een
-  // eerdere mislukte poging); de klant komt hier net terug van Mollie, dus de
-  // níéuwste poging is de betaling waar deze pagina over gaat.
+  // Eerst de vraag die er voor de klant echt toe doet: heeft hij de cursus?
+  // Dat is bewust níét "wat deed de nieuwste poging" — er kunnen meerdere
+  // pogingen naast elkaar staan (dubbelklik, een eerdere mislukte poging), en
+  // wie de óudste link betaalt terwijl er een jongere poging openstaat zou
+  // anders "we wachten nog" te zien krijgen terwijl de cursus allang open is.
+  // We hergebruiken hier de bestaande toegangspoort in plaats van zelf een
+  // tweede oordeel te vellen.
   let status: string | null = null;
   if (userId) {
-    const rijen = await db
-      .select({ status: paymentAttempts.status })
-      .from(paymentAttempts)
-      .where(
-        and(
-          eq(paymentAttempts.userId, userId),
-          eq(paymentAttempts.courseSlug, slug)
+    if (await heeftToegangTot(slug)) {
+      status = "paid";
+    } else {
+      // Nog geen recht: dan gaat deze pagina over de laatste poging, want
+      // dát is de betaling waar de klant zojuist vandaan komt.
+      const rijen = await db
+        .select({ status: paymentAttempts.status })
+        .from(paymentAttempts)
+        .where(
+          and(
+            eq(paymentAttempts.userId, userId),
+            eq(paymentAttempts.courseSlug, slug)
+          )
         )
-      )
-      .orderBy(desc(paymentAttempts.createdAt))
-      .limit(1);
-    status = rijen[0]?.status ?? null;
+        .orderBy(desc(paymentAttempts.createdAt))
+        .limit(1);
+      status = rijen[0]?.status ?? null;
+    }
   }
 
   const eersteLes = flatLessons(course)[0]?.lesson.slug;
