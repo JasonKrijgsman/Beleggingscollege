@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { purchases } from "@/db/schema";
+import { entitlements } from "@/db/schema";
 import { auth } from "@/auth";
 import { getCourse } from "@/content";
 
@@ -15,7 +15,7 @@ import { getCourse } from "@/content";
  *    component — dan zou de bundler hem meesturen naar de browser.
  * 2. Vertrouw NOOIT iets uit de browser. Niet de localStorage-voortgang, niet
  *    een prop, niet een cookie die de client zelf kan zetten. Alleen de
- *    sessie op de server en een rij in `purchases` met status "paid".
+ *    sessie op de server en een rij in `entitlements` met status "actief".
  * 3. Middleware is GEEN autorisatie. Auth.js waarschuwt daar expliciet voor:
  *    middleware is er voor een nette redirect, de echte controle hoort hier,
  *    zo dicht mogelijk bij het ophalen van de data.
@@ -32,13 +32,13 @@ export async function heeftToegangTot(courseSlug: string): Promise<boolean> {
   if (!userId) return false;
 
   const rows = await db
-    .select({ id: purchases.id })
-    .from(purchases)
+    .select({ id: entitlements.id })
+    .from(entitlements)
     .where(
       and(
-        eq(purchases.userId, userId),
-        eq(purchases.courseSlug, courseSlug),
-        eq(purchases.status, "paid")
+        eq(entitlements.userId, userId),
+        eq(entitlements.courseSlug, courseSlug),
+        eq(entitlements.status, "actief")
       )
     )
     .limit(1);
@@ -53,9 +53,11 @@ export async function gekochteCursussen(): Promise<string[]> {
   if (!userId) return [];
 
   const rows = await db
-    .select({ courseSlug: purchases.courseSlug })
-    .from(purchases)
-    .where(and(eq(purchases.userId, userId), eq(purchases.status, "paid")));
+    .select({ courseSlug: entitlements.courseSlug })
+    .from(entitlements)
+    .where(
+      and(eq(entitlements.userId, userId), eq(entitlements.status, "actief"))
+    );
 
   return rows.map((r) => r.courseSlug);
 }

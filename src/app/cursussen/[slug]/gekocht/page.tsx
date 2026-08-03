@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { purchases } from "@/db/schema";
+import { paymentAttempts } from "@/db/schema";
 import { courses, flatLessons, getCourse } from "@/content";
 
 export const dynamic = "force-dynamic";
@@ -31,12 +31,21 @@ export default async function GekochtPage({
   const session = await auth();
   const userId = session?.user?.id;
 
+  // Er kunnen meerdere betaalpogingen naast elkaar bestaan (dubbelklik, een
+  // eerdere mislukte poging); de klant komt hier net terug van Mollie, dus de
+  // níéuwste poging is de betaling waar deze pagina over gaat.
   let status: string | null = null;
   if (userId) {
     const rijen = await db
-      .select({ status: purchases.status })
-      .from(purchases)
-      .where(and(eq(purchases.userId, userId), eq(purchases.courseSlug, slug)))
+      .select({ status: paymentAttempts.status })
+      .from(paymentAttempts)
+      .where(
+        and(
+          eq(paymentAttempts.userId, userId),
+          eq(paymentAttempts.courseSlug, slug)
+        )
+      )
+      .orderBy(desc(paymentAttempts.createdAt))
       .limit(1);
     status = rijen[0]?.status ?? null;
   }

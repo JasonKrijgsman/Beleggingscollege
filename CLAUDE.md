@@ -33,9 +33,9 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 
 - **Neon** = gehoste Postgres (serverless, schaalt naar nul, gratis laag, regio Frankfurt — **regio is achteraf niet te wijzigen**). **Drizzle** = ORM: queries in TypeScript in plaats van SQL-strings, met typecontrole tijdens de build.
 - **Waarom niet SQLite:** dat is een bestand op schijf, en Vercel heeft geen blijvend bestandssysteem — elke instance krijgt zijn eigen kopie en elke deploy wist hem. Waarom niet Supabase: die pauzeert gratis projecten na een week inactiviteit, onacceptabel voor betalende klanten. Vercel Postgres bestaat niet meer (in 2024 naar Neon verhuisd). Zelf hosten op de NAS kan technisch, maar dan wordt de thuisverbinding de beschikbaarheid van de webshop.
-- `src/db/schema.ts` — Auth.js-tabellen (exact zoals de adapter ze verwacht) + `purchases`, `lesson_progress`, `user_stats`.
+- `src/db/schema.ts` — Auth.js-tabellen (exact zoals de adapter ze verwacht) + `payment_attempts` (append-only, één rij per Mollie-betaling), `entitlements` (één recht per gebruiker per cursus), `order_counters` (doorlopende ordernummers per jaar), `lesson_progress`, `user_stats`. Het oude `purchases` staat er nog stil bij tot de contract-migratie; het ontwerp achter de splitsing is `docs/ontwerp-betaalmodel.md`.
 - `src/auth.ts` / `src/auth.config.ts` — gesplitst zodat er ooit edge-middleware bíj kan (die kan geen database laden). **Let op: er is op dit moment géén `middleware.ts` in de repo** — de nette redirect voor uitgelogde bezoekers doet `/account` zelf met `redirect()`. **Database-sessies, geen JWT**: alleen zo kun je toegang direct intrekken na terugbetaling of misbruik.
-- **`src/lib/entitlements.ts` is de enige plek die bepaalt of iemand een betaalde cursus mag zien.** `server-only`, kijkt uitsluitend naar de sessie en een rij in `purchases` met status `paid`. Middleware is géén autorisatie (Auth.js waarschuwt daar expliciet voor) — die doet alleen een nette redirect.
+- **`src/lib/entitlements.ts` is de enige plek die bepaalt of iemand een betaalde cursus mag zien.** `server-only`, kijkt uitsluitend naar de sessie en een rij in `entitlements` met status `actief`. Middleware is géén autorisatie (Auth.js waarschuwt daar expliciet voor) — die doet alleen een nette redirect.
 - Versies staan **exact gepind**: Auth.js v5 is na 2,5 jaar nog steeds beta en Drizzle 1.0-rc breekt auth-adapters. Niet upgraden zonder testen.
 - Valkuil in `src/db/index.ts`: de verbinding wordt opgezet met een placeholder-URL als `DATABASE_URL` ontbreekt, anders faalt `next build`. Lui initialiseren via een Proxy kán niet — de Drizzle-adapter inspecteert het db-object en faalt met "Unsupported database type".
 - Volledige implementatiegids met geverifieerde versies en codevoorbeelden: `docs/implementatie-accounts-betalen.md`.
@@ -88,7 +88,7 @@ Dit merk verkoopt zichzelf als de eerlijke tegenhanger van get-rich-quick-aanbie
 
 ## Betalingen
 
-- **Losse cursussen kopen wérkt** — op 2 aug 2026 end-to-end getest op de live site: koopknop → Mollie → webhook → `purchases.status = 'paid'` → les ontgrendelt. Bewijs en testmatrix in `docs/betalingen-mollie.md`.
+- **Losse cursussen kopen wérkt** — op 2 aug 2026 end-to-end getest op de live site: koopknop → Mollie → webhook → betaalpoging `paid` + entitlement `actief` → les ontgrendelt. Bewijs en testmatrix in `docs/betalingen-mollie.md`; het betaalmodel zelf staat in `docs/ontwerp-betaalmodel.md`.
 - **Er staat nu een `test_`-key in Vercel.** De winkel lijkt dus open, maar niemand kan echt betalen. Vervang `MOLLIE_API_KEY` door de live-key vóór de eerste verkoop, en deploy daarna opnieuw.
 - Mollie-account is live-klaar (KYC afgerond in 2023, bankrekening geverifieerd, profiel Online). iDEAL, kaarten, PayPal en Apple Pay staan actief; SEPA-incasso is 2 aug 2026 aangevraagd en wacht nog op goedkeuring — dat blokkeert alleen het abonnement, niet de losse verkoop.
 - **MOI-risico (€65), tarieven en verplichte tegenmaatregelen: `docs/betalingen-mollie.md`.** Lees dat vóór er aan het abonnement gebouwd wordt.
@@ -110,7 +110,7 @@ Dit merk verkoopt zichzelf als de eerlijke tegenhanger van get-rich-quick-aanbie
 - **Valkuil die stil misgaat:** het domein publiceert `p=reject` zónder SPF. Uitgaande post slaagt nu alleen doordat Strato met DKIM ondertekent. Verstuurt Migadu straks zonder eigen DKIM-records, dan wordt élke bevestigingsmail geweigerd — niet in spam, geweigerd. Eerst de records, dan pas verzenden.
 - `src/lib/mail.ts` praat nu met de HTTP-API van Resend. Migadu heeft alleen SMTP, dus die ene functie moet nog omgebouwd worden. De rest van de keten (`orderbevestiging.ts`, `mailteksten.ts`, de webhook) raakt dat niet: die roepen alleen `verstuurMail()` aan.
 - `verstuurMail()` **gooit nooit**: hij draait in de Mollie-webhook nadat de aankoop al op `paid` staat, en een mislukte mail mag daar geen 500 van maken (Mollie herhaalt dan tien keer over 26 uur).
-- `purchases.confirmationSentAt` voorkomt tien identieke mails bij herhaalde webhooks en is tegelijk het bewijs dát de verplichte bevestiging is verstuurd.
+- De atomaire claim op `payment_attempts.confirmationClaimedAt` voorkomt tien identieke mails bij herhaalde webhooks; `confirmationSentAt` is het bewijs dát de verplichte bevestiging is verstuurd.
 
 ### Bedrijfsgegevens: één btw-nummer is openbaar, het andere nooit
 

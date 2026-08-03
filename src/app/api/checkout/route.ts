@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { purchases } from "@/db/schema";
+import { entitlements, paymentAttempts } from "@/db/schema";
 import { getCourse } from "@/content";
 import { prijsInCenten } from "@/lib/prijs";
 import {
@@ -56,14 +56,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Al gekocht? Dan niet nog een keer laten betalen.
+  // Al gekocht? Dan niet nog een keer laten betalen. Dit is dedupe van
+  // aankopen, géén tweede toegangspoort — die blijft heeftToegangTot().
   const bestaand = await db
-    .select({ status: purchases.status })
-    .from(purchases)
-    .where(and(eq(purchases.userId, userId), eq(purchases.courseSlug, slug)))
+    .select({ id: entitlements.id })
+    .from(entitlements)
+    .where(
+      and(
+        eq(entitlements.userId, userId),
+        eq(entitlements.courseSlug, slug),
+        eq(entitlements.status, "actief")
+      )
+    )
     .limit(1);
 
-  if (bestaand[0]?.status === "paid") {
+  if (bestaand.length > 0) {
     return NextResponse.json(
       { error: "Je hebt deze cursus al.", alGekocht: true },
       { status: 409 }
@@ -73,42 +80,33 @@ export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
-  // Eerst bij Mollie aanmaken, zodat we het payment-id meteen kunnen opslaan.
+  // Ons eigen id gaat mee in de Mollie-metadata (net als het bedrag). Faalt
+  // de insert hieronder, dan draagt de betaling bij Mollie zelf onze sleutel
+  // en maakt de reparatietak in de webhook de rij alsnog aan.
+  const attemptId = crypto.randomUUID();
+
   const payment = await mollie().payments.create({
     amount: { currency: "EUR", value: centenNaarBedrag(centen) },
     description: `Beleggingscollege — ${course.title}`,
     redirectUrl: `${SITE_URL}/cursussen/${slug}/gekocht`,
     webhookUrl: `${SITE_URL}/api/mollie/webhook`,
-    metadata: { userId, courseSlug: slug },
+    metadata: { userId, courseSlug: slug, attemptId, amountCents: centen },
   });
 
-  // Eén rij per gebruiker per cursus (unieke index). Bestond er al een
-  // mislukte of openstaande poging, dan werken we die bij in plaats van een
-  // tweede rij te maken.
-  await db
-    .insert(purchases)
-    .values({
-      userId,
-      courseSlug: slug,
-      molliePaymentId: payment.id,
-      status: "pending",
-      amountCents: centen,
-      currency: "EUR",
-      withdrawalWaivedAt: new Date(),
-      consentIp: ip,
-      consentTermsVersion: HERROEPING_TEKST_VERSIE,
-    })
-    .onConflictDoUpdate({
-      target: [purchases.userId, purchases.courseSlug],
-      set: {
-        molliePaymentId: payment.id,
-        status: "pending",
-        amountCents: centen,
-        withdrawalWaivedAt: new Date(),
-        consentIp: ip,
-        consentTermsVersion: HERROEPING_TEKST_VERSIE,
-      },
-    });
+  // Elke poging is een eigen rij, append-only: bewust een kale insert, géén
+  // upsert. Een eerdere mislukte of hangende poging blijft als historie staan.
+  await db.insert(paymentAttempts).values({
+    id: attemptId,
+    userId,
+    courseSlug: slug,
+    molliePaymentId: payment.id,
+    status: "pending",
+    amountCents: centen,
+    currency: "EUR",
+    withdrawalWaivedAt: new Date(),
+    consentIp: ip,
+    consentTermsVersion: HERROEPING_TEKST_VERSIE,
+  });
 
   const checkoutUrl = payment.getCheckoutUrl();
   if (!checkoutUrl) {

@@ -91,12 +91,17 @@ export const authenticators = pgTable(
 );
 
 /* ------------------------------------------------------------------
- * 2. Aankopen — de enige bron van waarheid voor toegang
+ * 2. Betalen en toegang — drie begrippen, drie tabellen
  *
- * Toegang wordt NOOIT afgeleid uit iets in de browser. Een les komt pas
- * de deur uit als hier een rij staat met status "paid".
+ * Zie docs/ontwerp-betaalmodel.md: een betaalpoging (payment_attempts),
+ * het toegangsrecht (entitlements) en de ordernummerteller (order_counters)
+ * hebben elk hun eigen levensduur. `purchases` is de oude, gecombineerde
+ * tabel: die blijft staan tot de contract-stap (aparte migratie) hem
+ * opruimt, maar er wordt niet meer naar geschreven of uit gelezen.
  * ---------------------------------------------------------------- */
 
+/** OUD — vervangen door payment_attempts + entitlements (expand-fase).
+ *  Niet verwijderen tot de contract-migratie; zie docs/ontwerp-betaalmodel.md §3. */
 export const purchases = pgTable(
   "purchases",
   {
@@ -144,6 +149,84 @@ export const purchases = pgTable(
     uniqueIndex("purchases_user_course_idx").on(t.userId, t.courseSlug),
   ]
 );
+
+/** Eén rij per Mollie-betaling. Append-only: rijen worden nooit verwijderd,
+ *  mollie_payment_id / bedrag / consent / created_at worden nooit herschreven.
+ *  De rij die "paid" haalt is de order; daar horen ordernummer en mailbewijs bij. */
+export const paymentAttempts = pgTable(
+  "payment_attempts",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    courseSlug: text("course_slug").notNull(),
+    /** Uniek: een dubbele webhook kan nooit een tweede rij voor dezelfde
+     *  betaling maken; twee checkouts maken juist wél twee rijen. */
+    molliePaymentId: text("mollie_payment_id").notNull().unique(),
+    /** pending | paid | failed | expired | canceled | mismatch | refunded */
+    status: text("status").notNull().default("pending"),
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull().default("EUR"),
+
+    /* Consentbewijs, zoals voorheen op purchases — per póging vastgelegd,
+     * zodat een retry het bewijs van een eerdere poging niet overschrijft. */
+    withdrawalWaivedAt: timestamp("withdrawal_waived_at", { mode: "date" }),
+    consentIp: text("consent_ip"),
+    consentTermsVersion: text("consent_terms_version"),
+
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    paidAt: timestamp("paid_at", { mode: "date" }),
+
+    /* Mailbewijs, met een atomaire claim (docs/ontwerp-betaalmodel.md §2.4). */
+    confirmationClaimedAt: timestamp("confirmation_claimed_at", { mode: "date" }),
+    confirmationSentAt: timestamp("confirmation_sent_at", { mode: "date" }),
+
+    orderNumber: text("order_number").unique(),
+  },
+  (t) => [
+    index("payment_attempts_user_course_idx").on(t.userId, t.courseSlug),
+    // Voor de opruimronde uit docs/openstaand.md §6 (hangende pendings naslaan).
+    index("payment_attempts_status_idx").on(t.status, t.createdAt),
+  ]
+);
+
+/** Eén recht per gebruiker per cursus — de enige bron van waarheid voor
+ *  toegang, en het enige dat heeftToegangTot() leest. Toegang wordt NOOIT
+ *  afgeleid uit iets in de browser: een les komt pas de deur uit als hier
+ *  een rij staat met status "actief". */
+export const entitlements = pgTable(
+  "entitlements",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    courseSlug: text("course_slug").notNull(),
+    /** actief | ingetrokken */
+    status: text("status").notNull().default("actief"),
+    /** De betaalpoging (= order) die dit recht als laatste verleende. */
+    attemptId: text("attempt_id")
+      .notNull()
+      .references(() => paymentAttempts.id),
+    grantedAt: timestamp("granted_at", { mode: "date" }).notNull().defaultNow(),
+    revokedAt: timestamp("revoked_at", { mode: "date" }),
+    /** Bijv. "refund" of "misbruik" — voor het audittrail van /beheer. */
+    revokedReason: text("revoked_reason"),
+  },
+  (t) => [
+    uniqueIndex("entitlements_user_course_idx").on(t.userId, t.courseSlug),
+    index("entitlements_user_idx").on(t.userId),
+  ]
+);
+
+/** Doorlopende ordernummers zonder tellen-dan-proberen: één rij per jaar,
+ *  opgehoogd mét RETURNING binnen de paid-verwerking. Rolt die terug,
+ *  dan rolt de teller mee — geen gaten. */
+export const orderCounters = pgTable("order_counters", {
+  jaar: integer("jaar").primaryKey(),
+  laatste: integer("laatste").notNull().default(0),
+});
 
 /* ------------------------------------------------------------------
  * 3. Voortgang — vervangt localStorage zodra iemand is ingelogd
@@ -253,6 +336,9 @@ export const userStats = pgTable("user_stats", {
 });
 
 export type User = typeof users.$inferSelect;
+/** OUD — de opvolgers zijn PaymentAttempt en Entitlement. */
 export type Purchase = typeof purchases.$inferSelect;
+export type PaymentAttempt = typeof paymentAttempts.$inferSelect;
+export type Entitlement = typeof entitlements.$inferSelect;
 export type LessonProgress = typeof lessonProgress.$inferSelect;
 export type UserStats = typeof userStats.$inferSelect;

@@ -25,7 +25,10 @@ export const dbIsConfigured = true;
 await migrate(db, { migrationsFolder: "drizzle" });
 
 export async function leegAlleTabellen(): Promise<void> {
-  // Volgorde is onbelangrijk: alle verwijzingen cascaden vanaf "user".
+  // Entitlements éérst: die verwijzen (zonder cascade) naar payment_attempts.
+  await db.delete(schema.entitlements);
+  await db.delete(schema.paymentAttempts);
+  await db.delete(schema.orderCounters);
   await db.delete(schema.purchases);
   await db.delete(schema.lessonProgress);
   await db.delete(schema.userStats);
