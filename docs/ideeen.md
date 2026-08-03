@@ -19,8 +19,15 @@ blijven staan tot ze gebouwd of verworpen zijn.
 | **Isometrische stijl** — "een sandbox met een character erin" | Variant A "De reis", zie `docs/visuele-signatuur.md` en `/lab` |
 | **Zowel losse cursussen als een abonnement**, zodat mensen kunnen kiezen | Losse verkoop werkt; College+ wacht op SEPA |
 
-Kanttekening bij de gamification: hij werkt, maar de voortgang staat in `localStorage` en
-reist niet mee naar een ander apparaat. Zie `docs/wat-de-winkel-mist.md`, punt 3.
+Kanttekening bij de gamification: de voortgang **reist inmiddels wél mee** voor wie
+ingelogd is. Sinds 2 augustus 2026 synct hij naar de server (`src/lib/voortgang-server.ts`,
+`POST /api/voortgang`), en die route controleert sinds 3 augustus ook toegang. Uitgelogd
+blijft `localStorage` leidend, en de individuele quizantwoorden staan alleen lokaal. Wat er
+wél blijft schuren: het **certificaat** is nog volledig client-side, dus iedereen kan er een
+printen voor een cursus die hij nooit kocht. *(Hier stond tot de archiefronde de oude
+kanttekening, met een verwijzing naar `docs/wat-de-winkel-mist.md` punt 3 — dat hoofdstuk
+was op datzelfde punt achterhaald. Twee documenten die elkaar in dezelfde onwaarheid
+bevestigen is precies wat een archief onbetrouwbaar maakt.)*
 
 ## Nog niet gebouwd
 

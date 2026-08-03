@@ -52,6 +52,19 @@ Pro verplicht wordt — maar niet eerder: eerst verkopen, dan optimaliseren.
 | **Zodra je verkoopt** | Vercel Pro €20/mnd + twee domeinen | **~€250** |
 | Later, bij groei | database boven de gratis laag, e-mailvolume | pas relevant bij echt verkeer |
 
+Twee posten die op 3 augustus 2026 zijn bijgekomen en in deze tabel nog niet zichtbaar
+waren, allebei vandaag nog gratis:
+
+- **Bezoekmeting.** Umami wordt zelf gehost als een **tweede Vercel-project met een eigen
+  Neon-database** (bewust niet dezelfde database als de site). Beide passen in de gratis
+  lagen, maar let op de samenhang met de regel hierboven: als het hoofdproject naar Pro
+  moet omdat er verkocht wordt, is het de vraag of een tweede project op Hobby daar los van
+  staat. De code staat klaar en de meting staat uit tot de instantie er is; zie
+  `docs/analytics.md`.
+- **E-mail.** Migadu draait al voor andere domeinen van Jason en kost dus niets extra voor
+  dit domein. Dat was een van de doorslaggevende argumenten om Resend te laten vallen; zie
+  `docs/e-mail-versturen.md`.
+
 Ter vergelijking: het Strato PowerWeb Basic-pakket kostte grofweg €60–120 per jaar voor een
 site die nooit iets verkocht heeft.
 

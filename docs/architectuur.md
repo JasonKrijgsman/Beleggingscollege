@@ -1,6 +1,8 @@
 # Architectuur van Beleggingscollege
 
-*Laatst bijgewerkt: 3 augustus 2026 (tellingen en scenario 4 herzien na de cursusdag). Dit document beschrijft wat er werkelijk in de code staat — het is geverifieerd tegen de repo, niet overgeschreven uit plannen. Waar de werkelijkheid afwijkt van eerdere documentatie (zoals CLAUDE.md of docs/plattegrond.md) staat dat er eerlijk bij.*
+*Laatst bijgewerkt: 3 augustus 2026, na de betaalmodelsplitsing (PR #22) en de harding van de voortgangssync (PR #32) — de kaart is toen opnieuw regel voor regel tegen de code gelegd. Dit document beschrijft wat er werkelijk in de code staat, niet wat er ooit gepland was. Waar de werkelijkheid afwijkt van eerdere documentatie (zoals CLAUDE.md of docs/plattegrond.md) staat dat er eerlijk bij.*
+
+*Bewuste keuze in dit document: **zo min mogelijk bevroren getallen**. Regelaantallen, testaantallen en tabeltellingen verouderen binnen dagen en gaan dan liegen — dat is precies wat een archief onbetrouwbaar maakt. Waar een getal echt iets toevoegt staat er een datum bij; verder verwijzen we naar het commando dat het actuele getal geeft.*
 
 ---
 
@@ -21,7 +23,7 @@ Wat er **wél** in de browser draait, en terecht: de quiz-interactie, de confett
 Twee eerlijke kanttekeningen, zodat dit document geen reclamefolder wordt:
 
 - **Het certificaat is nog wél volledig client-side.** Iedereen kan in een minuut een certificaat printen voor een cursus die hij nooit kocht — de pagina controleert alleen de lokale voortgang in de eigen browser. Dit staat genoteerd in `docs/openstaand.md` (hoofdstuk 5) en schuurt met de eerlijkheidsbelofte van het merk zodra certificaten waarde suggereren.
-- **In de omgekeerde richting: er is nu eerder te wéinig statisch dan te veel.** De root-layout vraagt op élke pagina de sessie op, waardoor de hele site per bezoek opnieuw gerenderd wordt — de laatste build bevat nul voorafgebouwde pagina's. Geen veiligheidsprobleem (server-rendering ís de veilige kant), wel een prestatie- en kostendetail; zie hoofdstuk 3, scenario 2.
+- **In de omgekeerde richting: er is nu eerder te wéinig statisch dan te veel.** De root-layout vraagt op élke pagina de sessie op, waardoor bijna alles per bezoek opnieuw gerenderd wordt. Alleen de vier routes met een eigen `generateStaticParams` worden nog vooraf gebouwd (blogartikelen, certificaten, de bedankpagina en de lessen van de gratis cursus); álle gewone marketingpagina's — inclusief de homepage en `/over-ons` — staan in de build als "server-rendered on demand". Geen veiligheidsprobleem (server-rendering ís de veilige kant), wel een prestatie- en kostendetail; zie hoofdstuk 3, scenario 2. De actuele verdeling lees je onderaan `npm run build`, in de legenda ●/○/ƒ.
 
 ### De kaart in gewone taal
 
@@ -57,11 +59,14 @@ SERVER (Vercel, per verzoek)
 │  └────────────────────────────────────────────────────────────┘
 │
 DATABASE (Neon Postgres, Frankfurt)
-│  8 tabellen: gebruikers & sessies (Auth.js), purchases (dé bron
-│  van waarheid voor toegang), lesson_progress, user_stats,
-│  newsletter_signups
+│  gebruikers & sessies (Auth.js) · payment_attempts (append-only
+│  betaaladministratie) · entitlements (DÉ bron van waarheid voor
+│  toegang) · order_counters · lesson_progress · user_stats ·
+│  lesson_questions · newsletter_signups · purchases (oud, dood
+│  gewicht tot de contract-migratie)
+│  De actuele set staat in src/db/schema.ts, de SQL in drizzle/.
 │
-EXTERN:  Google (login) · Mollie (betalen) · Resend (mail, nog uit)
+EXTERN:  Google (login) · Mollie (betalen) · Migadu SMTP (mail, nog uit)
 ```
 
 En de drie kernstromen door die lagen heen:
@@ -74,15 +79,19 @@ browser vraagt les op → server laadt les (blijft daar!)
 
 STROOM 2 — Aankoop
 KoopKnop → POST /api/checkout {cursus, herroeping-akkoord}  [géén prijs!]
-  → server: prijs uit eigen catalogus, rij 'pending' in purchases
+  → server: prijs uit eigen catalogus, NIEUWE rij 'pending' in
+    payment_attempts (append-only — elke poging is een eigen rij)
   → bezoeker naar Mollie → betaalt → Mollie belt onze webhook: "tr_…"
   → webhook haalt status zélf op, checkt bedrag + valuta
-  → klopt: status 'paid' → toegangspoort gaat open + orderbevestiging
+  → klopt: één statement zet de poging op 'paid', deelt het
+    ordernummer uit én verleent het entitlement 'actief'
+  → pas dát entitlement opent de deur; daarna de orderbevestiging
 
 STROOM 3 — Voortgang
 quiz af → localStorage (werkt altijd, ook anoniem)
   → indien ingelogd: POST /api/voortgang {wat ik deed}  [géén XP-getal!]
-  → server zoekt les op, herrekent XP zelf, schrijft idempotent weg
+  → server checkt eerst heeftToegangTot() (403 zonder recht),
+    zoekt de les op, herrekent XP zelf, schrijft idempotent weg
   → stuurt de échte stand terug; browser neemt die over als waarheid
 ```
 
@@ -103,26 +112,41 @@ De veilige uittreksels van een cursus die de browser wél mag zien: titels, tell
 **De regel: geef een client component nooit een `Course`, altijd een view-model.** Alles wat je als "prop" aan browser-code geeft, belandt in de HTML die iedereen kan bekijken. Deze grens is een afspraak (vastgelegd in CLAUDE.md), geen slagboom — een nieuwe ontwikkelaar kan hem per ongeluk overtreden zonder dat iets breekt. Zie hoofdstuk 4 voor de goedkope vangrail.
 
 ### Toegang — `src/lib/entitlements.ts`
-Tweeënzestig regels die één vraag beantwoorden: mag deze bezoeker deze cursus zien? Gratis cursus → ja. Anders: is er een sessie én een rij in `purchases` met status `paid`?
-**De regel: alléén entitlements beslist over toegang.** Geverifieerd met grep (herteld 3 aug 2026): drie plekken raadplegen hem — lespagina, cursuspagina en `/api/lesvragen` — en nergens staat een tweede, afwijkende check. Dit is de gezondste grens in de codebase — houd dat zo. Wie ooit een tweede check toevoegt "voor de zekerheid", creëert twee waarheden die uit elkaar gaan lopen.
+Een handvol regels die één vraag beantwoorden: mag deze bezoeker deze cursus zien? Gratis cursus → ja. Anders: is er een sessie én een rij in `entitlements` met status `actief`?
+
+**Sinds 3 augustus 2026 (PR #22) is dat een ándere tabel dan hiervoor.** Het oude model had één `purchases`-rij die tegelijk betaalpoging, order én toegangsrecht was; die drie zijn nu uit elkaar getrokken (zie `docs/ontwerp-betaalmodel.md`). De praktische consequentie die je moet onthouden: **een betaalpoging met status `paid` geeft uit zichzelf géén toegang.** Het recht ontstaat pas als de webhook-verwerking het entitlement verleent — en dat gebeurt in hetzelfde statement, dus de twee kunnen niet uit elkaar lopen. `test/entitlements.test.ts` pint dit expliciet af door élke betaalpoging-status langs te lopen, `paid` incluis, en te bewijzen dat de deur dicht blijft.
+
+**De regel: alléén entitlements beslist over toegang.** Geverifieerd met grep: vijf bestanden raadplegen hem — de lespagina, de cursuspagina, `/api/lesvragen`, `/api/voortgang` (zowel per les als bij het snoeien van een geïmporteerde snapshot) en de bedankpagina `/cursussen/[slug]/gekocht` — en nergens staat een tweede, afwijkende check. Hertel met `grep -rn "heeftToegangTot" src/`. Dit is de gezondste grens in de codebase — houd dat zo. Wie ooit een tweede check toevoegt "voor de zekerheid", creëert twee waarheden die uit elkaar gaan lopen. Ook de dedupe in de checkout ("je hebt deze cursus al") leest `entitlements`, maar staat er expliciet bij dat het géén tweede poort is.
 
 ### Betalingen — `/api/checkout`, `/api/mollie/webhook`, `src/lib/mollie.ts`
 **De regels (uit CLAUDE.md, en aantoonbaar nageleefd): de prijs komt uit onze eigen catalogus, nooit uit het verzoek — en de webhook gelooft niets uit de payload behalve het id.** De webhook haalt de status zelf bij Mollie op, vergelijkt bedrag én valuta met de eigen administratie (afwijking → status `mismatch`, geen toegang) en kan veilig tien keer aangeroepen worden zonder dubbele gevolgen.
+
+*Hoe die idempotentie er sinds PR #22 uitziet, en waarom dat geen transactie is:* de paid-verwerking is **één `db.execute()` met data-modifying CTE's** — de pending-rij vergrendelen, de jaarteller ophogen, de poging op `paid` zetten mét ordernummer, en het entitlement verlenen. Niet omdat dat mooier is, maar omdat **`db.transaction()` op de productiedriver gooit**: neon-http kent geen interactieve transacties. In de tests draait PGlite, en dáár werkt `db.transaction()` wél — dus een transactie schrijven is precies het soort fout die groen door CI komt en pas op productie omvalt. `db.batch()` helpt niet, want dat kan de `RETURNING` van het ene statement niet aan het volgende voeren, en het ordernummer hángt van de tellerstand af. Eén statement is in Postgres per definitie atomair, dus er is zelfs geen crashvenster tussen claim, teller en entitlement.
+
 *Wat hier schuurt:* de prijs leeft in de catalogus als weergavetekst ("€49") en wordt in de checkout met een tekstbewerking teruggerekend naar centen. Eén creatieve komma en de checkout rekent verkeerd. Dit hoort andersom: het getal in centen is de bron, de tekst de afgeleide. Genoteerd in `docs/openstaand.md` hoofdstuk 6.
 
 ### Voortgang — `src/lib/progress.tsx` (browser) + `src/lib/voortgang-server.ts` (server)
 De gamification: XP, levels, streaks, badges. De browserkant is het vangnet voor anonieme bezoekers; de serverkant is de waarheid voor ingelogde gebruikers en herrekent álles zelf — quizscores worden begrensd op het echte aantal vragen, de streak-dag wordt gevalideerd, en bij de eerste login gaat de XP-teller uit de browser bewust de prullenbak in (alleen de gedane lessen tellen).
 **De regel: de client stuurt wat er gebeurde, de server bepaalt wat het waard is.**
-*Wat hier schuurt — dit is je terechtste god-object-zorg:* deze module bestaat twee keer. Beide bestanden (353 en 332 regels) implementeren dezelfde XP-formule, quizbonus, streak- en badge-logica. Dat is deels onvermijdelijk (anonieme bezoekers hebben geen server), maar niets dwingt de tweeling gelijk te blijven. Wijzig je de bonus op één plek, dan ziet een ingelogde gebruiker eerst het ene getal en na de synchronisatie een ander. Dit is de meest waarschijnlijke plek voor stille drift, en de belangrijkste kandidaat voor een test die beide kanten naast elkaar legt (hoofdstuk 4).
+
+*Sinds 3 augustus 2026 (PR #32) staat er ook een poort vóór:* `POST /api/voortgang` roept eerst `heeftToegangTot()` aan. Zonder recht een 403, bij een onbekende les een 400, en een geïmporteerde snapshot uit localStorage wordt gesnoeid tot gratis + gekochte cursussen. Daarvóór kon een uitgelogde-en-daarna-ingelogde bezoeker XP en badges verzamelen voor materiaal dat hij nooit mocht zien — geen contentlek (de tekst zat nog steeds achter de poort), wél een gat in de administratie. In dezelfde ronde zijn de schrijfacties atomair gemaakt: `verwerkLes()` en `importeerSnapshot()` zijn nu ook één statement met CTE's die een **delta** optellen in plaats van een absolute waarde te zetten, zodat de invariant uit de vorm van het statement volgt en niet uit de volgorde van losse queries.
+
+*Wat hier schuurt — dit is je terechtste god-object-zorg:* deze module bestaat twee keer. Beide bestanden implementeren dezelfde XP-formule, quizbonus, streak- en badge-logica (de serverkant is met de CTE-omzetting fors gegroeid en inmiddels het langste van de twee). Dat is deels onvermijdelijk (anonieme bezoekers hebben geen server), maar niets dwingt de tweeling gelijk te blijven. Wijzig je de bonus op één plek, dan ziet een ingelogde gebruiker eerst het ene getal en na de synchronisatie een ander. Dit is de meest waarschijnlijke plek voor stille drift, en de belangrijkste kandidaat voor een test die beide kanten naast elkaar legt (hoofdstuk 4). Er is er inmiddels één per kant (`voortgang-regels.test.ts`, `voortgang-server.test.ts`, `voortgang.route.test.ts`), maar nog geen die ze náást elkaar legt.
+
+*En wat er nog wél open staat:* de quizscore komt van de client. De server begrenst hem op het echte aantal vragen, maar wie het verzoek zelf opstelt kan de quizbonus met één fetch claimen. Genoteerd in `docs/openstaand.md` §6.
 
 ### Mail & orderbevestiging — `src/lib/mail.ts`, `orderbevestiging.ts`, `mailteksten.ts`
-De wettelijk verplichte aankoopbevestiging, met doorlopend ordernummer (BC-2026-0001) en vastgelegd herroepingsbewijs (tijdstip, IP, voorwaardenversie).
-**De regels: de mailfunctie gooit nooit een fout** (een haperende mailserver mag de betaalverwerking niet laten herhalen) **en er gaat maximaal één bevestiging per aankoop de deur uit.** Het versturen zelf staat nog uit tot Resend geconfigureerd is.
+De wettelijk verplichte aankoopbevestiging, met doorlopend ordernummer (BC-2026-0001) en vastgelegd herroepingsbewijs (tijdstip, IP, voorwaardenversie). Het nummer wordt niet los verzonnen maar atomair uitgedeeld uit `order_counters`, binnen hetzelfde statement dat de betaling op `paid` zet — dus élke betaalde poging heeft een nummer, ook als de mail daarna mislukt.
+**De regels: de mailfunctie gooit nooit een fout** (een haperende mailserver mag de betaalverwerking niet laten herhalen) **en er gaat maximaal één bevestiging per aankoop de deur uit.** Dat tweede doet een atomaire claim op `payment_attempts.confirmationClaimedAt`: alleen wie die `UPDATE … WHERE confirmationClaimedAt IS NULL` wint, mag versturen. Blijkt de mail aantoonbaar niet weg, dan wordt de claim teruggegeven zodat een volgende webhookaanroep het opnieuw probeert. `confirmationSentAt` is daarna alleen nog het bewijs dát er verstuurd is.
+
+**Verzenden staat nog uit — en niet meer om de reden die hier ooit stond.** Resend is als keuze teruggedraaid; `src/lib/mail.ts` praat sinds 3 aug 2026 via nodemailer met Migadu SMTP. Het staat uit omdat `MAIL_SMTP_GEBRUIKER` en `MAIL_SMTP_WACHTWOORD` nog leeg zijn — een bewuste stille faal. Zie `docs/e-mail-versturen.md`.
 
 ### Grenzen die er (nog) niet zijn
 Voor de volledigheid, want een eerlijke kaart toont ook de gaten: het **certificaat** heeft geen server-grens (iedereen kan er een printen), de **prijs-als-tekst** overschrijdt de grens tussen "weergave" en "rekenwaarde", en de **grote interactieve tools** (`SteunWeerstandTool.tsx`, 756 regels; `IntrinsiekeWaardeTool.tsx`, 431 regels) mengen berekening en weergave in één bestand zonder tests. Geen van drie is een god-object — het zijn afgebakende, benoembare tekortkomingen, en dat is precies het verschil met een kluwen.
 
-Eén documentatie-oneffenheid tot slot: CLAUDE.md wekt de indruk dat er middleware bestaat die uitgelogde bezoekers netjes doorstuurt. Die middleware bestaat niet (geverifieerd); `/account` regelt zijn eigen redirect. Onschuldig vandaag, verwarrend voor wie er later een bouwt.
+Eén module die er wél is maar in geen enkel diagram past: **`src/lib/ratelimiet.ts`**, sinds 3 aug 2026. Een vast venster (10 per 15 minuten) vóór `POST /api/lesvragen` (op gebruikers-id) en `POST /api/nieuwsbrief` (op IP). Wees eerlijk over wat het is: de teller staat in het geheugen van één serverless-instantie, dus het is een drempel tegen iemand die één formulier zit te hameren, géén garantie tegen een verdeelde aanval. Een echte limiet vraagt gedeelde staat (database of Redis) en dat is een grotere beslissing dan deze twee routes rechtvaardigen — de databasekant heeft bovendien zijn eigen regels (maximaal drie openstaande vragen per gebruiker, één rij per e-mailadres).
+
+Eén documentatie-oneffenheid tot slot, en die is inmiddels half opgelost: CLAUDE.md wekte de indruk dat er middleware bestaat die uitgelogde bezoekers netjes doorstuurt. Die middleware bestaat niet (geverifieerd: geen `middleware.ts`, ook niet onder `src/`); `/account` regelt zijn eigen redirect met `redirect()`. CLAUDE.md zegt dat inmiddels zelf met zoveel woorden. **AGENTS.md heeft de oude formulering nog** — dat bestand loopt sowieso achter op CLAUDE.md; gebruik het niet voor het geld- of voortgangspad.
 
 ---
 
@@ -143,7 +167,7 @@ We hebben de architectuur onder druk gezet met zes groeiscenario's. Per scenario
 **Drempel:** pas op de dag dat de app er echt komt. Niets van de huidige opzet hoeft dan weggegooid.
 
 ### Scenario 4: een tweede ontwikkelaar of parallelle AI-sessie
-**Dit scenario is op 3 aug 2026 werkelijkheid geworden — en de vangrail is diezelfde dag gebouwd.** Er draaiden meerdere parallelle AI-sessies tegelijk, en sindsdien geldt: `main` is beschermd, mergen kan alleen via een PR met groene CI (typecheck, lint, ±140 tests, build, bundel-lekcontrole — zie `docs/ci.md`), en elke push draait lokaal eerst de tests via de pre-push-hook. Wat er ná die vangrail nog open staat: beide werkers praten met dezelfde productiedatabase (zie hoofdstuk 6-punt in `docs/openstaand.md`), en de voortgangs-tweeling uit hoofdstuk 2 blijft de plek waar een tweede ontwikkelaar er één aanpast en de ander vergeet. Werkafspraak uit de praktijk: bouw in een eigen git-worktree, nooit in de gedeelde checkout (`docs/cursusfabriek.md`, valkuilen).
+**Dit scenario is op 3 aug 2026 werkelijkheid geworden — en de vangrail is diezelfde dag gebouwd.** Er draaiden meerdere parallelle AI-sessies tegelijk, en sindsdien geldt: `main` is beschermd (vereiste check "CI", ook voor admins, strict-mode), mergen kan alleen via een PR met groene CI (typecheck, lint, de volledige testsuite, productiebuild en de bundel-lekcontrole — zie `docs/ci.md`), en elke push draait lokaal eerst de tests via de pre-push-hook. Wil je weten wat de poort nú afdekt: `npm ci && npm run controle` reproduceert hem één op één. Wat er ná die vangrail nog open staat: beide werkers praten met dezelfde productiedatabase (zie hoofdstuk 6-punt in `docs/openstaand.md`), en de voortgangs-tweeling uit hoofdstuk 2 blijft de plek waar een tweede ontwikkelaar er één aanpast en de ander vergeet. Werkafspraak uit de praktijk: bouw in een eigen git-worktree, nooit in de gedeelde checkout (`docs/cursusfabriek.md`, valkuilen).
 
 ### Scenario 5: video- of beeldrijke lessen
 Het contentschema kent nog geen media-veld, en video hoort principieel niet bij Vercel (de bandbreedtebundel is er met video in dagen doorheen). Belangrijker: betaalde video vraagt dezelfde discipline als betaalde tekst — een video-adres dat eenmaal in de HTML staat is deelbaar. De oplossing is een videoplatform met kort geldige, ondertekende afspeel-adressen, uitgegeven op precies de plek waar nu `heeftToegangTot()` staat. **De poort bestaat al; er hoeft alleen een tweede soort inhoud achter.**
@@ -158,6 +182,8 @@ De architectuur heeft hier al een natuurlijke plek voor: een API-route die de le
 ## 4. Wat we nu doen — en wat bewust niet
 
 ### Nu doen (goedkoop, uren geen weken)
+
+*Stand 3 augustus 2026, eind van de dag: punt 2 en punt 3 zijn gebouwd (de CI-poort met branch protection en pre-push-hook, plus tests op de prijs-terugrekening, de bedrag/valuta-controle en beide voortgangskanten). De rest staat nog open; `docs/openstaand.md` is de leidende lijst.*
 
 1. **Een Neon-databasebranch voor de laptop.** Neon kan gratis kopieën van de database maken; zet die in `.env.local`, en de laptop werkt nooit meer op productiedata. Een kwartier werk, lost het engste punt uit `docs/openstaand.md` op.
 2. **Branch protection op `main` + één GitHub Action** die de typecheck en `next build` draait vóór elke merge. De build vangt nu al de gevaarlijkste fout (browser-code die content importeert) — dat wil je vóór de samenvoeging weten, niet erna in productie. Vercel geeft elke branch toch al gratis een preview-adres.
@@ -193,4 +219,6 @@ Twee dingen die wél nieuw gebouwd moeten worden op de dag zelf: een login-route
 
 ---
 
-*Bronnen: de code zelf (paden hierboven), `docs/openstaand.md` (openstaande punten, eerlijk genoteerd), `docs/betalingen-mollie.md` (betaalketen en risico's), `docs/plattegrond.md` (paginakaart — let op: rapporteert "statisch" waar de build per verzoek rendert, zolang `auth()` in de root-layout staat).*
+*Bronnen: de code zelf (paden hierboven), `docs/openstaand.md` (openstaande punten, eerlijk genoteerd), `docs/betalingen-mollie.md` (betaalketen en risico's), `docs/ontwerp-betaalmodel.md` (de onderbouwing van de splitsing, uitgevoerd op 3 aug 2026), `docs/ci.md` (de poort), `docs/plattegrond.md` (paginakaart).*
+
+*Twee bekende afwijkingen in `docs/plattegrond.md`, zodat je er niet op struikelt: hij rapporteert "statisch" voor pagina's die de build per verzoek rendert (zolang `auth()` in de root-layout staat), en de kolom bij de API-routes leidt "vereist sessie" af uit de enkele aanwezigheid van een `auth(`-aanroep. Daardoor staat `/api/lesvragen/moderatie` er als "publiek" terwijl die route iedereen zonder beheerdersrecht met een 404 wegstuurt, en `/api/nieuwsbrief` als "vereist sessie" terwijl die route bewust anoniem is (de sessie dient er alleen om een herinschrijving te mogen honoreren). Het document mag niet met de hand bijgewerkt worden — het wordt gegenereerd — dus de echte fix zit in `scripts/plattegrond.mjs`. Genoteerd, nog niet gedaan.*

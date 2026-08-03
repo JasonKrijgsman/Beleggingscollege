@@ -34,8 +34,14 @@ gedaan hebben — zodat niemand dit over drie weken opnieuw gaat uitzoeken.
 mail — een orderbevestiging — versturen we via een server of API, en daar is geen postbus voor
 nodig. Dit heeft dus nooit gewacht op Strato, ook al leek dat zo.
 
-De postbus die we nodig hebben voor antwoorden bestaat trouwens allang:
-`beheer@beleggingscollege.nl` draait bij Strato, bevat mail en werkt gewoon.
+De postbus die we nodig hebben voor antwoorden bestond trouwens allang:
+`beheer@beleggingscollege.nl` draaide bij Strato en bevatte mail. **Dat is sinds de
+naamserverwissel van 3 augustus niet meer waar** — de MX van dit domein wijst nu naar
+Migadu (`aspmx1`/`aspmx2.migadu.com`), en Strato waarschuwt zelf dat e-mailfuncties
+vervallen zodra je eigen naamservers gebruikt. De postbus is inmiddels bij Migadu
+aangemaakt; zie het statusblok bovenaan. Wie deze regel las toen hij nog "werkt gewoon"
+zei: de post die de site op /contact, /voorwaarden, /herroepingsrecht en /privacy
+belooft te ontvangen, komt aan bij Migadu en nergens anders.
 
 ## Waarom Migadu en niet Resend
 
@@ -73,7 +79,12 @@ heeft is een uitgaand quotum per abonnement, en dat is bij dit volume niet relev
 
 Het echte obstakel is een ander, zie hieronder.
 
-## Waarom we wachten op de `.nl`
+## Waarom we wachtten op de `.nl` — historisch, opgelost op 3 augustus 2026
+
+> Dit hoofdstuk en het volgende (de ontsnappingsroute) beschrijven de situatie vóór de
+> naamserverwissel. **Ze zijn ingehaald**: de delegatie staat bij Cloudflare, de MX wijst
+> naar Migadu en het domein is Actief. De afweging blijft staan omdat ze uitlegt waarom we
+> níét eerst e-mail op de `.com` hebben opgezet — dat is nog steeds een goede reden.
 
 Migadu activeert een domein pas als de MX-records naar Migadu wijzen — hun eigen tekst: *"Email
 capability will remain inactive until the required checks pass."* Zonder activering geen
@@ -96,7 +107,12 @@ verhuist.
 **Het risico van wachten:** hiermee hangt een wettelijke voorwaarde aan het tempo van Strato, en
 dat tempo is niet van ons. Er staat "DNSSEC: Wordt gedeactiveerd" zonder datum.
 
-## De ontsnappingsroute — als Strato blijft treuzelen
+## De ontsnappingsroute — als Strato blijft treuzelen (nooit nodig geweest)
+
+> **Niet meer uitvoeren.** Strato hoefde niet ingehaald te worden: DNSSEC ging er op
+> 3 augustus zelf af en de naamserverwissel was binnen tien minuten bij SIDN. Stap 3
+> ("Rerun Checks") is bovendien niet nodig gebleken — Migadu zag de records uit zichzelf.
+> Het staat er nog als vastgelegde afweging, niet als draaiboek.
 
 Doe dit zodra Jason wél wil verkopen en de `.nl` nog niet verhuisd is. **De e-mailverhuizing
 heeft de naamserverwissel niet nodig.** MX-records staan ín de zone bij Strato, en DNSSEC
@@ -126,22 +142,29 @@ omdat Strato precies de partij is waar we weg willen: je bouwt iets wat je bij d
 weer sloopt. Bovendien zet je dan een postbuswachtwoord in Vercel in plaats van een sleutel die
 je kunt intrekken — en dat wachtwoord geeft ook leestoegang tot de postbus.
 
-## De valkuil: DMARC staat op reject en er is geen SPF
+## De valkuil die er was — en de omgekeerde actie die er nu ligt
 
-Dit is het enige dat echt stil mis kan gaan.
+Dit was het enige dat echt stil mis kon gaan, en het is op 3 augustus afgevangen. De
+redenering hoort bewaard te blijven, de conclusie is veranderd.
 
-Op `beleggingscollege.nl` staat `v=DMARC1;p=reject;` — de standaardregel van Strato. Er is
-**geen SPF-record**. Dat uitgaande post van Strato tóch aankomt, komt doordat Strato met DKIM
-ondertekent (`strato-dkim-0002` en `strato-dkim-0003` staan in de zone). DMARC slaagt namelijk
-op SPF **óf** DKIM.
+**Hoe het was.** Op `beleggingscollege.nl` stond `v=DMARC1;p=reject;` — de standaardregel van
+Strato — en er was **geen SPF-record**. Dat uitgaande post van Strato tóch aankwam, kwam
+doordat Strato met DKIM ondertekende (`strato-dkim-0002` en `strato-dkim-0003` stonden in de
+zone). DMARC slaagt namelijk op SPF **óf** DKIM. Zou Migadu namens dit domein gaan versturen
+zonder dat Migadu's eigen records stonden, dan slaagde geen van beide en zei onze eigen
+DMARC-regel tegen de ontvanger: *weiger deze mail*. Niet in de map ongewenst — geweigerd.
+Elke orderbevestiging zou verdwijnen, en wij zouden dat niet merken.
 
-Gaat Migadu straks namens dit domein versturen zonder dat Migadu's eigen DKIM-records staan, dan
-slaagt geen van beide en zegt onze eigen DMARC-regel tegen de ontvanger: *weiger deze mail*.
-Niet in de map ongewenst — geweigerd. Elke orderbevestiging zou verdwijnen, en wij zouden dat
-niet merken.
+**Hoe het nu is (geverifieerd 3 augustus 2026 tegen 1.1.1.1):** de zone bij Cloudflare
+publiceert een SPF-record `v=spf1 include:spf.migadu.com -all`, de drie DKIM-CNAME's naar
+`migadu.com`, en DMARC op `v=DMARC1; p=quarantine; adkim=r; aspf=r`. Er is dus wél SPF, en
+DMARC staat bewust op quarantine.
 
-**Daarom: eerst de records, dan pas verzenden.** En zet DMARC tijdelijk op `p=quarantine` tot
-verzenden bewezen werkt; daarna terug naar `reject`.
+**De actie die overblijft is daarmee de omgekeerde van wat hier ooit stond:** niet "zet DMARC
+op quarantine", maar **DMARC terugzetten naar `p=reject` zodra verzenden aantoonbaar werkt**.
+Doe dat pas ná een geslaagde echte bestelling; quarantine is de zachte landing tussen die twee
+momenten. Wie hier stopt na het invullen van de SMTP-variabelen, laat het domein permanent op
+de zwakkere regel staan.
 
 ## Omgevingsvariabelen
 
@@ -189,12 +212,27 @@ een 500 en gaat Mollie het tien keer over 26 uur opnieuw proberen. Liever een kl
 bevestigingsmail — die kan hij alsnog krijgen — dan een klant met een aankoop die in de war
 raakt. Mislukkingen worden gelogd.
 
-**`purchases.confirmationSentAt` voorkomt dubbele post.** Mollie roept de webhook gegarandeerd
-meerdere keren aan voor dezelfde betaling. Zonder dit veld krijgt de klant tien identieke mails.
-Het veld is tegelijk het bewijs dát de wettelijk verplichte bevestiging verstuurd is.
+**Een atomaire claim voorkomt dubbele post — niet meer een gelezen vlaggetje.** Mollie roept de
+webhook gegarandeerd meerdere keren aan voor dezelfde betaling. Hier stond dat
+`purchases.confirmationSentAt` dat afving; dat klopt sinds 3 augustus 2026 op twee punten niet
+meer. Ten eerste zit het veld nu op `payment_attempts` (het betaalmodel is gesplitst, zie
+`docs/ontwerp-betaalmodel.md`). Ten tweede — en dat is de inhoudelijke correctie — was
+lezen-dan-doen een race: twee gelijktijdige webhooks lazen allebei "nog niet verstuurd" en
+mailden allebei. Nu claimt `stuurOrderbevestiging()` eerst met
+`UPDATE … SET confirmation_claimed_at = now() WHERE confirmation_claimed_at IS NULL … RETURNING`;
+wie nul rijen terugkrijgt stopt. Blijkt de mail daarna aantoonbaar níét weg, dan wordt de claim
+teruggegeven zodat een volgende aanroep het opnieuw probeert. `confirmationSentAt` is daarmee
+alleen nog het bewijs dát de wettelijk verplichte bevestiging verstuurd is — en het verschil
+tussen "geclaimd" en "verstuurd" is precies wat een monitoringronde moet naslaan.
 
-**`purchases.orderNumber` is een doorlopende reeks** (`BC-2026-0001`), niet het UUID en niet het
-Mollie-id. De Belastingdienst wil een reeks zonder gaten.
+**`payment_attempts.orderNumber` is een doorlopende reeks** (`BC-2026-0001`), niet het UUID en
+niet het Mollie-id. De Belastingdienst wil een reeks zonder gaten. Het nummer wordt niet los
+verzonnen maar atomair uitgedeeld uit de tabel `order_counters`, binnen hetzelfde statement dat
+de betaling op `paid` zet. Daardoor heeft élke betaalde poging een nummer, ook als de mail
+daarna mislukt — en rolt de statusovergang terug, dan rolt de teller mee. De oude
+`geefOrdernummer()`-constructie (rijen tellen, +1 proberen, met een `Date.now()`-terugval die
+een nummer mailde dat nooit in de database stond) bestaat niet meer; `orderbevestiging.ts`
+weigert expliciet om zelf een nummer te verzinnen en logt in plaats daarvan een fout.
 
 ## Wat hierna nog moet
 
@@ -203,4 +241,8 @@ Mollie-id. De Belastingdienst wil een reeks zonder gaten.
       gelogd, terwijl juist die mail bepaalt of het herroepingsrecht vervalt.
 - [ ] Bounces afhandelen. Bij Migadu komen die terug in de postbus; er moet iemand kijken.
 - [ ] Een echte factuur met btw-uitsplitsing. De bevestiging is geen factuur.
-- [ ] Een SPF-record toevoegen. Niet strikt nodig zolang DKIM het werk doet, maar netter.
+- [x] ~~Een SPF-record toevoegen.~~ Staat er sinds 3 aug 2026:
+      `v=spf1 include:spf.migadu.com -all`, samen met de drie DKIM-CNAME's.
+- [ ] **DMARC terugzetten van `p=quarantine` naar `p=reject`** — pas ná een geslaagde
+      echte bestelling. Dit is het punt dat het makkelijkst blijft liggen, want niets
+      breekt als je het vergeet; het domein staat dan alleen permanent zwakker.

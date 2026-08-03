@@ -170,6 +170,16 @@ How .nl transfers work (SIDN rules): you need a **verhuiscode / transfer token**
     - Set both records to **DNS-only (grey cloud)** at least until Vercel has verified the domain and issued its SSL certificate. You can leave them DNS-only permanently (simplest — Vercel has its own CDN/SSL), or re-enable the orange-cloud proxy afterwards — but then set Cloudflare SSL/TLS mode to **Full (strict)**, never "Flexible" (Flexible causes an infinite redirect loop, `ERR_TOO_MANY_REDIRECTS`).
 13. Keep MX/TXT records for mail (or set up Cloudflare Email Routing) — pointing the website at Vercel doesn't touch mail as long as those records stay.
 
+    > **Correctie (3 augustus 2026): dit gaat níét op voor de Strato-postbus.** Het advies
+    > hierboven klopt in het algemeen — een A-record verplaatsen raakt de MX niet — maar het
+    > suggereert dat je de bestaande Strato-postbussen door de naamserverwissel heen levend
+    > houdt door de MX te kopiëren. Dat kan niet: Strato waarschuwt op zijn eigen NS-pagina dat
+    > "STRATO e-mailfuncties bij gebruik van eigen nameservers niet beschikbaar zijn voor dit
+    > domein". De postbussen `beheer@` en `info@` zijn met de wissel dan ook vervallen. In de
+    > praktijk maakte dat niet uit: de Cloudflare-zone wees toch al naar Migadu, en Jason heeft
+    > bevestigd dat de oude inhoud gemist kon worden. Wie dit draaiboek voor een ánder domein
+    > hergebruikt: exporteer de post vóór de wissel, niet erna. Zie `docs/e-mail-versturen.md`.
+
 ---
 
 ## Pitfalls checklist
