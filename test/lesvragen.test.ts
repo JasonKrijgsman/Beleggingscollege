@@ -78,6 +78,49 @@ describe("plaatsVraag", () => {
     }
     expect((await plaatsVraag("u1", "Test", CURSUS, LES, EEN_VRAAG)).ok).toBe(false);
   });
+
+  it("twee overlappende inzendingen: het gat tussen tellen en invoegen is dicht", async () => {
+    // Nog één plek vrij. Met de oude code (eerst tellen, dán invoegen) lazen
+    // beide aanroepen "twee wachtend" vóórdat een van beide had ingevoegd, en
+    // gingen ze allebei door: vier openstaande vragen bij een limiet van drie.
+    //
+    // Let op wat dit wél en niet bewijst. Bewezen is dat de TOCTOU op
+    // applicatieniveau weg is: waar eerst twee HTTP-verzoeken elkaars await's
+    // konden inhalen, is er nu nog één statement per inzending. NIET bewezen is
+    // hardheid op de database zelf — PGlite draait op één verbinding en
+    // serialiseert, en onder READ COMMITTED zien twee echt gelijktijdige
+    // statements elkaars ongecommitte rij niet. Het venster gaat dus van
+    // honderden milliseconden naar een momentopname; het is geen slot.
+    // Zie ook de toelichting boven de INSERT in src/lib/lesvragen.ts.
+    for (let i = 0; i < MAX_WACHTEND_PER_GEBRUIKER - 1; i++) {
+      await plaatsVraag("u1", "Test", CURSUS, LES, `${EEN_VRAAG} (${i})`);
+    }
+
+    const uitslagen = await Promise.all([
+      plaatsVraag("u1", "Test", CURSUS, LES, `${EEN_VRAAG} (a)`),
+      plaatsVraag("u1", "Test", CURSUS, LES, `${EEN_VRAAG} (b)`),
+    ]);
+
+    expect(uitslagen.filter((u) => u.ok)).toHaveLength(1);
+    expect(await wachtendeVragen()).toHaveLength(MAX_WACHTEND_PER_GEBRUIKER);
+    const geweigerd = uitslagen.find((u) => !u.ok);
+    expect(geweigerd && "reden" in geweigerd && geweigerd.reden).toBeTruthy();
+  });
+
+  it("de limiet telt alleen wachtende vragen: na moderatie is er weer plek", async () => {
+    for (let i = 0; i < MAX_WACHTEND_PER_GEBRUIKER; i++) {
+      await plaatsVraag("u1", "Test", CURSUS, LES, `${EEN_VRAAG} (${i})`);
+    }
+    const [eerste] = await wachtendeVragen();
+    await modereer(eerste.id, "beantwoord", "Een helder, opbouwend antwoord.");
+
+    expect((await plaatsVraag("u1", "Test", CURSUS, LES, EEN_VRAAG)).ok).toBe(true);
+  });
+
+  it("bewaart alleen de voornaam, afgekapt op veertig tekens", async () => {
+    await plaatsVraag("u1", "  Jason Krijgsman  ", CURSUS, LES, EEN_VRAAG);
+    expect((await wachtendeVragen())[0].naam).toBe("Jason");
+  });
 });
 
 describe("modereer", () => {
