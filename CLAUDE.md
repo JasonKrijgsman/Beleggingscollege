@@ -14,7 +14,7 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 - `src/content/types.ts` — contentschema (Course → Module → Lesson → QuizQuestion). Nieuwe cursus = nieuw bestand in `src/content/courses/` + import in `src/content/index.ts`.
 - `src/lib/progress.tsx` — gamification-engine (client): XP, levels, streaks, badges, quizscores; persistentie in localStorage key `beleggingscollege-voortgang-v1`. `completeLesson()` is het enige muterende pad.
 - `src/lib/levels.ts` (8 levels: Toeschouwer → Meesterbelegger), `src/lib/badges.ts` (10 badges met predicaten), `src/lib/accent.ts` (kleurvarianten per cursus).
-- `src/lib/pricing.ts` — bron voor de prijzen zoals ze op de site **staan**: losse cursus €49 eenmalig, College+ €14,99/mnd (€149/jr). Onderbouwing: `docs/prijsstrategie.md`. Let op: wat er daadwerkelijk wordt afgerekend komt uit `prijsInCenten()` in de checkout, dat de weergavetekst met een regex terugrekent naar centen. Wijzig je hier een prijs, controleer dan dat die conversie meeloopt.
+- `src/lib/pricing.ts` — bron voor de prijzen zoals ze op de site **staan**: losse cursus €49 eenmalig, College+ €14,99/mnd (€149/jr). Onderbouwing: `docs/prijsstrategie.md`. Let op: wat er daadwerkelijk wordt afgerekend komt uit `prijsInCenten()` in `src/lib/prijs.ts` (aangeroepen door de checkout), dat de weergavetekst met een regex terugrekent naar centen. Wijzig je hier een prijs, controleer dan dat die conversie meeloopt — `test/prijs.test.ts` bewaakt het formaat.
 - `src/lib/site.ts` — `SITE_URL`, leest `NEXT_PUBLIC_SITE_URL`, standaard `https://beleggingscollege.com`. Canonicals, sitemap, robots, Open Graph en schema.org lezen hier allemaal uit. Bij de verhuizing gaat het meeste dus vanzelf mee — maar níét alles: het e-mailadres, de teksten in de voettekst en het certificaat noemen de `.nl` los in de code. Grep op `beleggingscollege.` vóór je de knop omzet.
 - `src/content/blog.ts` — blogartikelen als data. Nieuw artikel = blok toevoegen aan `posts`; overzicht, artikelpagina, sitemap en SEO volgen vanzelf.
 - Pages: `/` (marketing), `/cursussen`, `/cursussen/[slug]`, `/cursussen/[slug]/les/[les]`, `/cursussen/[slug]/certificaat` (printbaar), `/leerpad` (dashboard), `/blog` + `/blog/[slug]`, `/over-ons`, `/veelgestelde-vragen`, `/contact`, `/privacy`, `/voorwaarden`, `/herroepingsrecht` (die laatste drie zijn **concepten** en staan op noindex tot een jurist ernaar kijkt), `/lab` (intern stijllab, noindex), `/beheer` (intern beheerscherm, noindex, alleen voor `ADMIN_EMAILS`).
@@ -53,6 +53,7 @@ Accounts, aankopen en voortgang hangen aan gebruikers-id's, niet aan een URL. Bi
 **De site staat LIVE op https://beleggingscollege.com** (sinds 2 aug 2026).
 
 - **Code**: GitHub `JasonKrijgsman/Beleggingscollege`, branch `main`.
+- **Werkwijze (sinds 3 aug 2026): werk op een branch en merge via een PR met groene CI — direct naar `main` pushen wordt geweigerd.** Main is beschermd (vereiste check "CI", ook voor admins, strict-mode: de PR moet up-to-date zijn met main) omdat elke merge naar productie deployt. Auto-merge staat aan: open de PR en draai meteen `gh pr merge --auto --squash`, dan merget hij zichzelf zodra CI groen is. Wordt main tóch een keer rood, dan opent de workflow zelf een issue. Lokaal reproduceer je de hele poort met `npm ci && npm run controle`; zie `docs/ci.md`. Begin je aan werk dat meerdere bestanden raakt, kijk dan eerst met `gh pr list` wat er al in de maak is; overlapt een open PR met jouw scope, leg het aan Jason voor in plaats van ernaast te bouwen.
 - **Hosting**: Vercel, team "Visual Future", project `beleggingscollege`. **Elke push naar `main` deployt automatisch**; elke branch krijgt een preview-URL. Login: accounts@jasonkrijgsman.com (wachtwoordloos + passkeys, bewust geen SSO).
 - **`beleggingscollege.com`** — registrar Cloudflare (betaald t/m nov 2027), DNS bij Cloudflare, CNAME `@` → `6d87ec9bdcf67bce.vercel-dns-017.com`, **DNS only (grijze wolk)**. Dit is tijdelijk het canonieke adres.
 - **`beleggingscollege.nl`** — nog bij Strato. De verhuizing wacht op DNSSEC-deactivering, en die **loopt**: in het Strato-paneel staat onder Domeinen → DNS → DNSSEC "Wordt gedeactiveerd". Er is geen knop om het te versnellen. Zodra `Resolve-DnsName -Name beleggingscollege.nl -Type DS -Server 1.1.1.1` niets meer teruggeeft (nu nog keytag 43361), kan de naamserverwissel door. Cloudflare-zone bestaat al met 11 records klaar. Zie `docs/domain-migration-plan.md`.
@@ -128,8 +129,10 @@ Drie valkuilen die we al een keer in productie hebben gehad. Alle drie waren sti
 **Controleer een lek nooit alleen in de HTML.** Dat was de fout waardoor de tweede valkuil maandenlang onopgemerkt bleef: de pagina zag er schoon uit. Haal de bundel er ook bij:
 
 ```bash
-npm run build && grep -rl "correctIndex" .next/static/chunks/
+npm run build && npm run controleer:bundel
 ```
+
+(Niet meer met een kale `grep correctIndex`: QuizBlock leest `q.correctIndex` legitiem client-side om de quiz van de geopende les na te kijken, dus dat woord stáát in de chunks en de grep geeft vals alarm. Het script zoekt op de datavorm `correctIndex:` én op de quizvragen zelf; het draait ook in CI.)
 
 ## Roadmap (v2+)
 

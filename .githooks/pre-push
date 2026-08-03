@@ -1,0 +1,18 @@
+#!/bin/sh
+# Draait automatisch vóór elke `git push`. Faalt een test, dan gaat de push
+# niet door — je merkt het in seconden op je eigen machine, in plaats van pas
+# in de CI ná de push (of erger: pas op de live site).
+#
+# Bewust alleen de tests: snel (~4s), geen database, geen netwerk, altijd
+# hetzelfde resultaat. De zwaardere controles — typecheck, lint, build,
+# bundelcheck — draaien in de CI en zijn lokaal te draaien met `npm run controle`.
+#
+# Push met een kapotte test in noodgeval tóch doorzetten:  git push --no-verify
+
+echo "› tests draaien vóór de push (npm test)…"
+npm test || {
+  echo ""
+  echo "✗ Tests gefaald — push afgebroken. Repareer eerst, of gebruik in"
+  echo "  noodgeval:  git push --no-verify"
+  exit 1
+}
