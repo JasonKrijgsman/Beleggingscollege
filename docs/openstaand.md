@@ -16,9 +16,12 @@ databank zijn gehaald, en elke bevinding daarna door een tweede controleur is na
 gaat uitzoeken.
 
 Een onafhankelijke second opinion door OpenAI Codex staat in
-[`docs/reviews/2026-08-02-codex-website-en-architectuurreview.md`](reviews/2026-08-02-codex-website-en-architectuurreview.md).
-Die review legt bewijs en afwegingen vast; de nog uit te voeren punten blijven uitsluitend
-in dit document staan. De Codex-punten zijn daarna stuk voor stuk tegen de code
+[`docs/reviews/2026-08-02-codex-website-en-architectuurreview.md`](reviews/2026-08-02-codex-website-en-architectuurreview.md);
+de tweede pass ná de cursusdag staat in
+[`docs/reviews/2026-08-03-codex-repository-harmonisatie-en-synthese.md`](reviews/2026-08-03-codex-repository-harmonisatie-en-synthese.md)
+— let op: die punten zijn nog níét stuk voor stuk geverifieerd en hier verwerkt; dat is
+werk voor een volgende sessie. Die reviews leggen bewijs en afwegingen vast; de nog uit
+te voeren punten blijven uitsluitend in dit document staan. De Codex-punten zijn daarna stuk voor stuk tegen de code
 geverifieerd — regelnummers gecontroleerd, races nagelopen, de npm-audit opnieuw
 gedraaid — en met die details hieronder verwerkt.
 
