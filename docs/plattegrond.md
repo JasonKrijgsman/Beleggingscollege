@@ -9,13 +9,13 @@ of API-route, dan kan dit document niet gaan liegen.
 | Route | Rendering | Bijzonderheden |
 |---|---|---|
 | `/account` | per verzoek (sessie) | toegangscontrole |
-| `/beheer` | per verzoek | leest sessie |
+| `/beheer` | per verzoek | toegangscontrole |
 | `/beheer/vragen` | per verzoek | — |
 | `/blog/[slug]` | vooraf gebouwd | — |
 | `/blog` | statisch | — |
 | `/contact` | statisch | — |
 | `/cursussen/[slug]/certificaat` | vooraf gebouwd | — |
-| `/cursussen/[slug]/gekocht` | per verzoek | leest sessie |
+| `/cursussen/[slug]/gekocht` | per verzoek | toegangscontrole |
 | `/cursussen/[slug]/les/[les]` | vrij gratis vooraf, rest per verzoek | toegangscontrole |
 | `/cursussen/[slug]` | per verzoek | toegangscontrole |
 | `/cursussen` | per verzoek | toegangscontrole |

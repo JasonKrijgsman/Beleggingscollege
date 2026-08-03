@@ -1,5 +1,39 @@
 # Implementatiegids: accounts, database en betalen
 
+> # ⚠ HISTORISCH ONDERZOEK — grote delen zijn NIET gebouwd
+>
+> **Dit document is van 2 augustus 2026 en beschrijft deels een architectuur die nooit
+> werkelijkheid is geworden.** Het draagt zichzelf voor als "lees dit vóór je begint", en
+> dat maakt het gevaarlijk: wie het volgt bouwt Prisma, JWT-sessies en een
+> wachtwoordprovider na, terwijl geen van drieën in de repo zit. Deze waarschuwing stond
+> alleen in de README, en de meeste mensen komen hier via een grep of een link.
+>
+> **Nooit gebouwd — negeer die hoofdstukken:**
+> - **Prisma.** Het is `@auth/drizzle-adapter` geworden; `package.json` bevat geen Prisma.
+> - **JWT-sessies.** Het is `session: { strategy: "database" }` in `src/auth.ts` — bewust,
+>   want alleen zo kun je toegang direct intrekken na terugbetaling of misbruik.
+> - **E-mail-plus-wachtwoord met argon2/bcrypt.** `src/auth.config.ts` heeft precies één
+>   provider: Google. Er is geen Credentials-provider en geen hashpakket geïnstalleerd.
+> - **Middleware.** Er is geen `middleware.ts`, ook niet onder `src/`. De splitsing
+>   `auth.ts` / `auth.config.ts` bestaat zodat er ooit edge-middleware bíj kán.
+>
+> **Ingehaald door later werk:** het hoofdstuk dat `purchases` aanwijst als "de enige
+> toegangsbron", inclusief het codevoorbeeld `hasCourseAccess()`. Sinds 3 augustus 2026
+> (PR #22) is dat model gesplitst; de poort heet `heeftToegangTot()` en leest
+> `entitlements` met status `actief`. Zie `docs/ontwerp-betaalmodel.md` — dat ontwerp is
+> uitgevoerd. Ook het tabelaantal in de checklist onderaan klopt niet meer.
+>
+> **Zes bestandspaden in dit document bestaan niet** (gecontroleerd): `src/middleware.ts`,
+> `src/db/pooled.ts`, `src/lib/pg.ts`, `src/lib/auth-credentials.ts`, `src/index.ts` en
+> `src/app/api/mijn-cursussen/route.ts`. Ga er niet naar zoeken.
+>
+> **Wél nog steeds waardevol, en de reden dat dit document blijft staan:** de
+> versiepinning en waaróm die exact moet (Auth.js v5 is al 2,5 jaar beta), de
+> Neon/Drizzle-afwegingen, de driverbeperkingen van neon-http, en het onderzoek naar
+> wat de alternatieven waren. Dat is geverifieerd werk dat niemand opnieuw hoeft te doen.
+>
+> **Bron van waarheid is `CLAUDE.md` en de code zelf.**
+
 > Onderzoek uitgevoerd op 2 augustus 2026, geverifieerd tegen de npm-registry en de
 > actuele documentatie — niet uit geheugen. Versienummers zijn hard gecontroleerd.
 > Lees dit VOORDAT je aan auth, database of checkout begint.
@@ -933,6 +967,15 @@ export const userStats = pgTable("user_stats", {
 
 **`purchases` is de enige toegangsbron.** Geen aparte `enrollments`-tabel. Toegangscheck:
 
+> **Ingehaald op 3 augustus 2026 (PR #22) — neem dit voorbeeld niet over.** Één rij die
+> tegelijk betaalpoging, order én toegangsrecht is, gaat mis zodra er twee dingen tegelijk
+> gebeuren (twee tabbladen, een webhook die kruist met een checkout, een heraankoop na
+> refund). Die drie rollen zijn uit elkaar getrokken: `payment_attempts` (append-only
+> administratie), `entitlements` (het recht) en `order_counters` (de nummerreeks). De
+> functie heet `heeftToegangTot()` en leest `entitlements` met status `actief`; een
+> betaalpoging op `paid` geeft uit zichzelf géén toegang. De volledige onderbouwing en de
+> zes scenario's staan in `docs/ontwerp-betaalmodel.md`.
+
 ```ts
 // src/lib/entitlements.ts
 import { and, eq } from "drizzle-orm";
@@ -1023,7 +1066,11 @@ Auth.js v5 is in augustus 2026 nog steeds beta (`5.0.0-beta.32`, 2026-07-20; `la
 3. `src/db/schema.ts` + `drizzle.config.ts` + `src/db/index.ts` aanmaken.
 4. `npm run db:generate` → SQL in `./drizzle/` nakijken (vooral die partiële unique index) → committen.
 5. `npm run db:migrate` tegen je dev-branch.
-6. `npm run db:studio` om te controleren dat alle zeven tabellen er staan.
+6. `npm run db:studio` om te controleren dat de tabellen er staan. (Het getal dat hier
+   ooit stond — zeven — klopte al niet met het schemablok hierboven, dat er acht
+   definieert, en klopt zeker niet meer met de database: die is met de migraties 0002,
+   0003 en 0004 verder gegroeid. Tel niet mee met dit document; `src/db/schema.ts` is de
+   waarheid.)
 7. Auth.js aansluiten, één keer inloggen met Google, kijken of er een rij in `user` en `account` verschijnt.
 8. Pas daarna: Mollie-webhook die in `purchases` schrijft, en de refactor die lesinhoud achter `hasCourseAccess()` zet.
 

@@ -100,7 +100,7 @@ sessie, dus dit deel kan een agent niet voor je doen.
 1. **Neon-database.** Maak in het bestaande Neon-project een nieuwe database
    (of een apart project) voor Umami, regio Frankfurt. **Niet dezelfde database
    als de site**: Umami draait zijn eigen migraties en je wilt zijn tabellen
-   niet naast `purchases` en `lesson_progress` hebben staan.
+   niet naast `payment_attempts`, `entitlements` en `lesson_progress` hebben staan.
 2. **Vercel-project.** Nieuw project in team "Visual Future", geïmporteerd van
    `github.com/umami-software/umami`, branch `master`. Framework Next.js;
    Umami's eigen `vercel.json` regelt de rest.

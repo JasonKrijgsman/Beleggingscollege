@@ -2,6 +2,19 @@
 
 **Status:** definitief advies, augustus 2026. Synthese van vier onderzoekslenzen (gezicht-en-stem, gemeenschap-en-fysiek, geloofwaardigheid-en-netwerk, smaak-en-signatuur), 25 voorstellen gewogen. Getoetst aan `CLAUDE.md`, `docs/productonderzoek.md`, `docs/college-plus-concept.md` en `docs/visuele-signatuur.md`.
 
+> **Hiervan is op 3 augustus 2026 het eerste stuk gebouwd: de redactionele vragenrubriek bij
+> de les.** Ingelogde cursisten sturen een vraag in; Jason kiest zélf wat hij beantwoordt, en
+> beantwoorde vragen worden openbaar als groeiende mini-FAQ. **Bewust géén helpdesk: geen
+> beloofde reactietermijn en geen zichtbare wachtrij** — een belofte die je niet kunt
+> waarmaken is precies waar dit merk zich tegen afzet. Ook bewust géén algemeen forum en géén
+> AI-coach op die plek. De code staat in `src/lib/lesvragen.ts` en `src/components/LesVragen.tsx`,
+> de moderatie op `/beheer/vragen` achter dezelfde poort als `/beheer`; de
+> AFM-standaardafwijzing zit er als knop in. Zie `CLAUDE.md`.
+>
+> De rest van de top 7 staat nog open. Houd bij het uitvoeren rekening met één technische
+> verschuiving: waar hieronder de `purchases`-tabel genoemd wordt, is dat sinds 3 augustus
+> `payment_attempts` (wie wat kocht) en `entitlements` (wie er nog recht op heeft).
+
 ---
 
 ## 1. Het principe
@@ -58,7 +71,7 @@ De rekensom achter de rangschikking: Jasons uren zijn het schaarste goed. Zijn 2
 
 **Tijdsbeslag.** Eenmalig: kaarten en certificaatpapier laten drukken (~€70–140 totaal, Drukwerkdeal), postzegels (PostNL €1,40 per stuk sinds 1-1-2026). Doorlopend: ~5 minuten per kaart en ~5 minuten per certificaat, gebatcht op één vast postmoment per week. Bij 5 verkopen per week: ~25 min. Wordt het meer dan een uur per week, dan schakelt de kaart terug naar alleen-mijlpalen (eerste afronder, honderdste klant) — die afbouwregel nu al vastleggen voorkomt een stille belofte-breuk later.
 
-**AI neemt over.** Kaart- en certificaatontwerp als printklare PDF (naam/datum/cursus automatisch uit de database), het adres- en aanvraagformulier, de wekelijkse schrijf- en printlijst uit de `purchases`-tabel, adresetiketten, de mail 'je certificaat is onderweg', voorraadherinnering.
+**AI neemt over.** Kaart- en certificaatontwerp als printklare PDF (naam/datum/cursus automatisch uit de database), het adres- en aanvraagformulier, de wekelijkse schrijf- en printlijst uit `payment_attempts` (wie kocht wat, met ordernummer) gefilterd op een geldig `entitlements`-recht, adresetiketten, de mail 'je certificaat is onderweg', voorraadherinnering.
 
 **Bewijs.** Direct bewijs uit Nederlandse cursusmarkt heb ik niet; dit is eerlijk gemarkeerd het minst onderbouwde én goedkoopste voorstel van de top 7. De kosten per klant (~€2–3) zijn zo laag dat het experiment zichzelf rechtvaardigt.
 

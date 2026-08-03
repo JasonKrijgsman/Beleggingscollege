@@ -90,8 +90,11 @@ Neon-laag staat maar 10 directe verbindingen toe.
    push-modus uit in productie.
 2. Collections definiëren die `src/content/types.ts` spiegelen (Course → Module →
    Lesson → QuizQuestion, inclusief `tool`, `bookRefs`, `keyTakeaways`).
-3. De drie cursussen eenmalig importeren met een script (de content ís al typed data —
-   de import is triviaal).
+3. De cursussen eenmalig importeren met een script (de content ís al typed data —
+   de import is triviaal). *Let op de omvang: hier stond "de drie cursussen", en dat was
+   waar op 2 augustus 2026. Op 3 augustus zijn het er negen geworden — 69 lessen en 280
+   quizvragen — dus de importstap en de schatting van deze verhuizing zijn navenant groter.
+   Tel voor de zekerheid opnieuw: `ls src/content/courses/`.*
 4. `getCourse()` / `catalogus()` herimplementeren op Payloads Local API. **Niets anders
    verandert**: view-modellen, `heeftToegangTot()`, de server-only-regel en alle
    pagina's merken er niets van.
