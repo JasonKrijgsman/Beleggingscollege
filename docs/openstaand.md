@@ -209,17 +209,13 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       opruimronde (cron) die verweesde `pending`-rijen bij Mollie naslaat; en een
       gedocumenteerde, één keer echt geoefende restore van de Neon-database — de gratis
       laag kan maar 6 uur terug in de tijd. Zie CODEX-005.
-- [ ] **CI is er, maar het is een struikeldraad en nog geen slagboom** (rest van
-      CODEX-003). Gebouwd op 3 aug 2026 (branch `ci-fundament`): typecheck, ESLint (mét de
-      toegankelijkheidsregels uit next/core-web-vitals), 121 Vitest-tests voor de
-      geldpaden — prijsconversie, checkout-bedrag, webhook-idempotentie én
-      bedrag/valutacontrole, `heeftToegangTot()`, voortgang/XP, de terug-redirect — plus
-      productiebuild en een bundel-lekcontrole die óók op de 85 quizvragen zelf zoekt.
-      Lokaal: `npm ci && npm run controle`; GitHub Actions draait hetzelfde bij elke PR en
-      push naar main, zonder één geheim of databaseverbinding. Bewijs en beperkingen:
-      `docs/ci.md`. Wat nog open staat:
-      - **Branch protection in GitHub** (require de CI-check + alleen via PR's). Zolang dat
-        er niet is deployt een directe push naar main gewoon, ook met rode CI.
+- [ ] **CI-restpunten** (CODEX-003 is verder af: gebouwd 3 aug 2026 en gemerged via PR #3 —
+      typecheck, ESLint mét toegankelijkheidsregels, 121 Vitest-tests voor de geldpaden,
+      productiebuild en bundel-lekcontrole, lokaal reproduceerbaar met
+      `npm ci && npm run controle`, zonder één geheim. Sindsdien is main ook écht een
+      slagboom: branch protection met vereiste check "CI" óók voor admins, strict-mode,
+      auto-merge aan, en een alarm-job die een issue opent als main toch rood wordt.
+      Bewijs en beperkingen: `docs/ci.md`.) Wat nog open staat:
       - Tests voor terugbetaling bestaan niet, want terugbetalen zelf bestaat nog niet
         (zie het herroepingspunt in hoofdstuk 2).
       - Vijf bestaande lint-warnings (ongebruikte variabelen) in bestanden die op het
@@ -227,7 +223,7 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       - De losse `ci-poort`-branch van een eerdere parallelle poging (smallere opzet,
         alleen prijstests) is door `ci-fundament` in alles overtroffen en kan weg.
       Bijvangst, exact vastgepind in tests maar nog een productkeuze: client en server
-      tellen de streak verschillend bij herhaalde lessen (`docs/ci.md` punt 3).
+      tellen de streak verschillend bij herhaalde lessen (`docs/ci.md` punt 2).
 - [ ] **Chargeback.** Komt er een terugboeking, dan houdt de klant zijn toegang, kost het
       € 10 en ziet niemand het.
 - [ ] **Kwetsbaarheden in de afhankelijkheden, en niets dat dat ooit zou melden.** Herteld
