@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { heeftToegangTot } from "@/lib/entitlements";
 import KoopKnop from "@/components/KoopKnop";
 import { PRICING } from "@/lib/pricing";
+import { schemaOrgPrijs } from "@/lib/prijs";
 
 // Deze pagina toont de koopknop en of je de cursus al hebt, en hangt dus af
 // van wie er kijkt. Daarom per verzoek renderen in plaats van vooraf bouwen.
@@ -46,7 +47,10 @@ export default async function CoursePage({
   const ingelogd = Boolean(session?.user);
   const alGekocht = await heeftToegangTot(slug);
 
-  // schema.org Course-markup voor rich results in Google
+  // schema.org Course-markup voor rich results in Google. De geadverteerde
+  // prijs komt via schemaOrgPrijs() uit dezelfde bron als wat de checkout
+  // afrekent; test/prijs.test.ts bewaakt dat die twee nooit uit elkaar lopen.
+  const prijs = schemaOrgPrijs(course);
   const jsonLd = course.comingSoon
     ? null
     : {
@@ -61,14 +65,18 @@ export default async function CoursePage({
           url: SITE_URL,
         },
         ...(course.free ? { isAccessibleForFree: true } : {}),
-        offers: {
-          "@type": "Offer",
-          price: course.free
-            ? "0"
-            : (course.price ?? "€14,99").replace("€", "").replace(",", "."),
-          priceCurrency: "EUR",
-          category: course.free ? "Free" : "Paid",
-        },
+        // Geen prijs te bepalen (hoort niet voor te komen bij een koopbare
+        // cursus) -> liever geen Offer dan een verkeerde.
+        ...(prijs !== null
+          ? {
+              offers: {
+                "@type": "Offer",
+                price: prijs,
+                priceCurrency: "EUR",
+                category: course.free ? "Free" : "Paid",
+              },
+            }
+          : {}),
         hasCourseInstance: {
           "@type": "CourseInstance",
           courseMode: "Online",
