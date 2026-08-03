@@ -1,6 +1,6 @@
 # Beleggingscollege
 
-> **`CLAUDE.md` en `AGENTS.md` horen dezelfde productwaarheid te bevatten — werk ze samen bij.** Tool-specifieke afspraken mogen verschillen, feiten over de code niet. Dat is aantoonbaar al een keer misgegaan: op 3 aug 2026 beschreef AGENTS.md nog het oude `purchases`-model en beweerde hij dat voortgang alleen in localStorage leefde — precies het geldpad en het voortgangspad.
+> **Dit bestand is de productwaarheid. `AGENTS.md` bevat alleen regels en verwijst hierheen — zet daar geen feiten over de code in.** Dat is niet stijl maar een reparatie: tot 3 aug 2026 was AGENTS.md een tweede kopie, en die liep 74 regels achter met nog het oude `purchases`-model en de bewering dat voortgang alleen in localStorage leefde. Precies het geldpad en het voortgangspad, precies de dingen die schade doen als een agent ze verkeerd heeft. "We werken ze wel samen bij" was al de afspraak, en die is gesneuveld — daarom staat er nu niets meer in dat kán verouderen.
 
 Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). Missie: eerlijk, toegankelijk beleggingsonderwijs geworteld in klassieke boeken — géén get-rich-quick. Merkstem: Nederlands, je/jij-vorm, vriendelijk-professioneel, reassurance-first.
 
