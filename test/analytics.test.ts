@@ -73,6 +73,43 @@ describe("als het aan staat", () => {
   });
 });
 
+describe("meerdere domeinen tijdens de verhuizing", () => {
+  /**
+   * Tijdens de cutover naar de .nl serveren beide namen de site. Zonder deze
+   * ontsnappingsklep telt er dan één niet mee, en dat gaat stil: je ziet de
+   * cijfers zakken en denkt dat je bezoekers kwijt bent.
+   */
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_UMAMI_URL = "https://stats.beleggingscollege.com";
+    process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID = "abc-123";
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_UMAMI_DOMAINS;
+  });
+
+  it("de override vervangt het domein uit SITE_URL", () => {
+    process.env.NEXT_PUBLIC_UMAMI_DOMAINS =
+      "beleggingscollege.com,beleggingscollege.nl";
+    expect(analyticsConfig()?.domains).toBe(
+      "beleggingscollege.com,beleggingscollege.nl"
+    );
+  });
+
+  it("spaties na de komma's verdwijnen — Umami matcht daar anders niet op", () => {
+    process.env.NEXT_PUBLIC_UMAMI_DOMAINS =
+      " beleggingscollege.com , beleggingscollege.nl ";
+    expect(analyticsConfig()?.domains).toBe(
+      "beleggingscollege.com,beleggingscollege.nl"
+    );
+  });
+
+  it("een lege override valt terug op SITE_URL in plaats van niets te tellen", () => {
+    process.env.NEXT_PUBLIC_UMAMI_DOMAINS = "   ";
+    expect(analyticsConfig()?.domains).toBe("beleggingscollege.com");
+  });
+});
+
 describe("het meetdomein volgt SITE_URL", () => {
   /**
    * SITE_URL wordt één keer bij het importeren bepaald, dus een omgevings-
