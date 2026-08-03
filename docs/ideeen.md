@@ -1,6 +1,6 @@
 # Ideeën van Jason
 
-Laatst bijgewerkt: 2 augustus 2026.
+Laatst bijgewerkt: 3 augustus 2026.
 
 Alles wat Jason zelf heeft geopperd, op één plek. Dit stond verspreid over `CLAUDE.md`,
 `docs/prijsstrategie.md` en `docs/visuele-signatuur.md`, en één idee stond nergens.

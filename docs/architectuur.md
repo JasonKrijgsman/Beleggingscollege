@@ -1,6 +1,6 @@
 # Architectuur van Beleggingscollege
 
-*Laatst bijgewerkt: 2 augustus 2026. Dit document beschrijft wat er werkelijk in de code staat — het is geverifieerd tegen de repo, niet overgeschreven uit plannen. Waar de werkelijkheid afwijkt van eerdere documentatie (zoals CLAUDE.md of docs/plattegrond.md) staat dat er eerlijk bij.*
+*Laatst bijgewerkt: 3 augustus 2026 (tellingen en scenario 4 herzien na de cursusdag). Dit document beschrijft wat er werkelijk in de code staat — het is geverifieerd tegen de repo, niet overgeschreven uit plannen. Waar de werkelijkheid afwijkt van eerdere documentatie (zoals CLAUDE.md of docs/plattegrond.md) staat dat er eerlijk bij.*
 
 ---
 
@@ -16,7 +16,7 @@ Je hebt gezegd: "alles laadt frontend, en dat voelt onveilig." Dat was ooit waar
 
 3. **Je sessie (het bewijs dat jij ingelogd bent) staat in de database, niet in de browser.** Dat betekent dat toegang direct intrekbaar is — na een terugbetaling of misbruik trek je één databaserij weg en de deur is dicht.
 
-Wat er **wél** in de browser draait, en terecht: de quiz-interactie, de confetti, de drie rekentools, en de voortgang van anonieme bezoekers (in localStorage, een opslagvakje in de browser zelf). Allemaal dingen waar niets aan te stelen valt.
+Wat er **wél** in de browser draait, en terecht: de quiz-interactie, de confetti, de vijftien interactieve lestools (stand 3 aug 2026 — dataloos, alleen formules en fictieve voorbeelden), en de voortgang van anonieme bezoekers (in localStorage, een opslagvakje in de browser zelf). Allemaal dingen waar niets aan te stelen valt.
 
 Twee eerlijke kanttekeningen, zodat dit document geen reclamefolder wordt:
 
@@ -38,9 +38,9 @@ BROWSER (bij de bezoeker thuis)
 SERVER (Vercel, per verzoek)
 │  ┌────────────────────────────────────────────────────────────┐
 │  │ Pagina's (src/app) — bouwen HTML, nemen zelf geen besluiten│
-│  │ API-routes (src/app/api) — de enige vier schrijfpaden:     │
+│  │ API-routes (src/app/api) — de enige schrijfpaden:          │
 │  │   /api/checkout · /api/mollie/webhook · /api/voortgang     │
-│  │   /api/nieuwsbrief                                         │
+│  │   /api/nieuwsbrief · /api/lesvragen (+ moderatie)          │
 │  └──────────────────────┬─────────────────────────────────────┘
 │  ┌──────────────────────┴─────────────────────────────────────┐
 │  │ Spelregels (src/lib, server-only):                         │
@@ -95,7 +95,7 @@ Het patroon dat drie keer terugkomt: **de browser meldt, de server beslist.** De
 Je vroeg je af of dit één grote kluwen wordt — een "god-object" waar alles aan alles hangt. Het eerlijke antwoord: de belangrijkste grenzen bestaan al en worden nageleefd, een paar grenzen bestaan alleen als afspraak, en twee plekken schuren. Hieronder per module: wat hij is, en de ene regel die hem gezond houdt.
 
 ### Content — `src/content/`
-Alle lesteksten, quizvragen én juiste antwoorden als getypte data (Course → Module → Lesson → QuizQuestion). Circa 2.700 regels cursusinhoud plus de blog.
+Alle lesteksten, quizvragen én juiste antwoorden als getypte data (Course → Module → Lesson → QuizQuestion). Circa 8.600 regels cursusinhoud plus de blog (stand 3 aug 2026: 9 cursussen, 69 lessen, 280 quizvragen).
 **De regel: content is server-only, zonder uitzondering.** De `import "server-only"` bovenin `index.ts` dwingt dit technisch af — de build breekt bij overtreding. Dit is de best bewaakte grens van het hele systeem, en dat is terecht: hier ging het al eens mis.
 
 ### View-modellen — `src/content/view.ts`
@@ -104,7 +104,7 @@ De veilige uittreksels van een cursus die de browser wél mag zien: titels, tell
 
 ### Toegang — `src/lib/entitlements.ts`
 Tweeënzestig regels die één vraag beantwoorden: mag deze bezoeker deze cursus zien? Gratis cursus → ja. Anders: is er een sessie én een rij in `purchases` met status `paid`?
-**De regel: alléén entitlements beslist over toegang.** Geverifieerd met grep: precies drie plekken raadplegen hem (lespagina, cursuspagina, /account) en nergens staat een tweede, afwijkende check. Dit is de gezondste grens in de codebase — houd dat zo. Wie ooit een tweede check toevoegt "voor de zekerheid", creëert twee waarheden die uit elkaar gaan lopen.
+**De regel: alléén entitlements beslist over toegang.** Geverifieerd met grep (herteld 3 aug 2026): drie plekken raadplegen hem — lespagina, cursuspagina en `/api/lesvragen` — en nergens staat een tweede, afwijkende check. Dit is de gezondste grens in de codebase — houd dat zo. Wie ooit een tweede check toevoegt "voor de zekerheid", creëert twee waarheden die uit elkaar gaan lopen.
 
 ### Betalingen — `/api/checkout`, `/api/mollie/webhook`, `src/lib/mollie.ts`
 **De regels (uit CLAUDE.md, en aantoonbaar nageleefd): de prijs komt uit onze eigen catalogus, nooit uit het verzoek — en de webhook gelooft niets uit de payload behalve het id.** De webhook haalt de status zelf bij Mollie op, vergelijkt bedrag én valuta met de eigen administratie (afwijking → status `mismatch`, geen toegang) en kan veilig tien keer aangeroepen worden zonder dubbele gevolgen.
@@ -143,8 +143,7 @@ We hebben de architectuur onder druk gezet met zes groeiscenario's. Per scenario
 **Drempel:** pas op de dag dat de app er echt komt. Niets van de huidige opzet hoeft dan weggegooid.
 
 ### Scenario 4: een tweede ontwikkelaar of parallelle AI-sessie
-**Dit is het enige scenario waar "nu al" het eerlijke antwoord is.** De keten: geen tests, geen automatische controle vóór een merge, en elke push naar `main` deployt direct naar een winkel met echte klanten — terwijl beide werkers met dezelfde productiedatabase praten. De ongeschreven regels (nooit een `Course` als prop, prijs nooit uit het verzoek) staan in CLAUDE.md maar worden op één na nergens machinaal afgedwongen. En de voortgangs-tweeling uit hoofdstuk 2 is precies de plek waar een tweede ontwikkelaar er één aanpast en de ander vergeet.
-**Drempel:** onmiddellijk bij de eerste parallelle werker — niet omdat het dan per se misgaat, maar omdat het huidige vangnet (één persoon die alles in zijn hoofd heeft) per definitie wegvalt. De vangrail is een middag werk; zie hoofdstuk 4.
+**Dit scenario is op 3 aug 2026 werkelijkheid geworden — en de vangrail is diezelfde dag gebouwd.** Er draaiden meerdere parallelle AI-sessies tegelijk, en sindsdien geldt: `main` is beschermd, mergen kan alleen via een PR met groene CI (typecheck, lint, ±140 tests, build, bundel-lekcontrole — zie `docs/ci.md`), en elke push draait lokaal eerst de tests via de pre-push-hook. Wat er ná die vangrail nog open staat: beide werkers praten met dezelfde productiedatabase (zie hoofdstuk 6-punt in `docs/openstaand.md`), en de voortgangs-tweeling uit hoofdstuk 2 blijft de plek waar een tweede ontwikkelaar er één aanpast en de ander vergeet. Werkafspraak uit de praktijk: bouw in een eigen git-worktree, nooit in de gedeelde checkout (`docs/cursusfabriek.md`, valkuilen).
 
 ### Scenario 5: video- of beeldrijke lessen
 Het contentschema kent nog geen media-veld, en video hoort principieel niet bij Vercel (de bandbreedtebundel is er met video in dagen doorheen). Belangrijker: betaalde video vraagt dezelfde discipline als betaalde tekst — een video-adres dat eenmaal in de HTML staat is deelbaar. De oplossing is een videoplatform met kort geldige, ondertekende afspeel-adressen, uitgegeven op precies de plek waar nu `heeftToegangTot()` staat. **De poort bestaat al; er hoeft alleen een tweede soort inhoud achter.**

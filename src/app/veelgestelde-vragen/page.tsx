@@ -92,7 +92,7 @@ const faqGroepen: Groep[] = [
         vraag: "Wat kost het?",
         antwoord: [
           "Beleggen voor Beginners is gratis en blijft gratis. Geen proefperiode, geen creditcard, geen halve cursus die na les drie op slot gaat.",
-          `Een verdiepende cursus koop je los voor ${PRICING.losseCursus} eenmalig. Daarmee heb je levenslang toegang tot die cursus — geen abonnement dat doorloopt, geen verlenging die je moet opzeggen.`,
+          `Een verdiepende cursus koop je los voor eenmalig ${PRICING.losseCursus} (kortere cursussen €29). Daarmee heb je levenslang toegang tot die cursus — geen abonnement dat doorloopt, geen verlenging die je moet opzeggen.`,
           `College+, het abonnement van ${PRICING.abonnementMaand} per maand met toegang tot alle cursussen, is er nog niet. Dat wachten we af tot automatische incasso is goedgekeurd. Tot die tijd koop je cursussen los.`,
         ],
       },

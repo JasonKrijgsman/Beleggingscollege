@@ -107,7 +107,7 @@ export default function HerroepingsrechtPage() {
         2. Losse cursus: wanneer je je bedenktijd verliest
       </h2>
       <p className="mt-3 leading-relaxed text-body">
-        Een losse cursus ({PRICING.losseCursus} eenmalig) is digitale content
+        Een losse cursus ({PRICING.losseCursus} of €29 eenmalig) is digitale content
         die je meteen kunt beginnen. De wet staat toe dat het herroepingsrecht
         vervalt zodra de levering met jouw uitdrukkelijke toestemming is
         begonnen — maar alleen als je twee dingen zelf hebt gedaan. Bij het

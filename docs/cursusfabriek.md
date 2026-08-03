@@ -1,9 +1,10 @@
 # De cursusfabriek — het recept waarmee de cursussen van 3 aug 2026 zijn gebouwd
 
-Op 3 augustus 2026 groeide de catalogus in één dag van vier naar tien cursussen
-(de optieladder, Hefboomproducten, Beleggingspsychologie, Indexbeleggen & ETF's),
-met twaalf nieuwe interactieve tools. Dit document is het recept, zodat cursus elf
-niet opnieuw uitgevonden hoeft te worden. De prioriteitenlijst voor wat er ná komt:
+Op 3 augustus 2026 groeide de catalogus in één dag van vier naar negen cursussen
+(de optieladder, Hefboomproducten, Beleggingspsychologie als echte cursus in
+plaats van teaser, Indexbeleggen & ETF's), met twaalf nieuwe interactieve tools
+(vijftien totaal). Dit document is het recept, zodat cursus tien niet opnieuw
+uitgevonden hoeft te worden. De prioriteitenlijst voor wat er ná komt:
 `docs/volgende-cursussen.md`.
 
 ## Het stappenplan
@@ -52,11 +53,11 @@ niet opnieuw uitgevonden hoeft te worden. De prioriteitenlijst voor wat er ná k
    - Registreer de tool in `lesson-tools.tsx` én op `/lab/opties`
      (`src/app/lab/opties/page.tsx`) — de interne QA-pagina waar alle tools
      zonder aankoop te testen zijn.
-5. **Verificatie, in deze volgorde:**
-   `npx vitest run` (content-invarianten draaien over de hele catalogus) →
-   `npm run build` (alleen gratis lessen mogen prerenderen) →
-   `npm run controleer:bundel` (datavorm-lekcontrole) →
-   visueel op `/lab/opties` en de cursuspagina (dev server, zie valkuilen).
+5. **Verificatie:** in één keer met `npm run controle` (typecheck, lint,
+   tests, build én bundelcontrole — exact wat CI draait, zie `docs/ci.md`),
+   plus visueel op `/lab/opties` en de cursuspagina (dev server, zie
+   valkuilen). Vergeet lint niet: op 3 aug slipten er twee hook-warnings
+   doorheen omdat alleen vitest/build/bundel gedraaid werd.
 6. **Shippen:** commit op de branch, `gh pr create`, direct
    `gh pr merge --auto --squash` — de PR merget zichzelf zodra CI groen is en
    elke merge naar main deployt naar productie. Main is beschermd; direct
@@ -74,6 +75,9 @@ niet opnieuw uitgevonden hoeft te worden. De prioriteitenlijst voor wat er ná k
 - **Twee sessies, één werkmap** heeft die dag twee keer ongecommit werk
   gewist. Bouw altijd in een eigen worktree; de gedeelde checkout is van
   niemand.
+- **Elke `git push` draait lokaal eerst `npm test`** via `.githooks/pre-push`
+  (geactiveerd door het `prepare`-script in package.json). Faalt je push op
+  iets test-achtigs, kijk dáár; `git push --no-verify` is de nooduitgang.
 - **`git worktree add` + `npm ci` + `.env.local` kopiëren** is de startritus
   van een verse worktree (het env-bestand is gitignored en verhuist niet mee).
   Let op: `.env.local` wijst naar de productiedatabase — lezen prima, niets

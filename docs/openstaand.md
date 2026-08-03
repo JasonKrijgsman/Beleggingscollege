@@ -166,9 +166,9 @@ Een betaalde cursus was tekst plus een meerkeuzequiz; dat geeft YouTube gratis w
 2 aug 2026 kreeg elke betaalde cursus daarom een eigen interactieve tool
 (`IntrinsiekeWaardeTool`, `SteunWeerstandTool`).
 
-Op 3 aug 2026 is de catalogus in één dag gegroeid van ~100 naar ruwweg 520 minuten:
-zes nieuwe cursussen (de optieladder, Hefboomproducten, Beleggingspsychologie,
-Indexbeleggen & ETF's) met samen twaalf nieuwe tools. Zie `docs/opties-curriculum.md`,
+Op 3 aug 2026 is de betaalde catalogus in één dag gegroeid van ~100 naar ~540 minuten
+(8 betaalde cursussen, 60 betaalde lessen): de optieladder, Hefboomproducten,
+Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Zie `docs/opties-curriculum.md`,
 `docs/volgende-cursussen.md` en `docs/cursusfabriek.md` (het recept).
 
 **Opvolgpunten die deze uitbreiding zelf heeft geopend:**
@@ -176,7 +176,7 @@ Indexbeleggen & ETF's) met samen twaalf nieuwe tools. Zie `docs/opties-curriculu
 - [ ] **Jason heeft de zes nieuwe cursusteksten nog niet zelf gelezen.** Ze zijn door
       agents geschreven op het huisstijl-anker, feiten geverifieerd, maar het is zíjn naam
       en zíjn merk — proeflezen vóór de eerste marketing.
-- [ ] **De test-key-open-deur (hoofdstuk 1) bewaakt nu negen betaalde cursussen** in
+- [ ] **De test-key-open-deur (hoofdstuk 1) bewaakt nu acht betaalde cursussen** in
       plaats van twee. Zelfde risico, grotere etalage.
 - [ ] **De €29-laag (Hefboomproducten) breekt het "één prijs"-principe** uit
       `docs/prijsstrategie.md` §1.2 — bewust herbevestigen of terugdraaien.
@@ -226,7 +226,7 @@ Indexbeleggen & ETF's) met samen twaalf nieuwe tools. Zie `docs/opties-curriculu
       gedocumenteerde, één keer echt geoefende restore van de Neon-database — de gratis
       laag kan maar 6 uur terug in de tijd. Zie CODEX-005.
 - [ ] **CI-restpunten** (CODEX-003 is verder af: gebouwd 3 aug 2026 en gemerged via PR #3 —
-      typecheck, ESLint mét toegankelijkheidsregels, 121 Vitest-tests voor de geldpaden,
+      typecheck, ESLint mét toegankelijkheidsregels, ±140 Vitest-tests voor de geldpaden,
       productiebuild en bundel-lekcontrole, lokaal reproduceerbaar met
       `npm ci && npm run controle`, zonder één geheim. Sindsdien is main ook écht een
       slagboom: branch protection met vereiste check "CI" óók voor admins, strict-mode,
@@ -234,8 +234,8 @@ Indexbeleggen & ETF's) met samen twaalf nieuwe tools. Zie `docs/opties-curriculu
       Bewijs en beperkingen: `docs/ci.md`.) Wat nog open staat:
       - Tests voor terugbetaling bestaan niet, want terugbetalen zelf bestaat nog niet
         (zie het herroepingspunt in hoofdstuk 2).
-      - Vijf bestaande lint-warnings (ongebruikte variabelen) in bestanden die op het
-        bouwmoment door parallelle sessies bewerkt werden; zie `docs/ci.md`.
+      - Een handvol bestaande lint-warnings (ongebruikte variabelen) in bestanden die op
+        het bouwmoment door parallelle sessies bewerkt werden; zie `docs/ci.md`.
       - Opruimen van de restanten van de sessiebotsing van 3 aug (alles al gemerged of
         overbodig, dus weggooien is veilig): de branches `ci-poort` (eerdere smallere
         poging, in alles overtroffen) en `ci-testfundament` (bevat commit `585f282`
@@ -263,7 +263,10 @@ Indexbeleggen & ETF's) met samen twaalf nieuwe tools. Zie `docs/opties-curriculu
       CI-branch bewaakt `test/prijs.test.ts` wel dat elke catalogusprijs het eenvoudige
       formaat houdt, dus de zwakte kan niet meer stil toeslaan. Zie CODEX-107.
 - [ ] **`/lab` staat publiek** (HTTP 200). Wel `noindex, nofollow`, dus Google neemt hem
-      niet op, maar wie de URL heeft ziet het interne stijllab.
+      niet op, maar wie de URL heeft ziet het interne stijllab — en sinds 3 aug óók
+      `/lab/opties`: alle vijftien interactieve lestools uit betaalde cursussen, gratis
+      te bedienen. Geen lesinhoud en dus geen lek, maar wel een bewuste keuze om te
+      herbevestigen zodra er echt verkocht wordt.
 - [ ] **`auth()` in de root-layout maakt ook publieke marketingpagina's dynamisch.** De live
       homepage antwoordt daardoor met `private, no-cache, no-store` en iedere bezoeker kan de
       database wekken. Isoleer sessie-afhankelijke UI en controleer daarna caching en
@@ -376,10 +379,10 @@ Indexbeleggen & ETF's) met samen twaalf nieuwe tools. Zie `docs/opties-curriculu
 - `docs/implementatie-accounts-betalen.md` (1.619 regels) is half achterhaald: het
   auth-hoofdstuk schrijft Prisma, JWT en wachtwoordinloggen voor, waarvan niets gebouwd is,
   en spreekt zijn eigen database-hoofdstuk tegen.
-- Tien gedateerde uitspraken in zes documenten verwijzen naar "3 augustus 2026", een dag
-  die nog niet geweest is.
 - `CLAUDE.md` zei tot voor kort dat er geen backend of database is.
-- `README.md` beschrijft een product dat niet meer bestaat.
+- [x] ~~`README.md` beschrijft een product dat niet meer bestaat~~ **Bijgewerkt 3 aug 2026**:
+  cursustelling, tools, serversync en de PR-poort kloppen weer; documentatielijst
+  aangevuld.
 - `docs/cms-keuze.md` zegt dat Payload de geïnstalleerde `next@15.5.22` ondersteunt omdat
   de eis “Next ≥ 15.4.11” zou zijn. De actuele officiële matrix noemt alleen specifieke
   `15.2.x`, `15.3.x`, `15.4.x`-reeksen of `16.2.6+`; `15.5.x` ontbreekt. Vóór een proef moet
