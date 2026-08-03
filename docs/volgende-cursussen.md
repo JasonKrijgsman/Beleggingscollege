@@ -32,7 +32,11 @@ synthese; het is de plek om af te strepen en te herprioriteren.
 
 ## Top 5, in volgorde
 
-### 1. Beleggingspsychologie — afmaken (€49, Beginner, paars, order 4)
+**Stand 3 aug 2026: nummers 1 en 2 zijn gebouwd en live. De eerstvolgende is
+nummer 3, Portefeuillebouw & Risicobeheer** — bouwrecept in
+`docs/cursusfabriek.md`, en denk aan de groeipoort uit de randvoorwaarden.
+
+### 1. ✅ Beleggingspsychologie — GEBOUWD en live, 3 aug 2026 (PR #8)
 
 Geen strategische keuze meer maar een schuld: de teaser staat live met prijs,
 niveau, vijf learnPoints en drie genoemde auteurs (Kahneman, Thaler, Housel).
@@ -48,7 +52,7 @@ historische crash dag voor dag afspeelt met een verleidelijke verkoop-knop.
 **Let op:** het teaserlabel zegt "onderdeel van College+" terwijl de kaart €49
 losse verkoop toont — dat moet vóór de lancering gelijkgetrokken worden.
 
-### 2. Indexbeleggen & ETF's — de verdieping (€49, Beginner/Gevorderd)
+### 2. ✅ Indexbeleggen & ETF's — GEBOUWD en live, 3 aug 2026 (PR #11)
 
 Het grootste publiek én het geloofwaardigheidsgat: de betaalde catalogus leert
 nu uitsluitend actieve technieken — precies de plank die een cynicus verwacht
@@ -144,7 +148,8 @@ om te maken en daarom precies het onkopieerbare element uit
 
 - [x] ~~De homepagetekst noemde de optiecursussen niet~~ — rechtgezet in
       dezelfde commit als dit document.
-- [ ] Teaserlabel Beleggingspsychologie: "onderdeel van College+" naast een
-      €49-prijskaartje — gelijktrekken vóór of bij de lancering van de cursus.
-- [ ] De €29-laag herbevestigen (of terugdraaien) in `docs/prijsstrategie.md`.
-- [ ] CLAUDE.md-roadmap noemt de optiecursussen nog niet als gebouwd.
+- [x] ~~Teaserlabel Beleggingspsychologie~~ — vanzelf opgelost: het label hing
+      aan `comingSoon`, en de cursus is nu echt (3 aug 2026).
+- [ ] De €29-laag herbevestigen (of terugdraaien) in `docs/prijsstrategie.md` —
+      staat ook in `docs/openstaand.md` §4b.
+- [x] ~~CLAUDE.md-roadmap~~ — bijgewerkt op 3 aug 2026.

@@ -1,6 +1,6 @@
 # Plattegrond van de site
 
-Gegenereerd op 2026-08-02 uit `src/app` door `scripts/plattegrond.mjs`.
+Gegenereerd op 2026-08-03 uit `src/app` door `scripts/plattegrond.mjs`.
 **Niet met de hand bewerken** — draai `npm run plattegrond` na elke nieuwe pagina
 of API-route, dan kan dit document niet gaan liegen.
 
