@@ -7,6 +7,10 @@ import "server-only";
  * Strato) ontvangt post. Transactionele mail versturen we via een API, en
  * daar is geen postbus voor nodig. We wachten hiervoor dus nergens op.
  *
+ * STATUS (3 aug 2026): dit bestand praat nog met Resend, maar de gekozen
+ * verzender is Migadu (alleen SMTP) — die ombouw staat nog open, zie
+ * docs/e-mail-versturen.md. Er gaat nu niets de deur uit zolang er geen key is.
+ *
  * We versturen via Resend. Antwoorden komen gewoon binnen op de bestaande
  * postbus beheer@beleggingscollege.nl bij Strato, omdat we vanaf datzelfde
  * adres versturen. De klant ziet één adres en kan er ook echt op antwoorden.

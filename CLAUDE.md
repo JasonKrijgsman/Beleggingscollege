@@ -114,7 +114,7 @@ Dit merk verkoopt zichzelf als de eerlijke tegenhanger van get-rich-quick-aanbie
 ### Bedrijfsgegevens: één btw-nummer is openbaar, het andere nooit
 
 - **`NL004813328B30`** is het **btw-identificatienummer**. Openbaar, hoort in de voettekst (art. 3:15d BW) en in de orderbevestiging. Staat er.
-- **`214739879B02`** is het **omzetbelastingnummer**, afgeleid van Jasons BSN. Publiceer dit **nooit** — niet in code, niet in een mail, niet in documentatie.
+- Het **omzetbelastingnummer** (afgeleid van Jasons BSN) staat bewust **niet in de repo** — het exacte nummer hoort in geen enkel bestand. Publiceer het **nooit**: niet in code, niet in een mail, niet in documentatie. Nodig? Haal het buiten de repo op.
 - Vestigingsadres en btw-nummer komen uit de omgevingsvariabelen `BEDRIJF_ADRES` en `BEDRIJF_BTW_NUMMER`, en staan bewust niet in de repo: Jason wil zijn woonadres niet op internet. Het adres is nog niet opgelost — zie `docs/openstaand.md`.
 - **Geen kleineondernemersregeling** (bevestigd 2 aug 2026), dus de 21%-regel in de bevestiging klopt.
 

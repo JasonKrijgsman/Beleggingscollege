@@ -174,10 +174,11 @@ export const lessonProgress = pgTable(
 /**
  * Vragen bij een les — de gekozen communityvorm (zie docs/ideeen.md).
  *
- * Bewust GEEN algemeen forum: vragen hangen onder een les, worden pas
- * zichtbaar nadat Jason ze heeft goedgekeurd én beantwoord, en de site
- * belooft alleen wat vol te houden is ("Jason antwoordt wekelijks").
- * Een onbeantwoorde vraag is alleen zichtbaar voor de vraagsteller zelf.
+ * Bewust GEEN algemeen forum: vragen hangen onder een les en worden pas
+ * zichtbaar nadat Jason ze zélf uitkiest, goedkeurt én beantwoordt. REDACTIONEEL,
+ * geen helpdesk: er is GEEN beloofde antwoordtermijn en GEEN zichtbare wachtrij.
+ * Een onbeantwoorde vraag verschijnt nergens publiek en wordt ook niet aan de
+ * vraagsteller teruggetoond; die krijgt alleen een bevestiging. Zie src/lib/lesvragen.ts.
  */
 export const lessonQuestions = pgTable(
   "lesson_questions",
