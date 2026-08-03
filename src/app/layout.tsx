@@ -8,6 +8,7 @@ import { SITE_URL } from "@/lib/site";
 import SiteHeader from "@/components/SiteHeader";
 import AuthKnop from "@/components/AuthKnop";
 import SiteFooter from "@/components/SiteFooter";
+import Analytics from "@/components/Analytics";
 
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -57,6 +58,7 @@ export default async function RootLayout({
           <main className="flex-1">{children}</main>
           <SiteFooter />
         </ProgressProvider>
+        <Analytics />
       </body>
     </html>
   );

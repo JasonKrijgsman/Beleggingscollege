@@ -5,7 +5,7 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 ## Stack
 
 - Next.js 15 (App Router) + React 19 + TypeScript, Tailwind CSS v4 (`@theme` tokens in `src/app/globals.css`), lucide-react icons.
-- Cursusinhoud is typed data (`src/content/`). Accounts en aankopen staan in Postgres (Neon + Drizzle). **Lesvoortgang synct sinds 2 aug 2026 naar de server voor ingelogde gebruikers** (`src/lib/voortgang-server.ts`, `POST /api/voortgang`; de tabellen `lesson_progress` en `user_stats` zijn dus wél in gebruik). Uitgelogd blijft localStorage leidend, en de individuele quizantwoorden staan alleen lokaal.
+- Cursusinhoud is typed data (`src/content/`). Accounts en aankopen staan in Postgres (Neon + Drizzle). **Lesvoortgang synct sinds 2 aug 2026 naar de server voor ingelogde gebruikers** (`src/lib/voortgang-server.ts`, `POST /api/voortgang`; de tabellen `lesson_progress` en `user_stats` zijn dus wél in gebruik). Uitgelogd blijft localStorage leidend, en de individuele quizantwoorden staan alleen lokaal. **Die route controleert sinds 3 aug 2026 toegang** (`heeftToegangTot()`; 403 zonder recht, 400 bij een onbekende les, en de snapshotimport snoeit tot gratis + gekochte cursussen) — de UI is geen autorisatie. Let op wat er nog wél open staat: de quizscore komt van de client, dus de quizbonus is met één fetch te claimen (`docs/openstaand.md` §6).
 - Dev server: `npm run dev` (poort 3000). Build: `npm run build`.
 - **`docs/openstaand.md` is de lijst met alles wat nog niet af is.** Lees die vóór je iets belooft of live zet.
 
@@ -38,6 +38,8 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 - **`src/lib/entitlements.ts` is de enige plek die bepaalt of iemand een betaalde cursus mag zien.** `server-only`, kijkt uitsluitend naar de sessie en een rij in `entitlements` met status `actief`. Middleware is géén autorisatie (Auth.js waarschuwt daar expliciet voor) — die doet alleen een nette redirect.
 - Versies staan **exact gepind**: Auth.js v5 is na 2,5 jaar nog steeds beta en Drizzle 1.0-rc breekt auth-adapters. Niet upgraden zonder testen.
 - Valkuil in `src/db/index.ts`: de verbinding wordt opgezet met een placeholder-URL als `DATABASE_URL` ontbreekt, anders faalt `next build`. Lui initialiseren via een Proxy kán niet — de Drizzle-adapter inspecteert het db-object en faalt met "Unsupported database type".
+- **`db.transaction()` bestáát niet op de neon-http-driver.** Hij gooit "No transactions support in neon-http driver" — maar in de tests draait PGlite, en dáár werkt hij wél. Een transactie schrijven is dus precies het soort fout die groen is in CI en pas op productie omvalt. `db.batch()` helpt niet: dat kan de `RETURNING` van het ene statement niet aan het volgende voeren. Moet iets atomair? Schrijf het als **één statement met data-modifying CTE's**. Voorbeelden staan in `verwerkBetaald()` (`src/app/api/mollie/webhook/route.ts`) en in `verwerkLes()`/`importeerSnapshot()` (`src/lib/voortgang-server.ts`) — beide tellen bewust alleen een delta op in plaats van een absolute waarde te zetten, zodat de invariant uit de vorm van het statement volgt.
+- `src/lib/ratelimiet.ts` — vaste-vensterlimiet (10 per 15 min) voor de publieke schrijfroutes `POST /api/lesvragen` (op gebruikers-id) en `POST /api/nieuwsbrief` (op IP). **In-memory, dus per instance**: een snelheidsdrempel, geen garantie. Wie een echte limiet wil, heeft gedeelde staat nodig.
 - Volledige implementatiegids met geverifieerde versies en codevoorbeelden: `docs/implementatie-accounts-betalen.md`.
 
 ### Domeinwissel raakt dit alles níét
@@ -75,7 +77,18 @@ Accounts, aankopen en voortgang hangen aan gebruikers-id's, niet aan een URL. Bi
 - Elke pagina heeft een eigen `<title>` + meta description (via `generateMetadata`); nieuwe pagina's ook.
 - Aanwezig: sitemap (`src/app/sitemap.ts`), robots (`src/app/robots.ts`, blokkeert /leerpad + certificaten), Open Graph-defaults (layout), canonicals per pagina, schema.org Course-markup (cursusdetailpagina). Certificaatpagina's zijn noindex.
 - Canonicals volgen `SITE_URL` (nu .com). Zodra de .nl live is: variabele omzetten én `.com` permanent naar `.nl` redirecten, anders concurreren twee identieke sites met elkaar.
-- Nog te doen: OG-afbeelding, Google Search Console aanmelden + sitemap indienen.
+- **Een eigen `openGraph`-blok in `generateMetadata` vervángt dat van de root-layout, inclusief de afbeelding uit `opengraph-image.tsx`.** Zet je er een neer, haal de afbeelding dan expliciet bij de ouder op (`(await parent).openGraph?.images`) — anders deelt die pagina zonder kaart. Precies zo ging het mis op de cursus- en blogpagina's, hersteld 3 aug 2026.
+- **De sitemap bevat alleen lessen van gratis cursussen.** Een vergrendelde les toont een uitgelogde crawler alleen het slotscherm; die dienen we niet aan. `test/sitemap.test.ts` bewaakt beide kanten.
+- **Stuur niemand naar een pagina die voor hem op slot zit.** Een betaalde cursuspagina toont niet-kopers het curriculum in plaats van een "start"-knop, en de lessenlijst een slotje vóór de klik. `heeftToegangTot()` blijft de autorisatie; dit gaat alleen over wat je tóónt.
+
+## Bezoekmeting
+
+**Gebouwd op 3 aug 2026, staat nog uit.** Umami, zelf gehost als tweede Vercel-project met een eigen Neon-database — géén Google Analytics en geen gehoste statistiekdienst, want dat zou een verwerker toevoegen aan een site die zich juist op privacy verkoopt. Cookieloos, geen profielen, respecteert Do Not Track; daarom blijft de site zónder cookiebanner.
+
+- `src/lib/analytics.ts` bepaalt als enige óf er gemeten wordt; `src/components/Analytics.tsx` rendert het script, of niets.
+- **Leeg = echt uit.** Zonder `NEXT_PUBLIC_UMAMI_URL` én `NEXT_PUBLIC_UMAMI_WEBSITE_ID` laadt er geen script en gaat er geen verzoek uit. `test/analytics.test.ts` pint dat vast.
+- De instantie opzetten kan een agent niet afmaken (Vercel werkt met passkeys). Stappen, afwegingen en de juridische grens: `docs/analytics.md`.
+- **Niet op veggie.** `*.jasonkrijgsman.com` wijst naar `192.168.2.15`, dus de homelab is voor bezoekers onbereikbaar. Zie `docs/analytics.md`.
 
 ## Eerlijkheid is een productvereiste, geen sfeer
 

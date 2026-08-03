@@ -285,16 +285,20 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       `shrink-0`, en logo, "Start gratis"-knop en mobiele navigatie delen één rij zonder
       wrap. Maak een echt mobiel menu of verberg secundaire elementen en test
       320/375/390px. Zie CODEX-103.
-- [ ] **Voortgang mist twee serverregels.** `POST /api/voortgang` controleert geen aankoop
-      voordat betaalde cursusvoortgang wordt geschreven (`heeftToegangTot()` wordt in dat
-      pad nergens aangeroepen), en de quizscore komt van de client en wordt alleen
-      begrensd — de antwoorden zelf gaan nooit mee, dus de foutloos-badge en de quizbonus
-      (tot 25 XP per les) zijn met één fetch te claimen. Er lekt geen lesinhoud, maar
-      badges en certificaten worden er waardeloos van. Daarnaast wist “Voortgang wissen”
-      bij een ingelogde gebruiker alleen de lokale cache: er is geen server-delete en de
-      import is bewust alleen-aanvullend, dus na de volgende paginalading staat alles er
-      weer — terwijl de knop juist "Dit kan niet ongedaan worden gemaakt" zegt. Zie
-      CODEX-104 en CODEX-105.
+- [ ] **Voortgang: de toegangscontrole is er, twee andere serverregels nog niet.**
+      ~~Geen aankoopcontrole vóór het schrijven van betaalde cursusvoortgang~~ **gedicht op
+      3 aug 2026 (PR #32)**: `POST /api/voortgang` weigert nu met 403 wat je niet bezit en
+      met 400 wat niet bestaat, en de snapshotimport snoeit tot gratis + gekochte cursussen.
+      `heeftToegangTot()` bleef daarbij de enige poort. Wat blijft staan:
+      - **De quizscore komt nog altijd van de client** en wordt alleen begrensd — de
+        antwoorden zelf gaan nooit mee, dus de foutloos-badge en de quizbonus (tot 25 XP per
+        les) zijn met één fetch te claimen. Er lekt geen lesinhoud, maar badges en
+        certificaten worden er waardeloos van. Zie CODEX-105.
+      - **"Voortgang wissen" wist bij een ingelogde gebruiker alleen de lokale cache.** Er is
+        geen server-delete en de import is bewust alleen-aanvullend, dus na de volgende
+        paginalading staat alles er weer — terwijl de knop zegt "Dit kan niet ongedaan
+        worden gemaakt". Dat is nu dus een onwaarheid in de UI, en daarmee een merkprobleem
+        én een AVG-punt (recht op verwijdering).
 - [ ] **Ordermail heeft een race en achterhaalde tekst.** Gelijktijdige webhooks kunnen
       allebei mailen vóór `confirmationSentAt` gezet is — de controle in
       `src/lib/orderbevestiging.ts` is lezen-dan-doen, zonder atomische claim
@@ -336,20 +340,22 @@ bevestigde, nog níét elders belegde punten, gereconcilieerd tegen de actuele `
 mogelijk in de code nagekeken. De review zelf is de onderbouwing; hier één eigenaar en één
 acceptatiecheck per punt.
 
-- [ ] **P0 — Betaalpoging, order en toegang zitten in één `purchases`-rij.** De zwaarste
-      bevinding. `src/app/api/checkout/route.ts` doet `select` → `mollie().payments.create()`
-      → `onConflictDoUpdate`, dat dezelfde (`userId`, `courseSlug`)-rij overschrijft met het
-      nieuwe payment-id en `pending`. Een webhook die de rij tussendoor op `paid` zet wordt zo
-      teruggezet naar `pending` (toegang ingetrokken ná echte betaling); twee gelijktijdige
-      checkouts laten maar één payment-id vindbaar; een DB-fout ná `payments.create()` laat een
-      betaalbare, lokaal onbekende betaling achter. De webhook-idempotentie (`ne(status,'paid')`)
-      dekt dit níét — die beschermt alleen `paidAt`. Splits het recht (één entitlement per
-      gebruiker/cursus) van de betaalpoging/order (meerdere rijen, elk eigen Mollie-id + status),
-      met expliciete voorwaardelijke overgangen; `heeftToegangTot()` blijft de enige poort.
-      **Eigenaar:** ontwerpnotitie + migratie vóór code, op een Neon Preview-branch (niet productie).
-      **Acceptatie:** tests met gecontroleerde vertraging bewijzen dat elke Mollie-id
-      reconcilieerbaar blijft, een `paid`-rij nooit stil naar `pending` gaat en betaald geld niet
-      zonder zichtbare order eindigt. **Vóór de live-key.**
+- [x] ~~P0 — Betaalpoging, order en toegang zitten in één `purchases`-rij~~ **Gedaan op
+      3 aug 2026 (PR #22).** `purchases` is gesplitst in `payment_attempts` (append-only, één
+      rij per Mollie-id), `entitlements` (één recht per gebruiker/cursus — het enige dat
+      `heeftToegangTot()` leest) en `order_counters` (atomaire, doorlopende ordernummers).
+      Alle §2.2-overgangen zitten nu als voorwaarde ín de UPDATE, dus geen enkele query kan
+      een `paid`- of `mismatch`-rij nog overschrijven. Ontwerp: `docs/ontwerp-betaalmodel.md`.
+      Migratie `0004` is eerst op een Neon-branch gerepeteerd en daarna op productie gedraaid;
+      de tellingen klopten vóór én na de deploy en de live site bevestigde dat de toegang
+      behouden bleef.
+      **Let op bij de neon-http-driver:** `db.transaction()` bestaat daar niet (hij gooit),
+      terwijl het in de PGlite-tests wél werkt. De paid-verwerking is daarom één SQL-statement
+      met data-modifying CTE's — zie `verwerkBetaald()` in de webhook. Niet "vereenvoudigen"
+      naar losse statements.
+      **Resteert:** de contract-stap — `DROP TABLE purchases` in een eigen migratie, pas als
+      `/beheer` aantoonbaar hetzelfde toont en er een volledige testaankoop doorheen is.
+      Terugrollen kan tot dan met `scripts/rollback-betaalmodel.sql`.
 - [x] ~~P0 — Publieke/juridische teksten beschrijven nog de oude site~~ **Gedaan.**
       `/herroepingsrecht` en `/privacy` op 3 aug (PR #18); `/veelgestelde-vragen` en
       `/voorwaarden` §7 op 3 aug in de reviewronde daarna — die twee waren over het hoofd
@@ -359,38 +365,47 @@ acceptatiecheck per punt.
       **Resteert:** de mailtekst-variant (staat bij "Ordermail") en het laten toetsen van de
       consent-flow door een jurist. Een echte claimmatrix als document is er nog niet — de
       vier pagina's zijn stuk voor stuk tegen de code nagelopen.
-- [ ] **P1 — Servervoortgang is niet transactioneel** (naast de entitlement-/quizgaten uit
-      CODEX-104/105 hierboven). `src/lib/voortgang-server.ts` doet `select` → lesson-insert →
-      aparte stats-upsert zonder transactie; twee gelijktijdige afrondingen van dezelfde les
-      botsen op de unieke index (kan 500 geven) en snapshotimport en lesafronding kunnen elkaars
-      XP overschrijven of dubbeltellen.
-      **Eigenaar:** één transactioneel, idempotent servercommando per afgeronde les.
-      **Acceptatie:** parallelle tests (zelfde les; snapshot-vs-les) houden de invariant
-      `user_stats.xp = SUM(lesson_progress.xp_awarded)`.
-- [ ] **P1 — Zichtbare prijs en schema.org-prijs komen niet uit één bron.**
-      `src/app/cursussen/[slug]/page.tsx` gebruikt bij een ontbrekende prijs de fallback `€14,99`
-      in de schema.org-`Offer`, terwijl de checkout op `€49` terugvalt — adverteren ≠ afrekenen
-      (geverifieerd). Bewaar centen als bron en leid tekst én structured data daaruit af.
-      **Eigenaar:** één numerieke prijsbron.
-      **Acceptatie:** catalogus, cursuskaart, detail, checkout, Molliebedrag en schema.org toetsen
-      tegen dezelfde fixture; geen fallback die van de echte prijs afwijkt.
-- [ ] **P1 — Vraag- en nieuwsbrieflifecycle vóór schaal.** De limiet van drie wachtende vragen
-      is `count`-dan-`insert` (concurrencygevoelig); nieuwsbriefinschrijving gebruikt
-      `onConflictDoNothing()`, zodat een uitgeschreven adres niet kan herinschrijven; beide
-      publieke schrijfroutes missen een ratelimiet. (De schema-comment "Jason antwoordt wekelijks"
-      is al verwijderd — PR #14.)
-      **Eigenaar:** token/confirm/unsubscribe/resubscribe + ratelimiet ontwerpen.
-      **Acceptatie:** tests voor twee gelijktijdige vragen, herinschrijven-na-uitschrijven en een
-      ratelimietgrens op beide routes.
-- [ ] **P1 — De nieuwste tools hebben geen eigen tests, en één heeft een bug.**
-      `src/components/PaniekSimulatorTool.tsx` (rond regel 195) gebruikt `acties.find(a =>
-      a.maand === m)` per maand en verwerkt zo maar één actie per maand: verkopen én herinstappen
-      in dezelfde gepauzeerde maand laat de tweede actie uit de berekening, terwijl de UI hem wél
-      toont (geverifieerd). `KostenVreterTool` en `BiasTestTool` missen rekentests op grenswaarden;
-      de biastest is bovendien geen gevalideerd meetinstrument en moet dat expliciet vermelden.
-      **Eigenaar:** unit-/browsertests + fix van de find-per-maand.
-      **Acceptatie:** fixtures dekken meerdere acties per maand, grenswaarden en de
-      niet-gevalideerde aard van de biastest.
+- [x] ~~P1 — Servervoortgang is niet transactioneel~~ **Gedaan op 3 aug 2026 (PR #32).**
+      `verwerkLes()` en `importeerSnapshot()` zijn elk één SQL-statement met data-modifying
+      CTE's — hetzelfde patroon als `verwerkBetaald()` in de webhook, en om dezelfde reden:
+      `db.transaction()` bestáát niet op de neon-http-driver (hij gooit), terwijl het in de
+      PGlite-tests wél werkt. XP wordt nooit meer absoluut gezet, alleen opgehoogd met de
+      delta uit de lesinsert, zodat `user_stats.xp = SUM(lesson_progress.xp_awarded)` uit de
+      vorm van het statement volgt in plaats van uit een aanname (die laatste stap kwam uit
+      een Bugbot-bevinding op de PR).
+      **Bewijs dat de racetests écht racen:** `houdVast()` in `test/helpers/pglite-db.ts`
+      houdt het eerste passende statement vast tot een ander verzoek er dwars doorheen is.
+      Zonder die klem slaagden 4 van de 5 naïeve `Promise.all`-races óók tegen de kapotte
+      code; mét de klem falen er 3 van de 6 tegen de oude implementatie. Wie hier later aan
+      werkt: schrijf de test eerst zo dat hij tegen de oude code faalt.
+- [x] ~~P1 — Zichtbare prijs en schema.org-prijs komen niet uit één bron~~ **Gedaan op
+      3 aug 2026 (PR #17).** `schemaOrgPrijs()` in `src/lib/prijs.ts` leidt de geadverteerde
+      prijs af uit dezelfde `prijsInCenten()` die de checkout afrekent; de afwijkende
+      `€14,99`-fallback is weg, en bij een onbekende prijs verschijnt er géén `Offer` in
+      plaats van een verkeerde. `test/prijs.test.ts` bewaakt voor élke koopbare cursus dat
+      adverteren en afrekenen niet meer uit elkaar kunnen lopen.
+- [x] ~~P1 — Vraag- en nieuwsbrieflifecycle vóór schaal~~ **Grotendeels gedaan op 3 aug 2026
+      (PR #30).** De limiet van drie wachtende vragen zit nu ín één `INSERT … SELECT … WHERE
+      (SELECT count(*) …) < 3` (de race is eerst gereproduceerd, daarna gedicht);
+      nieuwsbriefinschrijving reactiveert een uitgeschreven adres via `onConflictDoUpdate`
+      met `setWhere: isNotNull(unsubscribedAt)`, zodat een nog actieve inschrijving
+      onaangeroerd blijft en het oorspronkelijke toestemmingsbewijs niet opschuift; beide
+      publieke schrijfroutes hebben een ratelimiet (`src/lib/ratelimiet.ts`, 10 per 15 min,
+      op gebruikers-id resp. IP).
+      **Wat er bewust níét in zit, en dus openstaat:**
+      - Geen dubbele opt-in: token, bevestigingsmail, uitschrijflink en het bewijs daarvan
+        moeten er nog komen vóór de eerste nieuwsbriefmail de deur uit gaat.
+      - De ratelimiet is in-memory en dus **per instance** — een snelheidsdrempel, geen
+        garantie. Echt begrenzen vraagt gedeelde staat (database of KV).
+      - Onder READ COMMITTED kunnen twee exact gelijktijdige vragen in theorie allebei nog
+        ruimte zien. Kosten: één extra vraag in de moderatiewachtrij. Dichttimmeren vraagt
+        een lock of SERIALIZABLE, en dat is die prijs hier niet waard.
+- [x] ~~P1 — De nieuwste tools hebben geen eigen tests, en één heeft een bug~~ **Gedaan op
+      3 aug 2026 (PR #20).** De `acties.find()`-bug in de paniek-simulator is gerepareerd
+      (alle acties van een maand tellen nu mee, in volgorde), en de rekenkern van de drie
+      nieuwste tools is uit de componenten gehaald naar pure modules (`src/lib/paniek.ts`,
+      `kostenvreter.ts`, `biastest.ts`) met 43 tests op onafhankelijk narekende fixtures,
+      inclusief grenswaarden en corrupte opslag.
 
 ## 6c. Uit de site-review van 3 aug 2026 (buitenkant, uitgelogd bekeken)
 
@@ -404,13 +419,23 @@ Organization-/WebSite-markup.
 
 Wat de review verder opleverde en nog openstaat:
 
-- [ ] **Er is geen enkele meting.** Nul analytics, nul trackingscripts — goed voor de privacy
-      en de reden dat er geen cookiebanner nodig is, maar het betekent ook dat er straks
-      verkocht wordt zonder te weten hoeveel mensen de gratis cursus starten, waar ze
-      afhaken of hoeveel er een cursuspagina bereiken. Een cookieloze, zelfgehoste teller
-      (Umami of Plausible op veggie) houdt de privacybelofte heel én maakt de trechter
-      zichtbaar. **Let op:** zodra dit er staat, moet §10 ("geen cookiebanner nodig") en de
-      privacyverklaring mee — die belooft nu expliciet dat we later toestemming vragen.
+- [ ] **De meting is gebouwd maar staat nog uit.** Umami, zelf gehost, cookieloos:
+      `src/lib/analytics.ts` + `src/components/Analytics.tsx`, gemount in de root-layout.
+      Zolang `NEXT_PUBLIC_UMAMI_URL` en `NEXT_PUBLIC_UMAMI_WEBSITE_ID` niet allebei gevuld
+      zijn, laadt er geen script en gaat er geen verzoek uit; `test/analytics.test.ts` pint
+      dat vast. De privacyverklaring is bijgewerkt (§10 hieronder ook) en beschrijft nu wat
+      er gemeten wordt en waarom er geen banner nodig is.
+      **Wat er nog moet:** de instantie zelf opzetten — Neon-database, tweede Vercel-project,
+      `stats.beleggingscollege.com`, en de twee variabelen in het site-project. Dat vraagt
+      Jasons login (passkeys), dus een agent kan het niet afmaken. Stappen staan in
+      `docs/analytics.md`.
+      **Niet vergeten:** de onderbouwing "geen toestemming nodig onder art. 11.7a Tw" is van
+      ons, niet van een jurist. Neem dit mee in de toetsing die al openstaat voor de drie
+      juridische pagina's (hoofdstuk 2).
+- [ ] **Gebeurtenissen, niet alleen paginaweergaven.** De trechter die er echt toe doet —
+      les 1 afgerond, cursuspagina bereikt, vinkje aan en tóch afgehaakt — vraagt om
+      expliciete `umami.track(...)`-aanroepen. Bewust nog niet gebouwd: eerst zien of de
+      basis klopt.
 - [ ] **Niets vangt een e-mailadres op.** De privacyverklaring beschrijft een nieuwsbrief en
       er is een inschrijfroute in de database, maar op de site staat nergens een
       aanmeldveld. De gratis cursus van negen lessen is het beste lokmiddel dat er is en
@@ -529,6 +554,18 @@ Wat de review verder opleverde en nog openstaat:
 
 ## 9. De documentatie spreekt zichzelf tegen
 
+- [ ] **`AGENTS.md` is een verouderde kopie van `CLAUDE.md`** (134 tegen 153 regels, ~71
+      regels verschil, geconstateerd 3 aug 2026). Het verschil zit niet in details maar in
+      de dingen die er het meest toe doen: AGENTS.md zegt nog dat lesvoortgang "nog altijd
+      in localStorage" leeft en dat `lesson_progress` en `user_stats` "door geen enkele
+      regel code gelezen of geschreven" worden, en het beschrijft nog het oude
+      `purchases`-model in plaats van `payment_attempts`/`entitlements`. Een agent die
+      AGENTS.md leest in plaats van CLAUDE.md krijgt dus een verkeerd beeld van precies het
+      geldpad en het voortgangspad. Twee opties: bij elke wijziging allebei bijwerken (dat
+      is aantoonbaar al een keer misgegaan), of van AGENTS.md een verwijzing naar CLAUDE.md
+      maken zodat er maar één bron is. Dat laatste heeft de voorkeur, maar het is een keuze
+      over hoe andere gereedschappen deze repo lezen — dus aan Jason.
+
 - `docs/prijsstrategie.md` noemt drie dingen "blokkerend voor de eerste transactie" die
   niet gebouwd zijn, terwijl `CLAUDE.md` en `docs/betalingen-mollie.md` de checkout als af
   presenteren met alleen de key nog te wisselen. Wie alleen `CLAUDE.md` leest, zet de
@@ -576,8 +613,12 @@ Wat de review verder opleverde en nog openstaat:
 - **De cursusinhoud is schoon** op auteursrecht en op de AFM-grens. Geen
   rendementsbeloftes, geen persoonlijk advies, geen overgeschreven boekteksten.
 - **Er is geen verzonnen social proof** op de nieuwe site.
-- **Geen cookiebanner nodig** — er is geen analytics en er zijn geen trackingcookies. Dat
-  geldt alleen zolang dat zo blijft.
+- **Geen cookiebanner nodig** — er zijn geen trackingcookies. De bezoekmeting die op
+  3 aug 2026 is gebouwd (Umami, zelf gehost) zet géén cookies en schrijft niets naar de
+  browser, dus die verandert hier niets aan: cookieloze statistiek zonder profilering valt
+  onder de uitzondering van art. 11.7a Telecommunicatiewet. Zie `docs/analytics.md` voor de
+  redenering en de grens. Gaan we ooit iets meten dat wél op het apparaat leest of schrijft,
+  dan is een banner alsnog verplicht.
 - **Bezoekers-IP's gaan niet naar Google voor het lettertype.** `next/font/google` host het
   lettertype bij de bouw zelf; de pagina doet nul verzoeken naar Google's fontservers.
   Google ziet je alleen bij het inloggen, en dat staat in de privacyverklaring.
