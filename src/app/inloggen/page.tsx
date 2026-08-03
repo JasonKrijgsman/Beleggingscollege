@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Check, ShieldCheck } from "lucide-react";
 import { auth, signIn } from "@/auth";
+import { veiligTerugPad } from "@/lib/veilig-pad";
 
 export const metadata: Metadata = {
   title: "Inloggen",
@@ -18,7 +19,9 @@ export default async function InloggenPage({
 }) {
   const session = await auth();
   const { terug } = await searchParams;
-  if (session?.user) redirect(terug ?? "/leerpad");
+  // Alleen een intern pad; al het andere wordt /leerpad (open redirect, CODEX-102).
+  const doel = veiligTerugPad(terug);
+  if (session?.user) redirect(doel);
 
   return (
     <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
@@ -32,7 +35,7 @@ export default async function InloggenPage({
         <form
           action={async () => {
             "use server";
-            await signIn("google", { redirectTo: terug ?? "/leerpad" });
+            await signIn("google", { redirectTo: doel });
           }}
         >
           <button
