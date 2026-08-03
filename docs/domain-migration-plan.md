@@ -2,7 +2,45 @@
 
 *Researched: 2 August 2026. Prices verified on registrar websites on that date — re-check at checkout, promos and tariffs change.*
 
-> **Status 2 augustus 2026 — lees dit eerst.**
+> **Status 3 augustus 2026 (einde middag) — lees dit eerst; de blokkade hieronder is verplaatst.**
+>
+> **DNSSEC is eraf en de naamservers staan op Cloudflare.** Het DS-record is weg bij de registry
+> (geverifieerd via `ns1.dns.nl`, 1.1.1.1 en 8.8.8.8) en Strato's paneel meldt "DNSSEC: Niet
+> actief". Daarmee kwam het NS-formulier vrij; `joan.ns.cloudflare.com` en
+> `rene.ns.cloudflare.com` zijn opgeslagen en de delegatie stond **binnen 10 minuten** bij SIDN.
+>
+> **De `.nl` was daarbij ongeveer 10 minuten onbereikbaar, en dat hoort erbij.** Strato weigert
+> de zone (REFUSED) op het moment dat je eigen naamservers instelt, terwijl SIDN nog naar Strato
+> delegeert — elke resolver geeft dan SERVFAIL. Niet in paniek terugdraaien: dit lost zichzelf
+> op zodra de delegatie is gepubliceerd. Reken op minuten, niet op de 24 uur die Strato noemt.
+>
+> **Migadu is Actief** sinds 2026-08-03T15:51:18Z. Geen "Rerun Checks" nodig — Migadu zag de
+> records zelf. SPF, alle drie de DKIM-CNAME's en DMARC (`p=quarantine`) stonden er vóór de
+> activering, dus er kan niets ongetekend uit.
+>
+> **WAT NOG BLOKKEERT: de Providerwissel.** Twee pogingen op 3 aug eindigden allebei in
+> "Er is een fout opgetreden. Probeer het later opnieuw." Er wordt niets half toegepast — het
+> domein blijft op "geactiveerd" staan. De voor de hand liggende oorzaken zijn uitgesloten:
+> DNSSEC is uit, **Domain Guard staat uit** (de domeinpagina biedt hem nog aan), en de
+> naamserverwissel was al volledig bij SIDN geland. Een timeout aan Strato's kant is de
+> overgebleven verklaring. Info-ID's voor een supportticket:
+> `583e2640g1785771338 - 7206355` en `9a72ac2eg1785772381 - 7206355`.
+>
+> **Doodlopend spoor, niet opnieuw inlopen:** het menu-item Contracten → **Domeinverhuizing**
+> is *intern* ("domeinen uit je pakket verhuizen naar een ander pakket"). Dat is niet de weg
+> naar buiten. De Opzegging-wizard is de enige zelfbedieningsroute.
+>
+> **Geverifieerd, niet meer aangenomen:** de verhuiscode gaat naar het e-mailadres van de
+> domeinhouder, en dat is **jason_k56@hotmail.com** (Domeinhoudergegevens, gecontroleerd 3 aug).
+> Geen oud adres, en niet `beheer@beleggingscollege.nl` — dat laatste zou circulair zijn.
+>
+> **Geen haast.** Het domein is geregistreerd tot 20-08-2027. De einddatum 02-09-2026 die in de
+> wizard gekozen is, bestaat pas zodra een opzegging daadwerkelijk registreert — en dat is niet
+> gebeurd.
+>
+> ---
+>
+> **Status 2 augustus 2026 — historisch, hierboven ingehaald.**
 >
 > De site staat inmiddels **live op https://beleggingscollege.com** (Cloudflare-DNS → Vercel).
 > Die `.com` is bewust als tijdelijk adres gebruikt omdat de `.nl` vastzit bij Strato.

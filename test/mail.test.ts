@@ -10,15 +10,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * betaling het risico dat zijn aankoop opnieuw verwerkt wordt. Liever een
  * klant zonder bevestigingsmail dan een klant met een kapotte aankoop.
  *
- * Deze tests pinnen dat contract vast vóór de ombouw van Resend (HTTP) naar
- * Migadu (SMTP) die nog openstaat — zie docs/e-mail-versturen.md. Die ombouw
- * vervangt precies het stuk dat hieronder wordt uitgeoefend, dus deze tests
- * zijn het vangnet eronder. Ze mogen daarbij aangepast worden op HOE er
- * verstuurd wordt, maar niet op DAT er nooit gegooid wordt.
+ * Deze tests pinden dat contract vast vóór de ombouw van Resend (HTTP) naar
+ * Migadu (SMTP), en zijn bij die ombouw meeverhuisd naar nodemailer. HOE er
+ * verstuurd wordt mag veranderen; DAT er nooit gegooid wordt niet.
  *
- * `mail.ts` leest zijn sleutel bij het laden van de module, dus elke test
+ * `mail.ts` leest zijn instellingen bij het laden van de module, dus elke test
  * laadt de module opnieuw met een eigen omgeving.
  */
+
+const h = vi.hoisted(() => ({ createTransport: vi.fn() }));
+
+vi.mock("nodemailer", () => ({
+  // mail.ts importeert de default; `Transporter` is een type en verdwijnt bij
+  // het compileren, dus die hoeft hier niet te bestaan.
+  default: { createTransport: h.createTransport },
+}));
 
 const BERICHT = {
   aan: "klant@voorbeeld.nl",
@@ -26,18 +32,36 @@ const BERICHT = {
   tekst: "Je betaling is binnen.",
 };
 
-/** Laadt mail.ts vers, met of zonder API-sleutel. */
-async function laadMail(sleutel?: string) {
+type Omgeving = { gebruiker?: string; wachtwoord?: string; poort?: string };
+
+/** Laadt mail.ts vers, met of zonder inloggegevens. */
+async function laadMail({ gebruiker, wachtwoord, poort }: Omgeving = {}) {
   vi.resetModules();
-  vi.stubEnv("RESEND_API_KEY", sleutel);
+  vi.stubEnv("MAIL_SMTP_GEBRUIKER", gebruiker);
+  vi.stubEnv("MAIL_SMTP_WACHTWOORD", wachtwoord);
+  vi.stubEnv("MAIL_SMTP_PORT", poort);
+  vi.stubEnv("MAIL_SMTP_HOST", undefined);
   vi.stubEnv("MAIL_AFZENDER", "Beleggingscollege <beheer@beleggingscollege.nl>");
   return import("@/lib/mail");
+}
+
+/** Inloggegevens die "wel geconfigureerd" betekenen. */
+const INGELOGD = {
+  gebruiker: "beheer@beleggingscollege.nl",
+  wachtwoord: "geheim123",
+};
+
+/** Een transporter waarvan sendMail doet wat de test wil. */
+function metSendMail(sendMail: ReturnType<typeof vi.fn>) {
+  h.createTransport.mockReturnValue({ sendMail });
+  return sendMail;
 }
 
 let waarschuwing: ReturnType<typeof vi.spyOn>;
 let fout: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
+  h.createTransport.mockReset();
   // Het loggen hoort bij het contract (een stille mislukking is erger dan een
   // luide), dus we onderdrukken het niet alleen — we controleren het ook.
   waarschuwing = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -46,124 +70,163 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
-describe("zonder API-sleutel", () => {
+describe("zonder inloggegevens", () => {
   it("verstuurt niets, gooit niet, en zegt luid waaróm", async () => {
-    const { verstuurMail, mailIsGeconfigureerd } = await laadMail(undefined);
-    const nep = vi.fn();
-    vi.stubGlobal("fetch", nep);
+    const { verstuurMail, mailIsGeconfigureerd } = await laadMail();
+    const sendMail = metSendMail(vi.fn());
 
     expect(mailIsGeconfigureerd).toBe(false);
     await expect(verstuurMail(BERICHT)).resolves.toEqual({
       verstuurd: false,
       reden: "niet geconfigureerd",
     });
-    expect(nep).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+    // Zonder gegevens mag er zelfs geen verbinding opgezet worden.
+    expect(h.createTransport).not.toHaveBeenCalled();
     expect(waarschuwing).toHaveBeenCalledOnce();
+  });
+
+  it("een half ingevulde configuratie telt óók als niet geconfigureerd", async () => {
+    const { mailIsGeconfigureerd } = await laadMail({
+      gebruiker: "beheer@beleggingscollege.nl",
+    });
+    expect(mailIsGeconfigureerd).toBe(false);
   });
 });
 
-describe("met API-sleutel — het gelukte geval", () => {
-  it("stuurt het juiste verzoek naar Resend en geeft het id terug", async () => {
-    const { verstuurMail, mailIsGeconfigureerd } = await laadMail("re_test123");
-    const nep = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ id: "mail_abc" }),
-    });
-    vi.stubGlobal("fetch", nep);
+describe("met inloggegevens — het gelukte geval", () => {
+  it("verbindt met Migadu en geeft het message-id terug", async () => {
+    const { verstuurMail, mailIsGeconfigureerd } = await laadMail(INGELOGD);
+    const sendMail = metSendMail(
+      vi.fn().mockResolvedValue({ messageId: "<abc@migadu>" })
+    );
 
     expect(mailIsGeconfigureerd).toBe(true);
     await expect(
       verstuurMail({ ...BERICHT, html: "<p>Hoi</p>", antwoordAan: "jason@voorbeeld.nl" })
-    ).resolves.toEqual({ verstuurd: true, id: "mail_abc" });
+    ).resolves.toEqual({ verstuurd: true, id: "<abc@migadu>" });
 
-    const [url, opties] = nep.mock.calls[0];
-    expect(url).toBe("https://api.resend.com/emails");
-    expect(opties.method).toBe("POST");
-    expect(opties.headers.Authorization).toBe("Bearer re_test123");
-    expect(JSON.parse(opties.body)).toEqual({
+    expect(h.createTransport).toHaveBeenCalledWith({
+      host: "smtp.migadu.com",
+      port: 465,
+      secure: true,
+      auth: { user: INGELOGD.gebruiker, pass: INGELOGD.wachtwoord },
+    });
+    expect(sendMail).toHaveBeenCalledWith({
       from: "Beleggingscollege <beheer@beleggingscollege.nl>",
-      to: ["klant@voorbeeld.nl"],
+      to: "klant@voorbeeld.nl",
       subject: BERICHT.onderwerp,
       text: BERICHT.tekst,
       html: "<p>Hoi</p>",
-      reply_to: "jason@voorbeeld.nl",
+      replyTo: "jason@voorbeeld.nl",
     });
   });
 
-  it("laat html en reply_to weg als ze er niet zijn", async () => {
-    const { verstuurMail } = await laadMail("re_test123");
-    const nep = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ id: "mail_abc" }),
-    });
-    vi.stubGlobal("fetch", nep);
+  it("laat html en replyTo weg als ze er niet zijn", async () => {
+    const { verstuurMail } = await laadMail(INGELOGD);
+    const sendMail = metSendMail(
+      vi.fn().mockResolvedValue({ messageId: "<abc@migadu>" })
+    );
 
     await verstuurMail(BERICHT);
-    const body = JSON.parse(nep.mock.calls[0][1].body);
-    expect(body).not.toHaveProperty("html");
-    expect(body).not.toHaveProperty("reply_to");
+    const opties = sendMail.mock.calls[0][0];
+    expect(opties).not.toHaveProperty("html");
+    expect(opties).not.toHaveProperty("replyTo");
   });
 
-  it("een antwoord zonder id levert nog steeds 'verstuurd'", async () => {
-    const { verstuurMail } = await laadMail("re_test123");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
-    );
+  it("een antwoord zonder messageId levert nog steeds 'verstuurd'", async () => {
+    const { verstuurMail } = await laadMail(INGELOGD);
+    metSendMail(vi.fn().mockResolvedValue({}));
+
     await expect(verstuurMail(BERICHT)).resolves.toEqual({
       verstuurd: true,
       id: "onbekend",
     });
   });
+
+  it("zet de verbinding één keer op, ook bij meerdere mails", async () => {
+    const { verstuurMail } = await laadMail(INGELOGD);
+    metSendMail(vi.fn().mockResolvedValue({ messageId: "<a@migadu>" }));
+
+    await verstuurMail(BERICHT);
+    await verstuurMail(BERICHT);
+    expect(h.createTransport).toHaveBeenCalledOnce();
+  });
+
+  it("lege host en poort vallen terug op Migadu — niet op '' en 0", async () => {
+    // Dit is precies wat je krijgt als iemand .env.example kopieert: de
+    // variabelen bestaan, maar zijn leeg. Met `??` zou dat de standaard
+    // overschrijven en elke mail stilletjes mislukken.
+    vi.resetModules();
+    vi.stubEnv("MAIL_SMTP_GEBRUIKER", INGELOGD.gebruiker);
+    vi.stubEnv("MAIL_SMTP_WACHTWOORD", INGELOGD.wachtwoord);
+    vi.stubEnv("MAIL_SMTP_HOST", "");
+    vi.stubEnv("MAIL_SMTP_PORT", "");
+    const { verstuurMail } = await import("@/lib/mail");
+    metSendMail(vi.fn().mockResolvedValue({ messageId: "<a@migadu>" }));
+
+    await verstuurMail(BERICHT);
+    expect(h.createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: "smtp.migadu.com",
+        port: 465,
+        secure: true,
+      })
+    );
+  });
+
+  it("poort 587 draait STARTTLS in plaats van impliciete TLS", async () => {
+    const { verstuurMail } = await laadMail({ ...INGELOGD, poort: "587" });
+    metSendMail(vi.fn().mockResolvedValue({ messageId: "<a@migadu>" }));
+
+    await verstuurMail(BERICHT);
+    expect(h.createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ port: 587, secure: false })
+    );
+  });
 });
 
 describe("alles wat er mis kan gaan — geen enkele exception ontsnapt", () => {
-  it("Resend weigert (401): nette mislukking, gelogd", async () => {
-    const { verstuurMail } = await laadMail("re_fout");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 401,
-        text: async () => "Unauthorized",
-      })
+  it("Migadu weigert de inloggegevens (SMTP 535)", async () => {
+    const { verstuurMail } = await laadMail(INGELOGD);
+    metSendMail(
+      vi.fn().mockRejectedValue(
+        Object.assign(new Error("Invalid login"), {
+          responseCode: 535,
+          code: "EAUTH",
+        })
+      )
     );
+
+    // responseCode wint van code: die is specifieker.
     await expect(verstuurMail(BERICHT)).resolves.toEqual({
       verstuurd: false,
-      reden: "resend 401",
+      reden: "smtp 535",
     });
     expect(fout).toHaveBeenCalledOnce();
   });
 
-  it("Resend geeft 500 én de fouttekst is zelf onleesbaar", async () => {
-    const { verstuurMail } = await laadMail("re_test123");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
-        // Zelfs het uitlezen van de foutmelding mislukt — de .catch() erop
-        // is precies waarom dit geen exception wordt.
-        text: async () => {
-          throw new Error("stream kapot");
-        },
-      })
+  it("een fout zonder SMTP-status valt terug op de code", async () => {
+    const { verstuurMail } = await laadMail(INGELOGD);
+    metSendMail(
+      vi.fn().mockRejectedValue(
+        Object.assign(new Error("connection refused"), { code: "ECONNECTION" })
+      )
     );
+
     await expect(verstuurMail(BERICHT)).resolves.toEqual({
       verstuurd: false,
-      reden: "resend 500",
+      reden: "smtp econnection",
     });
   });
 
-  it("het netwerk valt weg (fetch rejecteert)", async () => {
-    const { verstuurMail } = await laadMail("re_test123");
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
+  it("het netwerk valt weg zonder enig herkenbaar veld", async () => {
+    const { verstuurMail } = await laadMail(INGELOGD);
+    metSendMail(vi.fn().mockRejectedValue(new Error("ECONNRESET")));
+
     await expect(verstuurMail(BERICHT)).resolves.toEqual({
       verstuurd: false,
       reden: "netwerkfout",
@@ -171,32 +234,36 @@ describe("alles wat er mis kan gaan — geen enkele exception ontsnapt", () => {
     expect(fout).toHaveBeenCalledOnce();
   });
 
-  it("fetch gooit meteen (synchroon), niet via een afgewezen belofte", async () => {
-    const { verstuurMail } = await laadMail("re_test123");
-    vi.stubGlobal(
-      "fetch",
+  it("sendMail gooit meteen (synchroon), niet via een afgewezen belofte", async () => {
+    const { verstuurMail } = await laadMail(INGELOGD);
+    metSendMail(
       vi.fn(() => {
-        throw new Error("DNS stuk");
+        throw new Error("stuk");
       })
     );
+
     await expect(verstuurMail(BERICHT)).resolves.toEqual({
       verstuurd: false,
       reden: "netwerkfout",
     });
   });
 
-  it("Resend zegt ok maar stuurt onleesbare JSON", async () => {
-    const { verstuurMail } = await laadMail("re_test123");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => {
-          throw new Error("geen JSON");
-        },
-      })
-    );
+  it("zelfs het opzetten van de verbinding mag gooien", async () => {
+    const { verstuurMail } = await laadMail(INGELOGD);
+    h.createTransport.mockImplementation(() => {
+      throw new Error("configuratie deugt niet");
+    });
+
+    await expect(verstuurMail(BERICHT)).resolves.toEqual({
+      verstuurd: false,
+      reden: "netwerkfout",
+    });
+  });
+
+  it("een fout die helemaal geen Error is (null) blijft netjes", async () => {
+    const { verstuurMail } = await laadMail(INGELOGD);
+    metSendMail(vi.fn().mockRejectedValue(null));
+
     await expect(verstuurMail(BERICHT)).resolves.toEqual({
       verstuurd: false,
       reden: "netwerkfout",
@@ -206,14 +273,14 @@ describe("alles wat er mis kan gaan — geen enkele exception ontsnapt", () => {
 
 describe("ordernummer", () => {
   it("vult aan tot vier cijfers, per jaar", async () => {
-    const { ordernummer } = await laadMail("re_test123");
+    const { ordernummer } = await laadMail(INGELOGD);
     expect(ordernummer(2026, 1)).toBe("BC-2026-0001");
     expect(ordernummer(2026, 42)).toBe("BC-2026-0042");
     expect(ordernummer(2027, 1)).toBe("BC-2027-0001");
   });
 
   it("loopt netjes door boven de vier cijfers heen", async () => {
-    const { ordernummer } = await laadMail("re_test123");
+    const { ordernummer } = await laadMail(INGELOGD);
     expect(ordernummer(2026, 12345)).toBe("BC-2026-12345");
   });
 });
