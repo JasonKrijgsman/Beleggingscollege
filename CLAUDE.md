@@ -11,7 +11,9 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 
 ## Architectuur
 
-- `src/content/types.ts` — contentschema (Course → Module → Lesson → QuizQuestion). Nieuwe cursus = nieuw bestand in `src/content/courses/` + import in `src/content/index.ts`.
+- `src/content/types.ts` — contentschema (Course → Module → Lesson → QuizQuestion). Nieuwe cursus = nieuw bestand in `src/content/courses/` + import in `src/content/index.ts`. **Het volledige recept (agents, tools, verificatie, PR-flow) staat in `docs/cursusfabriek.md`** — zo zijn op 3 aug 2026 zes cursussen gebouwd; de prioriteiten voor de volgende staan in `docs/volgende-cursussen.md`.
+- **Catalogus sinds 3 aug 2026: 10 cursussen** — gratis beginnerscursus; Waardebeleggen, Technische Analyse, Beleggingspsychologie, de optieladder (Opties Begrijpen / Beschermen & Verdienen / Volatiliteit & Spreads), Indexbeleggen & ETF's (elk €49) en Hefboomproducten (€29). Onderbouwing opties/hefboom: `docs/opties-curriculum.md`.
+- `src/components/lesson-tools.tsx` — registry van alle interactieve lestools (volledige `Record`: een vergeten registratie breekt de build). Optierekenwerk: `src/lib/opties.ts` (puur, bundelveilig). Interne QA-pagina met álle tools zonder aankoop: `/lab/opties` (noindex).
 - `src/lib/progress.tsx` — gamification-engine (client): XP, levels, streaks, badges, quizscores; persistentie in localStorage key `beleggingscollege-voortgang-v1`. `completeLesson()` is het enige muterende pad.
 - `src/lib/levels.ts` (8 levels: Toeschouwer → Meesterbelegger), `src/lib/badges.ts` (10 badges met predicaten), `src/lib/accent.ts` (kleurvarianten per cursus).
 - `src/lib/pricing.ts` — bron voor de prijzen zoals ze op de site **staan**: losse cursus €49 eenmalig, College+ €14,99/mnd (€149/jr). Onderbouwing: `docs/prijsstrategie.md`. Let op: wat er daadwerkelijk wordt afgerekend komt uit `prijsInCenten()` in `src/lib/prijs.ts` (aangeroepen door de checkout), dat de weergavetekst met een regex terugrekent naar centen. Wijzig je hier een prijs, controleer dan dat die conversie meeloopt — `test/prijs.test.ts` bewaakt het formaat.
@@ -136,4 +138,4 @@ npm run build && npm run controleer:bundel
 
 ## Roadmap (v2+)
 
-Abonnement College+ (wacht op SEPA), bevestigingsmail na aankoop, facturen/btw, terugbetalingen, AI-studiecoach, cursus Beleggingspsychologie (nu comingSoon-teaser), risicoprofiel-tool.
+Abonnement College+ (wacht op SEPA), bevestigingsmail na aankoop, facturen/btw, terugbetalingen, AI-studiecoach, risicoprofiel-tool. Volgende cursussen (prioriteitsvolgorde en onderbouwing in `docs/volgende-cursussen.md`): Portefeuillebouw & Risicobeheer, Pensioen & vermogensopbouw NL, Jaarverslagen Lezen. Beleggingspsychologie en Indexbeleggen zijn op 3 aug 2026 gebouwd en live.

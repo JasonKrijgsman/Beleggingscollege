@@ -160,15 +160,31 @@ voerde die onwaarheden ook als FAQPage-markup aan Google. Commit `7fd4082`.
       in plaats van het prijskaartje. Een echt "mijn cursussen"-ingangspunt buiten `/account`
       ontbreekt nog.
 
-## 4b. Waarde voor je geld — de kern van het probleem
+## 4b. Waarde voor je geld — flink verschoven op 3 aug 2026
 
 Een betaalde cursus was tekst plus een meerkeuzequiz; dat geeft YouTube gratis weg. Op
-2 aug 2026 kreeg elke betaalde cursus daarom een eigen interactieve tool:
-`IntrinsiekeWaardeTool` (Waardebeleggen) en `SteunWeerstandTool` (Technische Analyse).
+2 aug 2026 kreeg elke betaalde cursus daarom een eigen interactieve tool
+(`IntrinsiekeWaardeTool`, `SteunWeerstandTool`).
 
-Dat is een begin, geen oplossing. De hele betaalde catalogus is nog altijd ~100 minuten.
-Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/ideeen.md` en
-`docs/wat-de-winkel-mist.md`.
+Op 3 aug 2026 is de catalogus in één dag gegroeid van ~100 naar ruwweg 520 minuten:
+zes nieuwe cursussen (de optieladder, Hefboomproducten, Beleggingspsychologie,
+Indexbeleggen & ETF's) met samen twaalf nieuwe tools. Zie `docs/opties-curriculum.md`,
+`docs/volgende-cursussen.md` en `docs/cursusfabriek.md` (het recept).
+
+**Opvolgpunten die deze uitbreiding zelf heeft geopend:**
+
+- [ ] **Jason heeft de zes nieuwe cursusteksten nog niet zelf gelezen.** Ze zijn door
+      agents geschreven op het huisstijl-anker, feiten geverifieerd, maar het is zíjn naam
+      en zíjn merk — proeflezen vóór de eerste marketing.
+- [ ] **De test-key-open-deur (hoofdstuk 1) bewaakt nu negen betaalde cursussen** in
+      plaats van twee. Zelfde risico, grotere etalage.
+- [ ] **De €29-laag (Hefboomproducten) breekt het "één prijs"-principe** uit
+      `docs/prijsstrategie.md` §1.2 — bewust herbevestigen of terugdraaien.
+- [ ] **De lespagina-bundel groeide ~40 kB** doordat de toolregistry
+      (`src/components/lesson-tools.tsx`) alle tools statisch importeert; dynamic imports
+      zijn de voor de hand liggende optimalisatie.
+- [ ] **De sitemap-vraag uit §7 is groter geworden**: er stromen nu tientallen betaalde
+      les-URL's extra in.
 
 ## 5. Certificaten deugen niet
 

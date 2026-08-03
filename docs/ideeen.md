@@ -45,8 +45,9 @@ zijn wat hij wél doet (iemand laten nadenken over horizon en buffer) en wat ní
 portefeuille voorstellen).
 
 ### Cursus Beleggingspsychologie
-Bestaat als teaser (`comingSoon: true`, nul lessen) en heeft een eigen pagina die aan Google
-wordt aangeboden met een prijs van € 49 en geen inhoud. Óf schrijven, óf uit de sitemap halen.
+**Geschreven en live sinds 3 aug 2026** (PR #8): 8 lessen, de biastest en de
+paniek-simulator. Het ultimatum ("óf schrijven, óf uit de sitemap halen") is daarmee
+opgelost — de teaser is een echte cursus geworden, metadata en learnPoints ongewijzigd.
 
 ### Affiliate- en verwijslinks naar boeken
 **Dit idee stond nergens opgeschreven — het is bij deze alsnog vastgelegd.** Jason noemde het
