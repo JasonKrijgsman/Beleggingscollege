@@ -399,13 +399,23 @@ Organization-/WebSite-markup.
 
 Wat de review verder opleverde en nog openstaat:
 
-- [ ] **Er is geen enkele meting.** Nul analytics, nul trackingscripts — goed voor de privacy
-      en de reden dat er geen cookiebanner nodig is, maar het betekent ook dat er straks
-      verkocht wordt zonder te weten hoeveel mensen de gratis cursus starten, waar ze
-      afhaken of hoeveel er een cursuspagina bereiken. Een cookieloze, zelfgehoste teller
-      (Umami of Plausible op veggie) houdt de privacybelofte heel én maakt de trechter
-      zichtbaar. **Let op:** zodra dit er staat, moet §10 ("geen cookiebanner nodig") en de
-      privacyverklaring mee — die belooft nu expliciet dat we later toestemming vragen.
+- [ ] **De meting is gebouwd maar staat nog uit.** Umami, zelf gehost, cookieloos:
+      `src/lib/analytics.ts` + `src/components/Analytics.tsx`, gemount in de root-layout.
+      Zolang `NEXT_PUBLIC_UMAMI_URL` en `NEXT_PUBLIC_UMAMI_WEBSITE_ID` niet allebei gevuld
+      zijn, laadt er geen script en gaat er geen verzoek uit; `test/analytics.test.ts` pint
+      dat vast. De privacyverklaring is bijgewerkt (§10 hieronder ook) en beschrijft nu wat
+      er gemeten wordt en waarom er geen banner nodig is.
+      **Wat er nog moet:** de instantie zelf opzetten — Neon-database, tweede Vercel-project,
+      `stats.beleggingscollege.com`, en de twee variabelen in het site-project. Dat vraagt
+      Jasons login (passkeys), dus een agent kan het niet afmaken. Stappen staan in
+      `docs/analytics.md`.
+      **Niet vergeten:** de onderbouwing "geen toestemming nodig onder art. 11.7a Tw" is van
+      ons, niet van een jurist. Neem dit mee in de toetsing die al openstaat voor de drie
+      juridische pagina's (hoofdstuk 2).
+- [ ] **Gebeurtenissen, niet alleen paginaweergaven.** De trechter die er echt toe doet —
+      les 1 afgerond, cursuspagina bereikt, vinkje aan en tóch afgehaakt — vraagt om
+      expliciete `umami.track(...)`-aanroepen. Bewust nog niet gebouwd: eerst zien of de
+      basis klopt.
 - [ ] **Niets vangt een e-mailadres op.** De privacyverklaring beschrijft een nieuwsbrief en
       er is een inschrijfroute in de database, maar op de site staat nergens een
       aanmeldveld. De gratis cursus van negen lessen is het beste lokmiddel dat er is en
@@ -500,6 +510,18 @@ Wat de review verder opleverde en nog openstaat:
 
 ## 9. De documentatie spreekt zichzelf tegen
 
+- [ ] **`AGENTS.md` is een verouderde kopie van `CLAUDE.md`** (134 tegen 153 regels, ~71
+      regels verschil, geconstateerd 3 aug 2026). Het verschil zit niet in details maar in
+      de dingen die er het meest toe doen: AGENTS.md zegt nog dat lesvoortgang "nog altijd
+      in localStorage" leeft en dat `lesson_progress` en `user_stats` "door geen enkele
+      regel code gelezen of geschreven" worden, en het beschrijft nog het oude
+      `purchases`-model in plaats van `payment_attempts`/`entitlements`. Een agent die
+      AGENTS.md leest in plaats van CLAUDE.md krijgt dus een verkeerd beeld van precies het
+      geldpad en het voortgangspad. Twee opties: bij elke wijziging allebei bijwerken (dat
+      is aantoonbaar al een keer misgegaan), of van AGENTS.md een verwijzing naar CLAUDE.md
+      maken zodat er maar één bron is. Dat laatste heeft de voorkeur, maar het is een keuze
+      over hoe andere gereedschappen deze repo lezen — dus aan Jason.
+
 - `docs/prijsstrategie.md` noemt drie dingen "blokkerend voor de eerste transactie" die
   niet gebouwd zijn, terwijl `CLAUDE.md` en `docs/betalingen-mollie.md` de checkout als af
   presenteren met alleen de key nog te wisselen. Wie alleen `CLAUDE.md` leest, zet de
@@ -547,8 +569,12 @@ Wat de review verder opleverde en nog openstaat:
 - **De cursusinhoud is schoon** op auteursrecht en op de AFM-grens. Geen
   rendementsbeloftes, geen persoonlijk advies, geen overgeschreven boekteksten.
 - **Er is geen verzonnen social proof** op de nieuwe site.
-- **Geen cookiebanner nodig** — er is geen analytics en er zijn geen trackingcookies. Dat
-  geldt alleen zolang dat zo blijft.
+- **Geen cookiebanner nodig** — er zijn geen trackingcookies. De bezoekmeting die op
+  3 aug 2026 is gebouwd (Umami, zelf gehost) zet géén cookies en schrijft niets naar de
+  browser, dus die verandert hier niets aan: cookieloze statistiek zonder profilering valt
+  onder de uitzondering van art. 11.7a Telecommunicatiewet. Zie `docs/analytics.md` voor de
+  redenering en de grens. Gaan we ooit iets meten dat wél op het apparaat leest of schrijft,
+  dan is een banner alsnog verplicht.
 - **Bezoekers-IP's gaan niet naar Google voor het lettertype.** `next/font/google` host het
   lettertype bij de bouw zelf; de pagina doet nul verzoeken naar Google's fontservers.
   Google ziet je alleen bij het inloggen, en dat staat in de privacyverklaring.
