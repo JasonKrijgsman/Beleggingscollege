@@ -249,9 +249,10 @@ export default function VoorwaardenPage() {
           toegang niet door aan anderen.
         </li>
         <li>
-          Zolang er nog geen accounts zijn, bewaart de site je voortgang in je
-          eigen browser. Wis je die gegevens, dan is je voortgang weg; wij
-          kunnen die niet herstellen. Zie de{" "}
+          Ben je ingelogd, dan bewaren we je voortgang op je account en reist
+          hij mee naar elk apparaat. Volg je een cursus zonder in te loggen,
+          dan staat je voortgang alleen in je eigen browser: wis je die
+          gegevens, dan is hij weg en kunnen wij hem niet herstellen. Zie de{" "}
           <Link
             className="font-semibold text-brand-700 hover:text-brand-800"
             href="/privacy"

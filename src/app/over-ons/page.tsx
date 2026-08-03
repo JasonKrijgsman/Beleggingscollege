@@ -164,8 +164,8 @@ export default function OverOnsPage() {
       </div>
       <p className="mt-6 leading-relaxed text-body">
         Je begint zonder account en zonder iets te installeren: je voortgang
-        wordt in je eigen browser bewaard. De cursus Beleggen voor Beginners is
-        en blijft gratis.
+        blijft dan in je eigen browser. Log je in, dan reist hij mee naar elk
+        apparaat. De cursus Beleggen voor Beginners is en blijft gratis.
       </p>
 
       <h2 className="mt-12 text-2xl font-bold text-ink">Wie erachter zit</h2>

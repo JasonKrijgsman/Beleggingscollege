@@ -74,7 +74,14 @@ export default function LeerpadPage() {
     const p = courseProgress(c.slug, c.aantalLessen);
     return p > 0 && p < 1;
   });
-  const candidates = started.length > 0 ? started : activeCourses;
+  // Ben je nog nergens begonnen, wijs dan alleen naar wat je ook echt kunt
+  // openen. Deze pagina draait in de browser en weet niet wat je gekocht hebt,
+  // dus viel de aanbeveling terug op de héle catalogus — en zo stuur je iemand
+  // naar een slotscherm. Een cursus waar je al middenin zit heb je per
+  // definitie open, dus die tak is veilig. Zolang deze pagina geen serverkant
+  // heeft is "gratis" de enige veilige aanname; zie docs/openstaand.md §6c.
+  const candidates =
+    started.length > 0 ? started : activeCourses.filter((c) => c.free);
   let nextUp: { courseTitle: string; href: string; lessonTitle: string; accent: keyof typeof ACCENTS } | null = null;
   for (const c of candidates) {
     const open = c.lessen.find((les) => !isLessonCompleted(c.slug, les.slug));

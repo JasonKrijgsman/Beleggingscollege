@@ -26,6 +26,7 @@ import {
   LOSSE_CURSUS_VOORDELEN,
   PRICING,
 } from "@/lib/pricing";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -98,6 +99,39 @@ function HeroPreviewCard() {
 export default function HomePage() {
   return (
     <>
+      {/* Wie de uitgever is, in machineleesbare vorm. De cursuspagina's hebben
+          al Course-markup en de FAQ FAQPage, maar er stond nergens wíé daar
+          achter zit — juist bij een geldonderwerp weegt dat mee.
+          Alleen feiten die al openbaar in de voettekst staan; geen adres
+          (bewust niet in de repo, zie docs/openstaand.md) en niets verzonnen. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Beleggingscollege",
+              url: SITE_URL,
+              logo: `${SITE_URL}/logo.svg`,
+              email: "beheer@beleggingscollege.nl",
+              identifier: {
+                "@type": "PropertyValue",
+                propertyID: "KvK",
+                value: "71856633",
+              },
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "Beleggingscollege",
+              url: SITE_URL,
+              inLanguage: "nl",
+              publisher: { "@type": "Organization", name: "Beleggingscollege" },
+            },
+          ]),
+        }}
+      />
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-navy-950 via-navy-900 to-brand-800 text-white">
         <svg

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Clock, Lightbulb, Quote } from "lucide-react";
@@ -9,14 +9,20 @@ export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }));
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata(
+  {
+    params,
+  }: {
+    params: Promise<{ slug: string }>;
+  },
+  parent: ResolvingMetadata
+): Promise<Metadata> {
   const { slug } = await params;
   const post = getPost(slug);
   if (!post) return {};
+  // Zie de cursuspagina: een eigen openGraph-blok gooit de afbeelding uit de
+  // root-layout weg, dus halen we die hier expliciet terug.
+  const ouderAfbeeldingen = (await parent).openGraph?.images ?? [];
   return {
     title: post.title,
     description: post.excerpt,
@@ -27,6 +33,7 @@ export async function generateMetadata({
       description: post.excerpt,
       url: `/blog/${post.slug}`,
       publishedTime: post.date,
+      images: ouderAfbeeldingen,
     },
   };
 }

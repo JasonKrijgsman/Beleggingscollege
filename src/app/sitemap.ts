@@ -28,12 +28,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly" as const,
       priority: 0.8,
     })),
-    ...activeCourses.flatMap((c) =>
-      flatLessons(c).map((x) => ({
-        url: `${BASE}/cursussen/${c.slug}/les/${x.lesson.slug}`,
-        changeFrequency: "monthly" as const,
-        priority: 0.6,
-      }))
-    ),
+    // Alleen lessen die een uitgelogde bezoeker ook echt kan lézen. Een
+    // vergrendelde les toont het slotscherm: tientallen bijna identieke,
+    // dunne pagina's, met alleen de lestitel als eigen inhoud. Die horen
+    // niet in een sitemap — de URL's blijven gewoon werken, we dienen ze
+    // alleen niet meer bij zoekmachines aan. Besluit van 3 aug 2026,
+    // zie docs/openstaand.md §7.
+    ...activeCourses
+      .filter((c) => c.free)
+      .flatMap((c) =>
+        flatLessons(c).map((x) => ({
+          url: `${BASE}/cursussen/${c.slug}/les/${x.lesson.slug}`,
+          changeFrequency: "monthly" as const,
+          priority: 0.6,
+        }))
+      ),
   ];
 }

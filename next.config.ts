@@ -37,6 +37,50 @@ const nextConfig: NextConfig = {
       { source: "/privacy-policy-2", destination: "/privacy", permanent: true },
     ];
   },
+
+  // Algemene browserbeveiligingsheaders. Dit is de goedkope helft van
+  // CODEX-109: vier headers die niets kunnen breken omdat ze alleen dingen
+  // verbieden die de site sowieso niet doet.
+  //
+  // BEWUST GEEN Content-Security-Policy. Die moet apart ontworpen worden
+  // rond Google (inloggen), Mollie (afrekenen) en een eventuele
+  // Payload-preview; een haastige CSP breekt precies die twee paden waar
+  // geld en toegang aan hangen. Zie docs/openstaand.md §6, CODEX-109.
+  //
+  // Strict-Transport-Security staat er niet bij: Vercel zet die zelf al
+  // (geverifieerd op de live site, max-age=63072000).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // Geen MIME-sniffing: een geüpload of gegenereerd bestand mag nooit
+          // als script geïnterpreteerd worden omdat de inhoud er zo uitziet.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Niet in een iframe van iemand anders — clickjacking op de
+          // koopknop is het scenario dat dit afdekt.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          // Bij het weggaan naar een ander domein alleen de herkomst
+          // meesturen, niet het volledige pad. Een pad als
+          // /cursussen/…/certificaat zegt iets over de bezoeker.
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // De site vraagt nergens om camera, microfoon of locatie. Dan kan
+          // het net zo goed dicht: een ingesloten of gekaapt script kan er
+          // dan ook niet om vragen.
+          //
+          // `payment=()` staat er bewust NIET bij. Afrekenen gaat vandaag via
+          // een redirect naar Mollie, dus we zouden het kunnen dichtzetten —
+          // maar zodra Mollie ooit als component in de pagina komt, breekt
+          // dat stil het enige pad waar geld overheen gaat. Die weddenschap
+          // is de winst niet waard.
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

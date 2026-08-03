@@ -28,8 +28,10 @@ describe("wat er in de sitemap MOET staan", () => {
     }
   });
 
-  it("elke les van elke actieve cursus", () => {
-    for (const c of activeCourses) {
+  it("elke les van elke actieve GRATIS cursus", () => {
+    const gratis = activeCourses.filter((c) => c.free);
+    expect(gratis.length).toBeGreaterThan(0);
+    for (const c of gratis) {
       for (const { lesson } of flatLessons(c)) {
         expect(urls).toContain(`${SITE_URL}/cursussen/${c.slug}/les/${lesson.slug}`);
       }
@@ -45,6 +47,28 @@ describe("wat er in de sitemap MOET staan", () => {
 });
 
 describe("wat er NIET in mag staan", () => {
+  /**
+   * Besluit van 3 aug 2026 (docs/openstaand.md §7): een vergrendelde les
+   * toont een uitgelogde bezoeker alleen het slotscherm. Tientallen van die
+   * bijna identieke, dunne pagina's aanbieden aan Google helpt niemand. De
+   * URL's blijven werken — we dienen ze alleen niet meer in.
+   */
+  it("geen lespagina's van betaalde cursussen", () => {
+    for (const c of activeCourses.filter((c) => !c.free)) {
+      for (const { lesson } of flatLessons(c)) {
+        expect(urls).not.toContain(
+          `${SITE_URL}/cursussen/${c.slug}/les/${lesson.slug}`
+        );
+      }
+    }
+  });
+
+  it("de cursusdetailpagina van een betaalde cursus blijft er juist wél in", () => {
+    for (const c of activeCourses.filter((c) => !c.free)) {
+      expect(urls).toContain(`${SITE_URL}/cursussen/${c.slug}`);
+    }
+  });
+
   it("geen persoonlijke, interne of concept-pagina's", () => {
     for (const verboden of [
       "/certificaat",
