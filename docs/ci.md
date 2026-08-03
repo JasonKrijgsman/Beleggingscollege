@@ -118,6 +118,18 @@ niet-vanzelfsprekende stukken, af te kijken uit de bestaande bestanden:
   stub, en JSX compileert via de `oxc`-optie (Vitest 4 bundelt Vite 8 /
   Rolldown — het oude `esbuild`-veld wordt stil genegeerd; dáár zoeken als
   een `.tsx`-import ooit "invalid JS syntax" geeft).
+- **Racetest:** twee aanroepen in een `Promise.all` zetten bewíjst bijna
+  niets. Toen dat op 3 aug 2026 gemeten werd, slaagden **4 van de 5** van
+  zulke tests tegen code waarvan we wisten dát hij kapot was — de aanroepen
+  liepen simpelweg niet door elkaar heen. Gebruik `houdVast(patroon)` uit
+  `test/helpers/pglite-db.ts`: die houdt het eerste statement dat op het
+  patroon matcht vast, laat een ander verzoek er helemaal langs, en geeft hem
+  dan pas vrij. Voor route-tests doet `test/betaalmodel.test.ts` hetzelfde met
+  uitgestelde promises op de Mollie-mocks.
+  **De regel die je hieraan overhoudt: draai je nieuwe racetest éérst tegen de
+  oude implementatie.** Faalt hij daar niet, dan test hij niets. Bij de
+  voortgangssync faalden er zo 3 van de 6 tegen de oude code — dát is het
+  bewijs dat ze de bug echt vangen.
 
 ## Twee losse gereedschappen naast de poort (sinds 3 aug 2026)
 
