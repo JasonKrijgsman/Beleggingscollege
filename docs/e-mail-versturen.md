@@ -1,20 +1,32 @@
 # E-mail versturen
 
-Laatst bijgewerkt: 2 augustus 2026.
+Laatst bijgewerkt: 3 augustus 2026.
 
 ## Waar we geland zijn
 
-**Migadu, en de code praat er inmiddels ook echt mee.** De ombouw van Resend (HTTP) naar Migadu
-(SMTP) is op 3 augustus 2026 gedaan; er gaat alleen nog niets de deur uit omdat de
-omgevingsvariabelen leeg zijn.
+**Migadu, de code praat ermee, het domein is actief en de postbus bestaat.** Er staat nog
+precies één ding tussen ons en een werkende bevestigingsmail: de inloggegevens in Vercel.
 
-> **Stand 3 augustus 2026:** de naamservers van `beleggingscollege.nl` zijn bij Strato omgezet
-> naar Cloudflare (`joan`/`rene.ns.cloudflare.com`) nadat DNSSEC eindelijk op "Niet actief"
-> stond. Zodra die delegatie doorwerkt, neemt de Cloudflare-zone het over — inclusief de
-> Migadu-MX. Daarna: Migadu → Rerun Checks, postbus aanmaken, variabelen vullen, testen.
+> **Stand eind 3 augustus 2026 — alles behalve de laatste stap is gedaan:**
+>
+> - De naamservers van `beleggingscollege.nl` staan bij Cloudflare (`joan`/`rene.ns.cloudflare.com`);
+>   DNSSEC is eraf en de delegatie was binnen tien minuten bij SIDN.
+> - **Migadu is Actief** sinds `2026-08-03T15:51:18Z`. Geen "Rerun Checks" nodig geweest — Migadu
+>   zag de records zelf. SPF, drie DKIM-CNAME's en DMARC stonden er vóór de activering.
+> - **`beheer@beleggingscollege.nl` bestaat** (naam "Beleggingscollege", verzenden en ontvangen
+>   aan, IMAP/POP3/ManageSieve aan, verloopt nooit). Daarnaast staat er een ongebruikte `admin@`
+>   die automatisch is meegekomen met het domein.
+> - De ombouw van Resend (HTTP) naar Migadu (SMTP) zit in `main` (PR #31).
+>
+> **Wat nog moet:** `MAIL_SMTP_GEBRUIKER` en `MAIL_SMTP_WACHTWOORD` in Vercel (Production +
+> Preview), opnieuw deployen, één echte bestelling testen, en pas dán DMARC terugzetten van
+> `p=quarantine` naar `p=reject`. Die volgorde is niet vrijblijvend — zie de valkuil verderop.
+>
+> **Let op:** Forwarding staat bij Migadu op Inactive. Post die binnenkomt blijft daar liggen
+> tot iemand inlogt, en dit is straks ook het adres waar klanten hun antwoord heen sturen.
 
-Dat "wachten" is een bewuste keuze en geen vergeten actie. Onderbouwing hieronder, inclusief
-wat we níét doen en waarom — zodat niemand dit over drie weken opnieuw gaat uitzoeken.
+De rest van dit document legt vast waaróm het Migadu is en niet Resend, en wat we bewust níét
+gedaan hebben — zodat niemand dit over drie weken opnieuw gaat uitzoeken.
 
 ## Het misverstand dat dit document uit de wereld helpt
 
