@@ -34,7 +34,9 @@ export type LessonTool =
   | "optie-tijdverval" // tijdsverval over de looptijd (Volatiliteit & Spreads)
   | "optie-volatiliteit" // implied volatility-verkenner (Volatiliteit & Spreads)
   | "optie-greeks" // Greeks-speeltuin (Volatiliteit & Spreads)
-  | "hefboom-simulator"; // knock-out en financieringskosten (Hefboomproducten)
+  | "hefboom-simulator" // knock-out en financieringskosten (Hefboomproducten)
+  | "bias-test" // 15 situatievragen, drie neigingen + tegenmaatregel (Beleggingspsychologie)
+  | "paniek-simulator"; // historische crash dag voor dag doorstaan (Beleggingspsychologie)
 
 export type Lesson = {
   slug: string;

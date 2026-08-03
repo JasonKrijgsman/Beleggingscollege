@@ -20,6 +20,7 @@ vi.mock("@/lib/mollie", async (importOriginal) => {
 
 import { POST } from "@/app/api/checkout/route";
 import { auth } from "@/auth";
+import { prijsInCenten } from "@/lib/prijs";
 import { purchases } from "@/db/schema";
 import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
 
@@ -134,14 +135,14 @@ describe("wie en wat er niet doorheen mag", () => {
     expect(h.paymentsCreate).not.toHaveBeenCalled();
   });
 
-  it("comingSoon-cursus: 400", async () => {
-    const res = await POST(
-      checkoutRequest({
-        slug: "beleggingspsychologie",
-        herroepingAkkoord: true,
-      })
-    );
-    expect(res.status).toBe(400);
+  it("comingSoon-cursus is niet te koop (prijsInCenten weigert)", () => {
+    // Sinds Beleggingspsychologie af is, heeft de catalogus geen comingSoon-
+    // cursus meer om tegenaan te testen. De regel zelf blijft: de poort zit in
+    // prijsInCenten (null -> 400 in de route, zelfde pad als de gratis cursus
+    // hierboven), dus die toetsen we met een synthetisch exemplaar.
+    expect(
+      prijsInCenten({ free: false, comingSoon: true, price: "€49" })
+    ).toBeNull();
   });
 
   it("zonder herroepingsakkoord: 400 en geen betaling", async () => {

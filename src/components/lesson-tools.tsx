@@ -11,6 +11,8 @@ import GedektSchrijvenTool from "./GedektSchrijvenTool";
 import OptieVolatiliteitTool from "./OptieVolatiliteitTool";
 import OptieGreeksTool from "./OptieGreeksTool";
 import HefboomSimulatorTool from "./HefboomSimulatorTool";
+import BiasTestTool from "./BiasTestTool";
+import PaniekSimulatorTool from "./PaniekSimulatorTool";
 
 // Registry van les-tools: één regel per tool in plaats van een groeiende
 // if-keten in de lespagina. Bewust een volledige `Record`: voeg je een waarde
@@ -31,6 +33,8 @@ const TOOLS: Record<LessonTool, () => ReactElement> = {
   "optie-volatiliteit": () => <OptieVolatiliteitTool />,
   "optie-greeks": () => <OptieGreeksTool />,
   "hefboom-simulator": () => <HefboomSimulatorTool />,
+  "bias-test": () => <BiasTestTool />,
+  "paniek-simulator": () => <PaniekSimulatorTool />,
 };
 
 export default function LesTool({ tool }: { tool?: LessonTool }) {
