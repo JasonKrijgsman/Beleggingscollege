@@ -2,12 +2,15 @@
 
 Laatst bijgewerkt: 3 augustus 2026.
 
-Dit is de losse-eindjeslijst. Eén plek, zodat je niet door 3.000 regels documentatie
-hoeft te zoeken om te weten wat er nog moet. De andere documenten beschrijven hóe iets
-werkt; dit document beschrijft wat er níét af is.
+Dit is de losse-eindjeslijst. Eén plek, zodat je niet de hele `docs/`-map hoeft door te
+lezen om te weten wat er nog moet. De andere documenten beschrijven hóe iets werkt en
+waaróm het zo is gekozen; dit document beschrijft wat er níét af is. **Spreekt een ander
+document dit tegen, dan wint dit document** — de rest is onderbouwing, geen takenlijst.
 
-**Onderhoudsregel:** streep hier af wat je doet. Een afgevinkt punt hoort hier weg, niet
-te blijven staan als "gedaan" — daar is de git-historie voor.
+**Onderhoudsregel:** streep hier af wat je doet. Een punt dat af is mag weg — daar is de
+git-historie voor. Eén uitzondering, en die zie je hieronder veel: als de *reden* dat het
+zo is opgelost ertoe doet, blijft er een doorgestreepte regel met die reden staan. Anders
+bouwt de volgende het opnieuw, of "vereenvoudigt" hij het terug naar de kapotte versie.
 
 De bevindingen hieronder komen uit een audit van 2 augustus 2026 waarin zes onafhankelijke
 controles over de code, de documentatie, de live site, de juridische pagina's en de
@@ -18,12 +21,11 @@ gaat uitzoeken.
 Een onafhankelijke second opinion door OpenAI Codex staat in
 [`docs/reviews/2026-08-02-codex-website-en-architectuurreview.md`](reviews/2026-08-02-codex-website-en-architectuurreview.md);
 de tweede pass ná de cursusdag staat in
-[`docs/reviews/2026-08-03-codex-repository-harmonisatie-en-synthese.md`](reviews/2026-08-03-codex-repository-harmonisatie-en-synthese.md)
-— let op: die punten zijn nog níét stuk voor stuk geverifieerd en hier verwerkt; dat is
-werk voor een volgende sessie. Die reviews leggen bewijs en afwegingen vast; de nog uit
-te voeren punten blijven uitsluitend in dit document staan. De Codex-punten zijn daarna stuk voor stuk tegen de code
-geverifieerd — regelnummers gecontroleerd, races nagelopen, de npm-audit opnieuw
-gedraaid — en met die details hieronder verwerkt.
+[`docs/reviews/2026-08-03-codex-repository-harmonisatie-en-synthese.md`](reviews/2026-08-03-codex-repository-harmonisatie-en-synthese.md).
+Beide series zijn stuk voor stuk tegen de code geverifieerd — regelnummers gecontroleerd,
+races nagelopen, de npm-audit opnieuw gedraaid — en met die details hieronder verwerkt; wat
+uit de tweede ronde nog openstond staat in §6b. Die reviews leggen bewijs en afwegingen
+vast; de nog uit te voeren punten blijven uitsluitend in dit document staan.
 
 ---
 
@@ -50,9 +52,26 @@ knop bruikbaar moet blijven om te demonstreren. Het risico is dus laag maar echt
 
 ### Er staat een testaankoop in de productiedatabase
 
-De rij `waardebeleggen | paid | € 49` op Jasons eigen account komt uit betaling
+De aankoop `waardebeleggen | paid | € 49` op Jasons eigen account komt uit betaling
 `tr_hTh3aaeBX99fmiT2SjpUJ` en is nooit met echt geld betaald. Onschuldig, maar hij vervuilt
-straks je eerste omzetcijfers. Opruimen met een `delete` op die rij.
+straks je eerste omzetcijfers.
+
+**Eén `delete` is sinds migratie `0004` niet meer genoeg.** Die migratie heeft elke
+`purchases`-rij gekopieerd naar `payment_attempts` (met hetzelfde id) en elke betaalde rij
+bovendien naar een `entitlements`-rij met status `actief`. Er staan dus drie rijen, en
+juist de laatste is degene die de toegang geeft — wie alleen `purchases` opruimt verandert
+niets. Opruimen gaat in deze volgorde, vanwege de foreign key
+`entitlements.attempt_id → payment_attempts.id`:
+
+1. de `entitlements`-rij (of markeer hem als `ingetrokken`, dan blijft het spoor staan),
+2. de `payment_attempts`-rij,
+3. de `purchases`-rij, zolang die tabel er nog staat.
+
+De tellerstand in `order_counters` rolt daar níét door terug, en dat is goed: een gat in de
+ordernummers is beter dan een nummer dat twee keer wordt uitgegeven.
+
+**Doe dit met beleid zodra er echte kopers zijn** — een blinde `delete` op `entitlements`
+trekt betaalde toegang in.
 
 ---
 
@@ -69,14 +88,13 @@ juridisch niet mag verkopen, of kun je een geschil niet winnen.
       en `70a0621`): `src/lib/mail.ts`, `src/lib/mailteksten.ts`, `src/lib/orderbevestiging.ts`,
       afgevuurd vanuit de Mollie-webhook. Bevat wat de wet eist, mét de onderbouwing in
       `docs/juridisch-orderbevestiging.md`.
-      **Staat bewust nog uit.** Verzendkeuze is Migadu (niet Resend) en we wachten op de
-      verhuizing van de `.nl`, omdat er toch geen echt geld binnen kan komen. Ontsnappingsroute
-      als Strato treuzelt, plus de hele afweging: `docs/e-mail-versturen.md`.
+      **Staat nog uit, en dat is nu nog maar één stap.** Verzendkeuze is Migadu (niet
+      Resend); de DNS-verhuizing en de postbus zijn op 3 aug 2026 rond gekomen. Wat rest is
+      `MAIL_SMTP_GEBRUIKER` en `MAIL_SMTP_WACHTWOORD` in Vercel zetten — zie §8. De hele
+      afweging staat in `docs/e-mail-versturen.md`.
 - [x] ~~**`src/lib/mail.ts` omzetten van de Resend-API naar Migadu SMTP.**~~ **Gedaan 3 aug
       2026.** Via nodemailer (exact 8.0.11 — Auth.js accepteert geen 9). De rest van de keten
-      is inderdaad niet aangeraakt. Wat er nu nog ontbreekt zijn de gegevens zelf:
-      `MAIL_SMTP_GEBRUIKER` en `MAIL_SMTP_WACHTWOORD` in Vercel, en die kunnen pas als de
-      Migadu-postbus bestaat.
+      is inderdaad niet aangeraakt: die roept alleen `verstuurMail()` aan.
 - [ ] **Twee gegevens die er nog niet zijn (KOR is beantwoord):**
       - ~~KOR?~~ **Beantwoord op 2 aug 2026: geen KOR.** De 21%-regel in de mail klopt dus.
       - **Vestigingsadres.** Jason wil zijn woonadres niet op internet. Onderzoek naar de
@@ -91,16 +109,20 @@ juridisch niet mag verkopen, of kun je een geschil niet winnen.
       Instellingen → Bedrijfsgegevens → Btw informatie.
 - [ ] **Echte factuur.** Bij B2C is een volledige factuur níét wettelijk verplicht (art. 34c
       Wet OB geldt alleen B2B) — een bon volstaat. Maar `/voorwaarden` belooft er wél een, en
-      die eigen toezegging bindt. Nummering is er nu (`purchases.order_number`), btw-uitsplitsing
-      ook; bewijs van waar de klant zit nog niet.
+      die eigen toezegging bindt. Nummering is er nu (`payment_attempts.order_number`, atomair
+      uitgedeeld via `order_counters`), btw-uitsplitsing ook; bewijs van waar de klant zit
+      nog niet.
 - [ ] **Herkansing als de bevestigingsmail mislukt.** Nu wordt een mislukte verzending alleen
       naar de console gelogd. Omdat juist die mail bepaalt of het herroepingsrecht vervalt, is
       "hij ging niet weg en niemand weet het" het slechtst denkbare gat. Er hoort een
       herhaalpoging te zijn, of op zijn minst een waarschuwing naar Jason zelf.
-      Let op: de code rekent erop dat een volgende webhook-aanroep het opnieuw probeert
-      (`confirmationSentAt` blijft leeg bij falen), maar de webhook antwoordt ook na een
-      mislukte mail gewoon 200 — Mollie herhaalt dan dus juist níét. Herstel hangt nu op een
-      toevallige tweede aanroep.
+      Let op: de code rekent erop dat een volgende webhook-aanroep het opnieuw probeert — bij
+      een aantoonbaar mislukte verzending wordt de claim op `confirmationClaimedAt` netjes
+      teruggegeven, juist zodat dat kán. Maar de webhook antwoordt ook na een mislukte mail
+      gewoon 200, en Mollie herhaalt dan dus juist níét. Herstel hangt nu op een toevallige
+      tweede aanroep. Wat wél zichtbaar blijft: een rij met `confirmationClaimedAt` gezet en
+      `confirmationSentAt` leeg betekent "geclaimd, maar nooit verstuurd" — dat is precies
+      wat een monitoringronde moet naslaan.
 - [ ] **Voorwaarden meesturen als tekst of bijlage.** Strikt genomen moeten de algemene
       voorwaarden mee op de duurzame gegevensdrager, niet alleen als link. De mail claimt nu
       geen bijlage (dat zou een onwaarheid zijn), maar het gat blijft.
@@ -208,6 +230,17 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
 
 ## 6. Techniek en bedrijfsvoering
 
+- [ ] **Het omzetbelastingnummer staat nog in de git-historie, en dat reist mee.** Het
+      BSN-afgeleide nummer stond letterlijk in `CLAUDE.md`, `AGENTS.md`,
+      `docs/e-mail-versturen.md` en dit document; op 3 aug 2026 is het er met commit
+      `d760378` (PR #14) uitgehaald. **De werkmap is daarmee schoon, de historie niet** —
+      één `git show` op die commit haalt het terug. Zolang de repo privé is, is dat een
+      beheerst risico. **Vóór archiveren, publiceren of het toevoegen van een
+      medewerker moet de historie herschreven worden** met `git filter-repo` of BFG,
+      gevolgd door een force-push en het verlopen van de oude objecten bij GitHub. Doe dat
+      niet terloops: het herschrijft elke commit-hash, dus open branches en PR's moeten
+      eerst leeg zijn. Het nummer zelf hoort in geen enkel bestand — ook niet in de
+      opdracht waarmee je het opruimt; zoek op de commit, niet op de waarde.
 - [ ] **Neon zit op 10/10 branches en dat gaat de volgende preview breken.** Geconstateerd
       3 aug 2026: de console meldt "Branch limit reached" (gratis laag = 10). Negen daarvan
       zijn `preview/…`-branches die de Vercel-integratie per preview-deployment aanmaakt, en
@@ -244,7 +277,8 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       gedocumenteerde, één keer echt geoefende restore van de Neon-database — de gratis
       laag kan maar 6 uur terug in de tijd. Zie CODEX-005.
 - [ ] **CI-restpunten** (CODEX-003 is verder af: gebouwd 3 aug 2026 en gemerged via PR #3 —
-      typecheck, ESLint mét toegankelijkheidsregels, ±140 Vitest-tests voor de geldpaden,
+      typecheck, ESLint mét toegankelijkheidsregels, Vitest-tests voor de geldpaden (het
+      aantal groeit mee met de catalogus — draai `npm run controle` voor de stand),
       productiebuild en bundel-lekcontrole, lokaal reproduceerbaar met
       `npm ci && npm run controle`, zonder één geheim. Sindsdien is main ook écht een
       slagboom: branch protection met vereiste check "CI" óók voor admins, strict-mode,
@@ -254,12 +288,15 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
         (zie het herroepingspunt in hoofdstuk 2).
       - Een handvol bestaande lint-warnings (ongebruikte variabelen) in bestanden die op
         het bouwmoment door parallelle sessies bewerkt werden; zie `docs/ci.md`.
-      - Opruimen van de restanten van de sessiebotsing van 3 aug (alles al gemerged of
-        overbodig, dus weggooien is veilig): de branches `ci-poort` (eerdere smallere
-        poging, in alles overtroffen) en `ci-testfundament` (bevat commit `585f282`
-        waarin twee sessies door elkaar heen werkten), de stash "WIP on ci-testfundament"
-        op de hoofdcheckout (bevat alleen restjes die elders al geland zijn), de al
-        gemergde remote branches en de worktree `.claude/worktrees/ci-fundament`.
+      - Opruimen van de restanten van de sessiebotsingen van 3 aug: losse lokale branches
+        (waaronder `ci-testfundament`, met commit `585f282` waarin twee sessies door
+        elkaar heen werkten), één stash, de al gemergde remote branches en de achtergebleven
+        worktrees onder `.claude/worktrees/`. Alles is gemerged of overbodig, dus weggooien
+        is veilig — maar **kijk zelf met `git branch`, `git stash list` en
+        `git worktree list` wat er nu staat**: die lijst schuift per sessie op, en een
+        opgeschreven opsomming was hier al een keer verouderd. Let op dat er een worktree
+        `locked` kan staan, en dat deze restanten lokaal zijn: ze reizen niet mee het
+        archief in.
       Bijvangst, exact vastgepind in tests maar nog een productkeuze: client en server
       tellen de streak verschillend bij herhaalde lessen (`docs/ci.md` punt 2).
 - [ ] **Chargeback.** Komt er een terugboeking, dan houdt de klant zijn toegang, kost het
@@ -302,30 +339,36 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       3 aug 2026 (PR #32)**: `POST /api/voortgang` weigert nu met 403 wat je niet bezit en
       met 400 wat niet bestaat, en de snapshotimport snoeit tot gratis + gekochte cursussen.
       `heeftToegangTot()` bleef daarbij de enige poort. Wat blijft staan:
-      - **De quizscore komt nog altijd van de client** en wordt alleen begrensd — de
-        antwoorden zelf gaan nooit mee, dus de foutloos-badge en de quizbonus (tot 25 XP per
-        les) zijn met één fetch te claimen. Er lekt geen lesinhoud, maar badges en
-        certificaten worden er waardeloos van. Zie CODEX-105.
+      - **De quizscore is maar half serverwaarheid.** `total` komt uit de catalogus
+        (`lesson.quiz.length`, dus dat kan de client niet opblazen); alléén `correct` komt
+        uit het verzoek en wordt geklemd op `0..total` (`verwerkLes()` in
+        `src/lib/voortgang-server.ts`). De gegeven antwoorden reizen nooit mee, dus de
+        server kán ze niet nakijken — en daarmee is `correct = total` met één fetch te
+        posten. Dat levert de volle quizbonus (tot 25 XP per les) én de foutloos-badge op.
+        Er lekt geen lesinhoud, maar badges en certificaten worden er waardeloos van.
+        Echt dichtzetten betekent de antwoorden meesturen en op de server nakijken. Zie
+        CODEX-105.
       - **"Voortgang wissen" wist bij een ingelogde gebruiker alleen de lokale cache.** Er is
         geen server-delete en de import is bewust alleen-aanvullend, dus na de volgende
         paginalading staat alles er weer — terwijl de knop zegt "Dit kan niet ongedaan
         worden gemaakt". Dat is nu dus een onwaarheid in de UI, en daarmee een merkprobleem
         én een AVG-punt (recht op verwijdering).
-- [ ] **Ordermail heeft een race en achterhaalde tekst.** Gelijktijdige webhooks kunnen
-      allebei mailen vóór `confirmationSentAt` gezet is — de controle in
-      `src/lib/orderbevestiging.ts` is lezen-dan-doen, zonder atomische claim
-      (`UPDATE … WHERE confirmation_sent_at IS NULL`). De mail zegt bovendien nog dat
-      voortgang uitsluitend in de browser leeft (`src/lib/mailteksten.ts:105`), wat sinds
-      de serversynchronisatie onwaar is — juist voor kopers, die per definitie ingelogd
-      zijn. Maak verzending claim/outbox-gestuurd en werk de tekst bij. Zie CODEX-004 en
-      CODEX-106.
-- [ ] **Ordernummers kunnen botsen, gaten krijgen of buiten de administratie vallen.**
-      `geefOrdernummer()` in `src/lib/orderbevestiging.ts` telt rijen en probeert +1: bij
-      gelijktijdigheid redt de unique-index de uniciteit, maar de hertelling na een botsing
-      slaat een nummer over — tegen de eigen doorlopende-nummering-eis in. De kale
-      `catch {}` behandelt ook gewone databasefouten als botsingen, en de terugvaloptie
-      mailt een nummer op basis van `Date.now()` dat nooit in de database wordt opgeslagen:
-      de klant krijgt dan een ordernummer dat in de administratie niet bestaat.
+- [x] ~~**Ordermail heeft een race en achterhaalde tekst.**~~ **Gedicht op 3 aug 2026.**
+      Er is nu een atomaire claim: `UPDATE payment_attempts SET confirmation_claimed_at …
+      WHERE confirmation_claimed_at IS NULL … RETURNING`, en wie geen rij terugkrijgt
+      verstuurt niets. Blijkt de mail aantoonbaar níét weg, dan wordt de claim teruggegeven
+      zodat een volgende webhook het opnieuw probeert; alleen een crash tússen claim en
+      verzending laat "geclaimd zonder verstuurd" achter — precies wat de monitoringronde
+      hierboven moet naslaan. `confirmationSentAt` is sindsdien alleen nog het bewijs dát
+      er verstuurd is. De mailtekst is ook bijgewerkt: die zegt nu dat aankoop én voortgang
+      allebei aan het account hangen. Zie CODEX-004 en CODEX-106.
+- [x] ~~**Ordernummers kunnen botsen, gaten krijgen of buiten de administratie vallen.**~~
+      **Vervallen met PR #22.** `geefOrdernummer()` bestaat niet meer — geen tellen-en-
+      proberen, geen kale `catch {}`, geen `Date.now()`-terugval die een nummer mailt dat
+      in de administratie niet bestaat. Het nummer komt nu atomair uit `order_counters`,
+      binnen hetzelfde statement dat de betaling op `paid` zet (`verwerkBetaald()` in de
+      webhook). `orderbevestiging.ts` verzint niets meer en weigert te mailen als er geen
+      nummer staat.
 - [x] ~~Eerst een klein beheerscherm, dan pas een CMS~~ **Het alleen-lezen deel bestaat
       sinds 3 aug 2026**: `/beheer` toont klanten, aankopen, entitlements, betaal- en
       mailstatus, en zoekt op e-mailadres of Mollie-id. Toegang via `ADMIN_EMAILS`
@@ -454,11 +497,13 @@ Wat de review verder opleverde en nog openstaat:
       les 1 afgerond, cursuspagina bereikt, vinkje aan en tóch afgehaakt — vraagt om
       expliciete `umami.track(...)`-aanroepen. Bewust nog niet gebouwd: eerst zien of de
       basis klopt.
-- [ ] **Niets vangt een e-mailadres op.** De privacyverklaring beschrijft een nieuwsbrief en
-      er is een inschrijfroute in de database, maar op de site staat nergens een
-      aanmeldveld. De gratis cursus van negen lessen is het beste lokmiddel dat er is en
-      levert op dit moment geen enkel adres op — terwijl juist dat de lanceerlijst voor
-      College+ zou moeten zijn.
+- [ ] **Het e-mailveld staat alleen aan het eind van de trechter.** `EmailCapture` bestaat
+      en staat op twee plekken: de certificaatpagina van elke cursus en `/leerpad` zodra
+      alles is afgerond. Een bezoeker die de gratis cursus níét uitloopt komt het dus nooit
+      tegen, en op de homepage en de gratis cursuspagina staat helemaal niets. De gratis
+      cursus van negen lessen is het beste lokmiddel dat er is en levert daardoor vrijwel
+      geen adressen op — terwijl juist dat de lanceerlijst voor College+ zou moeten zijn.
+      (Aanmelden zelf kan pas écht als de dubbele opt-in uit §6b er is.)
 - [ ] **Inloggen kan alleen met Google.** Geen e-mail/wachtwoord, geen magic link, geen
       Apple. Voor een publiek dat je juist op privacy binnenhaalt is dat een wrange drempel,
       en het is de enige weg naar een betaalde cursus.
@@ -516,8 +561,9 @@ Wat de review verder opleverde en nog openstaat:
       OAuth-koppeling tussen Google en Cloudflare gemaakt: dat geeft Google blijvende
       DNS-toegang voor een eenmalige controle.
       Let op: de sitemapstatus stond direct na indienen op "Kan niet ophalen". Dat is de
-      begintoestand vóór Google's eerste crawl; de sitemap zelf geeft HTTP 200 met 32 URL's.
-      Staat dat er over een paar dagen nog, dán is er wél iets aan de hand.
+      begintoestand vóór Google's eerste crawl; de sitemap zelf gaf HTTP 200 met 32 URL's
+      (stand 2 aug, vier cursussen — inmiddels 25, zie §7). Staat die status er over een
+      paar dagen nog, dán is er wél iets aan de hand.
 - [x] ~~`www.beleggingscollege.com` bestaat niet~~ **Gedaan 2 aug 2026.** Toegevoegd in Vercel
       als **308 permanente redirect** naar het hoofddomein, met een CNAME `www` →
       `6d87ec9bdcf67bce.vercel-dns-017.com` in Cloudflare (DNS only). Geverifieerd: 308.
@@ -585,17 +631,15 @@ Wat de review verder opleverde en nog openstaat:
 
 ## 9. De documentatie spreekt zichzelf tegen
 
-- [ ] **`AGENTS.md` is een verouderde kopie van `CLAUDE.md`** (134 tegen 153 regels, ~71
-      regels verschil, geconstateerd 3 aug 2026). Het verschil zit niet in details maar in
-      de dingen die er het meest toe doen: AGENTS.md zegt nog dat lesvoortgang "nog altijd
-      in localStorage" leeft en dat `lesson_progress` en `user_stats` "door geen enkele
-      regel code gelezen of geschreven" worden, en het beschrijft nog het oude
-      `purchases`-model in plaats van `payment_attempts`/`entitlements`. Een agent die
-      AGENTS.md leest in plaats van CLAUDE.md krijgt dus een verkeerd beeld van precies het
-      geldpad en het voortgangspad. Twee opties: bij elke wijziging allebei bijwerken (dat
-      is aantoonbaar al een keer misgegaan), of van AGENTS.md een verwijzing naar CLAUDE.md
-      maken zodat er maar één bron is. Dat laatste heeft de voorkeur, maar het is een keuze
-      over hoe andere gereedschappen deze repo lezen — dus aan Jason.
+- [x] ~~**`AGENTS.md` is een verouderde kopie van `CLAUDE.md`**~~ **Gelijkgetrokken op
+      3 aug 2026.** Het verschil zat niet in details maar in de dingen die er het meest toe
+      doen: AGENTS.md zei nog dat lesvoortgang "nog altijd in localStorage" leeft en
+      beschreef nog het oude `purchases`-model. Beide bestanden dragen nu dezelfde
+      productwaarheid, met bovenaan de regel dat ze samen bijgewerkt horen te worden.
+      **Dat blijft een handmatige afspraak, en die is al een keer gesneuveld.** De
+      structurele oplossing — van AGENTS.md een verwijzing naar CLAUDE.md maken, zodat er
+      maar één bron is — is niet genomen: het is een keuze over hoe andere gereedschappen
+      deze repo lezen, en die is aan Jason.
 
 - `docs/prijsstrategie.md` noemt drie dingen "blokkerend voor de eerste transactie" die
   niet gebouwd zijn, terwijl `CLAUDE.md` en `docs/betalingen-mollie.md` de checkout als af
@@ -604,10 +648,14 @@ Wat de review verder opleverde en nog openstaat:
 - `docs/implementatie-accounts-betalen.md` (1.619 regels) is half achterhaald: het
   auth-hoofdstuk schrijft Prisma, JWT en wachtwoordinloggen voor, waarvan niets gebouwd is,
   en spreekt zijn eigen database-hoofdstuk tegen.
-- `CLAUDE.md` zei tot voor kort dat er geen backend of database is.
-- [x] ~~`README.md` beschrijft een product dat niet meer bestaat~~ **Bijgewerkt 3 aug 2026**:
-  cursustelling, tools, serversync en de PR-poort kloppen weer; documentatielijst
-  aangevuld.
+- [x] ~~`README.md` beschrijft een product dat niet meer bestaat~~ **Bijgewerkt 3 aug 2026**,
+  en in de archiefronde daarna herschreven tot een echte instap: wat het is, hoe je het
+  draait, wat de poort naar `main` is, welke drie valkuilen je moet kennen en welke
+  documenten je met een korrel zout leest.
+- **Dit soort drift is de regel, niet de uitzondering.** Het patroon is elke keer hetzelfde:
+  de code verandert, `CLAUDE.md` gaat mee, en de documenten die de *onderbouwing* dragen
+  blijven staan met de oude tabelnaam of het oude aantal erin. Vandaar de regel bovenaan dit
+  document: bij tegenspraak wint deze lijst.
 - `docs/cms-keuze.md` zegt dat Payload de geïnstalleerde `next@15.5.22` ondersteunt omdat
   de eis “Next ≥ 15.4.11” zou zijn. De actuele officiële matrix noemt alleen specifieke
   `15.2.x`, `15.3.x`, `15.4.x`-reeksen of `16.2.6+`; `15.5.x` ontbreekt. Vóór een proef moet
@@ -657,7 +705,8 @@ Wat de review verder opleverde en nog openstaat:
   webhook gelooft niets uit de payload behalve het id en controleert bedrag én valuta, en
   `heeftToegangTot()` is aantoonbaar de enige toegangspoort. Betaalde pagina's renderen per
   verzoek met `private, no-cache, no-store`.
-- **Geen enkel geheim staat in de repo of in de git-historie.**
+- **Geen enkel geheim staat in de werkmap.** Geen API-keys, geen wachtwoorden, geen
+  `.env`-bestanden. **Maar de historie is níét schoon — zie het punt hieronder.**
 
 ## 11. Afgevallen bij verificatie — niet achterna jagen
 
