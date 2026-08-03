@@ -631,15 +631,19 @@ Wat de review verder opleverde en nog openstaat:
 
 ## 9. De documentatie spreekt zichzelf tegen
 
-- [x] ~~**`AGENTS.md` is een verouderde kopie van `CLAUDE.md`**~~ **Gelijkgetrokken op
+- [x] ~~**`AGENTS.md` is een verouderde kopie van `CLAUDE.md`**~~ **Structureel opgelost op
       3 aug 2026.** Het verschil zat niet in details maar in de dingen die er het meest toe
       doen: AGENTS.md zei nog dat lesvoortgang "nog altijd in localStorage" leeft en
-      beschreef nog het oude `purchases`-model. Beide bestanden dragen nu dezelfde
-      productwaarheid, met bovenaan de regel dat ze samen bijgewerkt horen te worden.
-      **Dat blijft een handmatige afspraak, en die is al een keer gesneuveld.** De
-      structurele oplossing — van AGENTS.md een verwijzing naar CLAUDE.md maken, zodat er
-      maar één bron is — is niet genomen: het is een keuze over hoe andere gereedschappen
-      deze repo lezen, en die is aan Jason.
+      beschreef nog het oude `purchases`-model — het voortgangspad en het geldpad.
+      AGENTS.md bevat nu **alleen regels** (niet naar main pushen, geen geheimen,
+      `heeftToegangTot()` is de enige poort, `@/content` is server-only, Nederlands, claims
+      moeten waar zijn) plus een verwijzing hierheen. Regels verouderen niet elke dag,
+      toestand wel. De hard rules staan er bewust wél letterlijk in: leest een tool alleen
+      dat bestand en negeert het de verwijzing, dan kan het nog steeds geen schade doen.
+      **Waarom niet "we werken ze samen bij":** dat wás de afspraak en die is gesneuveld.
+      Twee sessies op dezelfde dag schreven zelfs tegengestelde instructies — de een dat
+      beide bestanden dezelfde productwaarheid moeten dragen, de ander dat AGENTS.md leeg
+      moet blijven. Dat is rechtgetrokken; laat het niet terugkeren.
 
 - `docs/prijsstrategie.md` noemt drie dingen "blokkerend voor de eerste transactie" die
   niet gebouwd zijn, terwijl `CLAUDE.md` en `docs/betalingen-mollie.md` de checkout als af
