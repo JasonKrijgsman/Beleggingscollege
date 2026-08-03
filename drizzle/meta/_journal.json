@@ -29,6 +29,13 @@
       "when": 1785708669614,
       "tag": "0003_lesvragen",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785762410041,
+      "tag": "0004_betaalmodel",
+      "breakpoints": true
     }
   ]
 }

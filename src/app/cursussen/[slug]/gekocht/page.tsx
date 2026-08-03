@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { purchases } from "@/db/schema";
+import { paymentAttempts } from "@/db/schema";
 import { courses, flatLessons, getCourse } from "@/content";
+import { heeftToegangTot } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -31,14 +32,33 @@ export default async function GekochtPage({
   const session = await auth();
   const userId = session?.user?.id;
 
+  // Eerst de vraag die er voor de klant echt toe doet: heeft hij de cursus?
+  // Dat is bewust níét "wat deed de nieuwste poging" — er kunnen meerdere
+  // pogingen naast elkaar staan (dubbelklik, een eerdere mislukte poging), en
+  // wie de óudste link betaalt terwijl er een jongere poging openstaat zou
+  // anders "we wachten nog" te zien krijgen terwijl de cursus allang open is.
+  // We hergebruiken hier de bestaande toegangspoort in plaats van zelf een
+  // tweede oordeel te vellen.
   let status: string | null = null;
   if (userId) {
-    const rijen = await db
-      .select({ status: purchases.status })
-      .from(purchases)
-      .where(and(eq(purchases.userId, userId), eq(purchases.courseSlug, slug)))
-      .limit(1);
-    status = rijen[0]?.status ?? null;
+    if (await heeftToegangTot(slug)) {
+      status = "paid";
+    } else {
+      // Nog geen recht: dan gaat deze pagina over de laatste poging, want
+      // dát is de betaling waar de klant zojuist vandaan komt.
+      const rijen = await db
+        .select({ status: paymentAttempts.status })
+        .from(paymentAttempts)
+        .where(
+          and(
+            eq(paymentAttempts.userId, userId),
+            eq(paymentAttempts.courseSlug, slug)
+          )
+        )
+        .orderBy(desc(paymentAttempts.createdAt))
+        .limit(1);
+      status = rijen[0]?.status ?? null;
+    }
   }
 
   const eersteLes = flatLessons(course)[0]?.lesson.slug;

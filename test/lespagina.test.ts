@@ -6,7 +6,7 @@ vi.mock("@/auth", () => ({ auth: vi.fn() }));
 import LessonPage from "@/app/cursussen/[slug]/les/[les]/page";
 import LesVergrendeld from "@/components/LesVergrendeld";
 import { auth } from "@/auth";
-import { purchases } from "@/db/schema";
+import { entitlements, paymentAttempts } from "@/db/schema";
 import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
 
 /**
@@ -62,8 +62,16 @@ const GRATIS = { cursus: "beleggen-voor-beginners", les: "waarom-beleggen" };
 // Een zin die alleen in de lesinhoud van de betaalde les staat.
 const UIT_DE_LES = "pindakaas";
 
+/**
+ * Een betaalpoging met de gegeven status, plus — alleen als die "paid" is —
+ * het recht dat de webhook in dezelfde transactie zou verlenen. Zo blijft de
+ * bewering van deze tests exact dezelfde: alleen een bétaalde order opent de
+ * les, elke andere status niet.
+ */
 async function koop(userId: string, courseSlug: string, status: string) {
-  await db.insert(purchases).values({
+  const attemptId = `poging-${userId}-${courseSlug}-${status}`;
+  await db.insert(paymentAttempts).values({
+    id: attemptId,
     userId,
     courseSlug,
     molliePaymentId: `tr_${userId}_${courseSlug}_${status}`,
@@ -71,6 +79,14 @@ async function koop(userId: string, courseSlug: string, status: string) {
     amountCents: 4900,
     currency: "EUR",
   });
+  if (status === "paid") {
+    await db.insert(entitlements).values({
+      userId,
+      courseSlug,
+      status: "actief",
+      attemptId,
+    });
+  }
 }
 
 beforeEach(async () => {

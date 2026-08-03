@@ -9,18 +9,27 @@ vi.mock("@/lib/mail", async (importOriginal) => {
   return { ...orig, mailIsGeconfigureerd: true, verstuurMail: h.verstuurMail };
 });
 
-import { purchases, users } from "@/db/schema";
+import { paymentAttempts, users } from "@/db/schema";
 import { stuurOrderbevestiging } from "@/lib/orderbevestiging";
 import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
 
 /**
  * De orderbevestiging is het sluitstuk van de webhook-idempotentie: Mollie
- * roept de webhook gegarandeerd vaker aan, en confirmationSentAt is de enige
- * reden dat de klant daar niet tien identieke mails van krijgt.
+ * roept de webhook gegarandeerd vaker aan, en de atomaire claim op de
+ * attempt-rij (confirmationClaimedAt) is de enige reden dat de klant daar
+ * niet tien identieke mails van krijgt. Het ordernummer zelf wordt hier niet
+ * meer toegekend — dat doet de paid-verwerking in de webhook, atomair; die
+ * nummering wordt in test/betaalmodel.test.ts bewezen.
  */
 
-async function maakAankoop(overrides: Partial<typeof purchases.$inferInsert> = {}) {
-  await db.insert(purchases).values({
+let volgnummer = 0;
+
+async function maakOrder(
+  overrides: Partial<typeof paymentAttempts.$inferInsert> = {}
+) {
+  volgnummer += 1;
+  await db.insert(paymentAttempts).values({
+    id: `order-${volgnummer}`,
     userId: "u1",
     courseSlug: "waardebeleggen",
     molliePaymentId: "tr_mail_1",
@@ -28,6 +37,7 @@ async function maakAankoop(overrides: Partial<typeof purchases.$inferInsert> = {
     amountCents: 4900,
     currency: "EUR",
     paidAt: new Date(),
+    orderNumber: `BC-2026-${String(volgnummer).padStart(4, "0")}`,
     ...overrides,
   });
 }
@@ -35,8 +45,8 @@ async function maakAankoop(overrides: Partial<typeof purchases.$inferInsert> = {
 async function rij(paymentId = "tr_mail_1") {
   const rijen = await db
     .select()
-    .from(purchases)
-    .where(eq(purchases.molliePaymentId, paymentId));
+    .from(paymentAttempts)
+    .where(eq(paymentAttempts.molliePaymentId, paymentId));
   return rijen[0];
 }
 
@@ -48,46 +58,30 @@ beforeEach(async () => {
 });
 
 describe("stuurOrderbevestiging", () => {
-  it("verstuurt één bevestiging en legt dat vast", async () => {
-    await maakAankoop();
+  it("verstuurt één bevestiging en legt claim én verzending vast", async () => {
+    await maakOrder();
     await stuurOrderbevestiging("tr_mail_1");
 
     expect(h.verstuurMail).toHaveBeenCalledTimes(1);
     expect(h.verstuurMail.mock.calls[0][0].aan).toBe("koper@test.local");
+    // Het toegekende ordernummer staat in de mail zelf.
+    expect(h.verstuurMail.mock.calls[0][0].tekst).toContain("BC-2026-0001");
 
-    const aankoop = await rij();
-    expect(aankoop.confirmationSentAt).toBeInstanceOf(Date);
-    // Het ordernummer volgt het patroon BC-<jaar>-<volgnummer>.
-    expect(aankoop.orderNumber).toMatch(/^BC-\d{4}-\d{4}$/);
-  });
-
-  it("nummert opeenvolgende aankopen doorlopend: -0001, dan -0002", async () => {
-    // De Belastingdienst eist een reeks zonder gaten; dít is waarvoor
-    // geefOrdernummer() bestaat, dus het patroon alleen volstaat niet.
-    const jaar = new Date().getFullYear();
-    await maakAankoop();
-    await maakAankoop({
-      courseSlug: "technische-analyse",
-      molliePaymentId: "tr_mail_2",
-    });
-
-    await stuurOrderbevestiging("tr_mail_1");
-    await stuurOrderbevestiging("tr_mail_2");
-
-    expect((await rij("tr_mail_1")).orderNumber).toBe(`BC-${jaar}-0001`);
-    expect((await rij("tr_mail_2")).orderNumber).toBe(`BC-${jaar}-0002`);
+    const order = await rij();
+    expect(order.confirmationClaimedAt).toBeInstanceOf(Date);
+    expect(order.confirmationSentAt).toBeInstanceOf(Date);
   });
 
   it("stuurt bij een tweede aanroep GEEN tweede mail (webhook-idempotentie)", async () => {
-    await maakAankoop();
+    await maakOrder();
     await stuurOrderbevestiging("tr_mail_1");
     await stuurOrderbevestiging("tr_mail_1");
     await stuurOrderbevestiging("tr_mail_1");
     expect(h.verstuurMail).toHaveBeenCalledTimes(1);
   });
 
-  it("stuurt niets voor een aankoop die niet op paid staat", async () => {
-    await maakAankoop({ status: "pending" });
+  it("stuurt niets voor een poging die niet op paid staat", async () => {
+    await maakOrder({ status: "pending", orderNumber: null });
     await stuurOrderbevestiging("tr_mail_1");
     expect(h.verstuurMail).not.toHaveBeenCalled();
     expect((await rij()).confirmationSentAt).toBeNull();
@@ -98,13 +92,23 @@ describe("stuurOrderbevestiging", () => {
     expect(h.verstuurMail).not.toHaveBeenCalled();
   });
 
-  it("mislukt de mail, dan blijft confirmationSentAt leeg zodat een volgende poging het opnieuw probeert", async () => {
+  it("paid zonder ordernummer (rij van vóór de migratie): geen mail, wel een luide log", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    await maakAankoop();
-    h.verstuurMail.mockResolvedValue({ verstuurd: false, reden: "resend 500" });
+    await maakOrder({ orderNumber: null });
+    await stuurOrderbevestiging("tr_mail_1");
+    expect(h.verstuurMail).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  it("mislukt de mail, dan gaat de claim terug zodat een volgende poging het opnieuw probeert", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await maakOrder();
+    h.verstuurMail.mockResolvedValue({ verstuurd: false, reden: "smtp 500" });
 
     await stuurOrderbevestiging("tr_mail_1");
     expect((await rij()).confirmationSentAt).toBeNull();
+    expect((await rij()).confirmationClaimedAt).toBeNull();
 
     // De volgende webhook-aanroep probeert het dan wél opnieuw.
     h.verstuurMail.mockResolvedValue({ verstuurd: true, id: "mail-2" });
@@ -114,11 +118,22 @@ describe("stuurOrderbevestiging", () => {
     error.mockRestore();
   });
 
+  it("een blijvende claim zonder verzending (crash) blokkeert een herhaalde webhook", async () => {
+    // §2.4: crasht de winnaar tussen claim en verzending, dan blijft de claim
+    // staan en mailt niemand vanzelf opnieuw — dat is zichtbaar als "geclaimd
+    // zonder verstuurd" en is werk voor de monitoringronde, geen stille
+    // dubbele mail.
+    await maakOrder({ confirmationClaimedAt: new Date() });
+    await stuurOrderbevestiging("tr_mail_1");
+    expect(h.verstuurMail).not.toHaveBeenCalled();
+    expect((await rij()).confirmationSentAt).toBeNull();
+  });
+
   it("zonder e-mailadres: geen mail, geen crash, geen vinkje", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     await leegAlleTabellen();
     await db.insert(users).values({ id: "u2", name: "Zonder Mail", email: null });
-    await maakAankoop({ userId: "u2", molliePaymentId: "tr_mail_2" });
+    await maakOrder({ userId: "u2", molliePaymentId: "tr_mail_2" });
 
     await stuurOrderbevestiging("tr_mail_2");
     expect(h.verstuurMail).not.toHaveBeenCalled();
@@ -128,7 +143,7 @@ describe("stuurOrderbevestiging", () => {
 
   it("een gooiende mailfunctie laat de webhook-keten niet vallen", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    await maakAankoop();
+    await maakOrder();
     h.verstuurMail.mockRejectedValue(new Error("netwerk weg"));
     await expect(stuurOrderbevestiging("tr_mail_1")).resolves.toBeUndefined();
     expect((await rij()).confirmationSentAt).toBeNull();
