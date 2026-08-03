@@ -54,7 +54,7 @@ export default function HerroepingsrechtPage() {
         dan gewoon — we lossen het liever op dan dat we ons achter een regel
         verschuilen.
       </p>
-      <p className="mt-3 text-sm text-body">Conceptversie 1 — 2 augustus 2026</p>
+      <p className="mt-3 text-sm text-body">Conceptversie 2 — 3 augustus 2026</p>
 
       <div className="mt-8 rounded-2xl border border-groen-200 bg-groen-50 p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold text-ink">
@@ -67,10 +67,10 @@ export default function HerroepingsrechtPage() {
             <strong className="text-ink">14 dagen bedenktijd</strong>.
           </li>
           <li>
-            Bij een losse cursus verlies je die bedenktijd zodra je bij het
-            afrekenen zelf aangeeft dat je direct wilt beginnen én dat je
-            daarmee afstand doet van je herroepingsrecht. Doe je dat niet, dan
-            houd je je bedenktijd gewoon.
+            Bij een losse cursus verklaar je bij het afrekenen met één vinkje
+            dat je direct wilt beginnen én dat je daarmee afstand doet van je
+            herroepingsrecht. Zonder dat vinkje kun je niet afrekenen — er komt
+            dan geen koop tot stand.
           </li>
           <li>
             Bij <strong className="text-ink">College+</strong> kun je die
@@ -110,45 +110,40 @@ export default function HerroepingsrechtPage() {
         Een losse cursus ({PRICING.losseCursus} of €29 eenmalig) is digitale content
         die je meteen kunt beginnen. De wet staat toe dat het herroepingsrecht
         vervalt zodra de levering met jouw uitdrukkelijke toestemming is
-        begonnen — maar alleen als je twee dingen zelf hebt gedaan. Bij het
-        afrekenen krijg je daarom{" "}
-        <strong className="text-ink">twee losse vinkjes</strong> te zien, geen
-        van beide vooraf aangevinkt:
+        begonnen — maar alleen als je daar vooraf zelf, uitdrukkelijk, mee hebt
+        ingestemd. Bij het afrekenen zie je daarom{" "}
+        <strong className="text-ink">één vinkje</strong>, niet vooraf
+        aangevinkt, met deze verklaring:
       </p>
-      <div className="mt-4 space-y-3">
-        <div className="flex gap-3 rounded-2xl border border-lijn bg-white p-5 shadow-card">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 border-brand-300 text-xs font-bold text-brand-700">
-            1
-          </span>
-          <p className="text-sm leading-relaxed text-body">
-            <strong className="text-ink">
-              Ik wil direct toegang tot de cursus, nog binnen de bedenktijd van
-              14 dagen.
-            </strong>{" "}
-            Hiermee geef je uitdrukkelijk toestemming om meteen te beginnen met
-            leveren.
-          </p>
-        </div>
-        <div className="flex gap-3 rounded-2xl border border-lijn bg-white p-5 shadow-card">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 border-brand-300 text-xs font-bold text-brand-700">
-            2
-          </span>
-          <p className="text-sm leading-relaxed text-body">
-            <strong className="text-ink">
-              Ik weet dat ik daarmee mijn herroepingsrecht verlies zodra de
-              levering is begonnen.
-            </strong>{" "}
-            Dit is de erkenning die de wet apart van punt 1 verlangt.
-          </p>
-        </div>
+      <div className="mt-4 flex gap-3 rounded-2xl border border-lijn bg-white p-5 shadow-card">
+        <span
+          className="mt-0.5 h-5 w-5 shrink-0 rounded-md border-2 border-brand-300"
+          aria-hidden="true"
+        />
+        <p className="text-sm leading-relaxed text-body">
+          <strong className="text-ink">
+            &ldquo;Ja, ik wil direct beginnen met de cursus. Ik weet dat ik
+            daarmee afstand doe van mijn recht om de koop binnen 14 dagen te
+            herroepen, zodra ik toegang heb.&rdquo;
+          </strong>
+        </p>
       </div>
       <p className="mt-4 leading-relaxed text-body">
-        Vink je beide aan, dan heb je direct toegang en kun je de aankoop daarna
-        niet meer herroepen. Vink je ze niet aan, dan houd je je volledige
-        bedenktijd van veertien dagen; je toegang start dan na afloop van die
-        termijn, of eerder als je je alsnog bedenkt en het ons laat weten. Beide
-        vinkjes herhalen we in de bevestigingsmail, zodat je zwart-op-wit hebt
-        waarvoor je hebt gekozen.
+        In die ene verklaring zitten de twee dingen die de wet allebei
+        verlangt: je <strong className="text-ink">uitdrukkelijke toestemming</strong>{" "}
+        om meteen met leveren te beginnen, én je{" "}
+        <strong className="text-ink">erkenning</strong> dat je daarmee je
+        herroepingsrecht verliest zodra de levering is begonnen.
+      </p>
+      <p className="mt-3 leading-relaxed text-body">
+        Vink je het aan, dan heb je direct na je betaling toegang en kun je de
+        aankoop daarna niet meer herroepen. Vink je het niet aan, dan gaat het
+        afrekenen niet door: we verkopen losse cursussen alleen mét directe
+        toegang, dus zonder deze verklaring komt er geen koop tot stand en
+        betaal je ook niets. In de bevestigingsmail herhalen we beide
+        onderdelen van je verklaring apart — je verzoek om direct te beginnen
+        en je erkenning dat je herroepingsrecht daarmee vervalt — zodat je
+        zwart-op-wit hebt waarvoor je hebt gekozen.
       </p>
       <div className="mt-4 flex gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-5">
         <HeartHandshake

@@ -102,10 +102,9 @@ Je betaling is binnen en ${v.cursusnaam} staat voor je klaar. Hier begin je:
 
 ${cursusUrl}
 
-Eén ding weet je liever vooraf dan achteraf: je XP, badges en afvinkjes worden
-op dit moment in je browser bewaard, niet op de server. Ga je verder op een
-ander apparaat, dan staat de cursus gewoon open — je aankoop hangt aan je
-account — maar begint die telling daar opnieuw.
+Je aankoop én je voortgang — XP, badges en afvinkjes — hangen allebei aan je
+account. Ga je verder op een ander apparaat, log dan in met hetzelfde
+Google-account en je pakt de draad gewoon op waar je was.
 
 Loopt er iets vast, of heb je een vraag over een les? Antwoord gewoon op deze
 mail. Die komt bij mij terecht, niet bij een helpdesk.
@@ -187,9 +186,9 @@ Je toegang hangt aan het account waarmee je bent ingelogd (via Google) en is
 persoonlijk: je kunt hem niet doorgeven of doorverkopen. De lessen zijn alleen
 zichtbaar als je bent ingelogd en de aankoop bij jouw account hoort.
 
-Je voortgang — XP, badges en afvinkjes — staat op dit moment in de opslag van je
-browser. Wis je die, of ga je naar een ander apparaat of een andere browser, dan
-begint die telling opnieuw. Je aankoop en je toegang staan wél op je account.
+Je voortgang — XP, badges en afvinkjes — bewaren we net als je aankoop op je
+account. Ga je naar een ander apparaat of een andere browser, log dan in met
+hetzelfde Google-account: je voortgang staat er dan ook.
 
 JE WETTELIJKE RECHTEN
 

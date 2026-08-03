@@ -35,4 +35,4 @@ export function bedragNaarCenten(bedrag: string): number {
 /** Versie van de herroepingstekst waarmee de klant akkoord ging. Verhoog dit
  *  zodra de tekst op /herroepingsrecht inhoudelijk wijzigt, zodat we bij een
  *  geschil kunnen aantonen wélke tekst iemand destijds geaccepteerd heeft. */
-export const HERROEPING_TEKST_VERSIE = "herroeping-2026-08-v1";
+export const HERROEPING_TEKST_VERSIE = "herroeping-2026-08-v2";
