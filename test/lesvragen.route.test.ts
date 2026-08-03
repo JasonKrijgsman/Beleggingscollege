@@ -10,6 +10,7 @@ import { POST as moderatiePOST } from "@/app/api/lesvragen/moderatie/route";
 import { auth } from "@/auth";
 import { isBeheerder } from "@/lib/beheer";
 import { zichtbareVragen } from "@/lib/lesvragen";
+import { wisRatelimieten } from "@/lib/ratelimiet";
 import { entitlements, lessonQuestions, paymentAttempts } from "@/db/schema";
 import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
 
@@ -45,6 +46,9 @@ const EEN_VRAAG = "Hoe weet ik of dit een goed moment is om te beginnen?";
 beforeEach(async () => {
   await leegAlleTabellen();
   vi.clearAllMocks();
+  // De ratelimiet telt in het geheugen van het proces en zou anders over de
+  // tests heen doortellen.
+  wisRatelimieten();
   await maakGebruiker("u1");
   zetSessie("u1");
   beheerderMock.mockResolvedValue(false);
@@ -121,6 +125,34 @@ describe("POST /api/lesvragen", () => {
   it("kapotte body: geen toegang tot cursus '' dus 403, geen crash", async () => {
     const res = await vraagPOST(verzoek("/api/lesvragen", null));
     expect(res.status).toBe(403);
+  });
+
+  it("na tien pogingen volgt 429, ook al waren het afgekeurde pogingen", async () => {
+    // Bewust met te korte vragen: de limiet hoort te tellen wat er BINNENKOMT,
+    // anders is hameren gratis zolang je iets ongeldigs stuurt.
+    for (let i = 0; i < 10; i++) {
+      const res = await vraagPOST(verzoek("/api/lesvragen", { ...GRATIS, vraag: "kort" }));
+      expect(res.status).toBe(400);
+    }
+    const res = await vraagPOST(
+      verzoek("/api/lesvragen", { ...GRATIS, vraag: EEN_VRAAG })
+    );
+    expect(res.status).toBe(429);
+    expect(Number(res.headers.get("Retry-After"))).toBeGreaterThan(0);
+    expect((await res.json()).error).toBeTruthy();
+    expect(await db.select().from(lessonQuestions)).toHaveLength(0);
+  });
+
+  it("de limiet telt per account: een andere gebruiker mag gewoon door", async () => {
+    for (let i = 0; i < 11; i++) {
+      await vraagPOST(verzoek("/api/lesvragen", { ...GRATIS, vraag: "kort" }));
+    }
+    await maakGebruiker("u2");
+    zetSessie("u2");
+    const res = await vraagPOST(
+      verzoek("/api/lesvragen", { ...GRATIS, vraag: EEN_VRAAG })
+    );
+    expect(res.status).toBe(200);
   });
 });
 

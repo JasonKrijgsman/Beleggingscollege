@@ -78,6 +78,40 @@ describe("plaatsVraag", () => {
     }
     expect((await plaatsVraag("u1", "Test", CURSUS, LES, EEN_VRAAG)).ok).toBe(false);
   });
+
+  it("twee gelijktijdige inzendingen kunnen niet samen over de limiet heen", async () => {
+    // Nog één plek vrij. Met de oude code (eerst tellen, dán invoegen) lazen
+    // beide aanroepen "twee wachtend" vóórdat een van beide had ingevoegd, en
+    // gingen ze allebei door: vier openstaande vragen bij een limiet van drie.
+    for (let i = 0; i < MAX_WACHTEND_PER_GEBRUIKER - 1; i++) {
+      await plaatsVraag("u1", "Test", CURSUS, LES, `${EEN_VRAAG} (${i})`);
+    }
+
+    const uitslagen = await Promise.all([
+      plaatsVraag("u1", "Test", CURSUS, LES, `${EEN_VRAAG} (a)`),
+      plaatsVraag("u1", "Test", CURSUS, LES, `${EEN_VRAAG} (b)`),
+    ]);
+
+    expect(uitslagen.filter((u) => u.ok)).toHaveLength(1);
+    expect(await wachtendeVragen()).toHaveLength(MAX_WACHTEND_PER_GEBRUIKER);
+    const geweigerd = uitslagen.find((u) => !u.ok);
+    expect(geweigerd && "reden" in geweigerd && geweigerd.reden).toBeTruthy();
+  });
+
+  it("de limiet telt alleen wachtende vragen: na moderatie is er weer plek", async () => {
+    for (let i = 0; i < MAX_WACHTEND_PER_GEBRUIKER; i++) {
+      await plaatsVraag("u1", "Test", CURSUS, LES, `${EEN_VRAAG} (${i})`);
+    }
+    const [eerste] = await wachtendeVragen();
+    await modereer(eerste.id, "beantwoord", "Een helder, opbouwend antwoord.");
+
+    expect((await plaatsVraag("u1", "Test", CURSUS, LES, EEN_VRAAG)).ok).toBe(true);
+  });
+
+  it("bewaart alleen de voornaam, afgekapt op veertig tekens", async () => {
+    await plaatsVraag("u1", "  Jason Krijgsman  ", CURSUS, LES, EEN_VRAAG);
+    expect((await wachtendeVragen())[0].naam).toBe("Jason");
+  });
 });
 
 describe("modereer", () => {
