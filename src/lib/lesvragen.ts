@@ -58,12 +58,20 @@ function lesBestaat(courseSlug: string, lessonSlug: string): boolean {
   );
 }
 
-/** Openbare vragen bij een les: goedgekeurd én beantwoord, nieuwste eerst. */
+/**
+ * Openbare vragen bij een les: goedgekeurd én beantwoord, nieuwste eerst.
+ *
+ * Gooit nooit. Deze functie draait óók tijdens de build (de gratis lessen
+ * worden vooraf gerenderd), en een hapering van de database mag een deploy
+ * niet laten mislukken. Bij een fout: geen vragen tonen, en de regel loggen.
+ * De les zelf blijft dan gewoon werken.
+ */
 export async function zichtbareVragen(
   courseSlug: string,
   lessonSlug: string
 ): Promise<LesVraag[]> {
-  return db
+  try {
+    return await db
     .select({
       id: lessonQuestions.id,
       naam: lessonQuestions.naam,
@@ -82,7 +90,14 @@ export async function zichtbareVragen(
       )
     )
     .orderBy(desc(lessonQuestions.answeredAt))
-    .limit(50);
+      .limit(50);
+  } catch (fout) {
+    console.error(
+      `[lesvragen] kon vragen niet ophalen voor ${courseSlug}/${lessonSlug}`,
+      fout
+    );
+    return [];
+  }
 }
 
 export type PlaatsResultaat =
