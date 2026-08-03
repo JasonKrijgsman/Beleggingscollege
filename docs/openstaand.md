@@ -492,6 +492,23 @@ Wat de review verder opleverde en nog openstaat:
   staan `joan.ns.cloudflare.com` / `rene.ns.cloudflare.com` ingevuld; Strato bevestigde
   "De NS-records zijn opgeslagen". Wat er nog moet: wachten tot de delegatie doorwerkt, dan
   Cloudflare laten verifiëren, Migadu → Rerun Checks, en dan pas de Providerwissel.
+- [ ] **De verhuiscode is het enige dat nog ontbreekt.** De Providerwissel-wizard faalde op
+      3 aug twee keer op de bevestigingsstap ("Er is een fout opgetreden"), zonder aanwijsbare
+      oorzaak: DNSSEC uit, Domain Guard uit, delegatie geland. Er wordt niets half toegepast.
+      Opnieuw proberen; blijft het falen, dan een supportticket met de Info-ID's uit
+      `docs/domain-migration-plan.md`. **Zonder code geen transfer naar Porkbun — en Porkbun
+      pikt niets vanzelf op.** Geen haast: het domein loopt tot 20-08-2027.
+- [ ] **`beheer@beleggingscollege.nl` bestaat nog niet bij Migadu.** Er staat alleen een
+      ongebruikte `admin@` (postmaster, aangemaakt bij het toevoegen van het domein). De code
+      en de publieke teksten op `/contact`, `/privacy` en `/herroepingsrecht` noemen `beheer@`.
+      Aanmaken, daarna `MAIL_SMTP_GEBRUIKER` en `MAIL_SMTP_WACHTWOORD` in Vercel
+      (Production + Preview), en pas dán DMARC terug van `quarantine` naar `reject`.
+- [ ] **De `.nl` serveert nu de oude WordPress-site.** De A-records in Cloudflare wijzen nog
+      naar `81.169.145.93` bij Strato. Dat was bewust zo tijdens de verhuizing, maar het
+      betekent dat het adres in onze eigen voettekst en op elk certificaat de site met de drie
+      verzonnen testimonials laat zien — precies waarom deze verhuizing haast had. Domein
+      toevoegen in Vercel, A/CNAME omzetten, `NEXT_PUBLIC_SITE_URL` naar de `.nl` en een
+      permanente redirect `.com` → `.nl`. Dit hoeft **niet** op de verhuiscode te wachten.
 - **Let op bij de Providerwissel:** Strato waarschuwt op de NS-pagina dat "STRATO
   e-mailfuncties bij gebruik van eigen nameservers niet beschikbaar zijn voor dit domein".
   De aanname in `docs/domain-migration-plan.md` dat je de Strato-postbus door de

@@ -55,6 +55,14 @@ Pro verplicht wordt — maar niet eerder: eerst verkopen, dan optimaliseren.
 Ter vergelijking: het Strato PowerWeb Basic-pakket kostte grofweg €60–120 per jaar voor een
 site die nooit iets verkocht heeft.
 
+**Let op — dat pakket loopt gewoon door, en dat is niet op te zeggen (3 aug 2026).** In
+Contracten → Contractinformatie staat: STRATO PowerWeb Basic, **€6 per maand**, actief sinds
+05-08-2020, en **"Eerstvolgende mogelijkheid tot opzegging: 05-08-2027"**. De domeinregel
+(€7,20/jr) is daar een aparte post binnen. Reken dus tot augustus 2027 op **€72 per jaar
+Strato bovenop** alles hierboven, ook nadat het domein verhuisd is. Het domein wegverhuizen
+zegt het pakket niet op — dat is een losse handeling met een eigen opzegtermijn, en die
+termijn is voor dit jaar al verstreken.
+
 Mollie rekent geen maandbedrag, alleen per transactie (iDEAL ~€0,29, SEPA-incasso €0,35 —
 zie `docs/betalingen-mollie.md` voor het volledige tarievenoverzicht en het MOI-risico).
 
