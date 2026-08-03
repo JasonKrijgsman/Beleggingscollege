@@ -4,8 +4,14 @@ Laatst bijgewerkt: 2 augustus 2026.
 
 ## Waar we geland zijn
 
-**Migadu, en we wachten op de verhuizing van de `.nl`.** De code is af en staat live; er gaat
-alleen nog niets de deur uit omdat de omgevingsvariabelen leeg zijn.
+**Migadu, en de code praat er inmiddels ook echt mee.** De ombouw van Resend (HTTP) naar Migadu
+(SMTP) is op 3 augustus 2026 gedaan; er gaat alleen nog niets de deur uit omdat de
+omgevingsvariabelen leeg zijn.
+
+> **Stand 3 augustus 2026:** de naamservers van `beleggingscollege.nl` zijn bij Strato omgezet
+> naar Cloudflare (`joan`/`rene.ns.cloudflare.com`) nadat DNSSEC eindelijk op "Niet actief"
+> stond. Zodra die delegatie doorwerkt, neemt de Cloudflare-zone het over — inclusief de
+> Migadu-MX. Daarna: Migadu → Rerun Checks, postbus aanmaken, variabelen vullen, testen.
 
 Dat "wachten" is een bewuste keuze en geen vergeten actie. Onderbouwing hieronder, inclusief
 wat we níét doen en waarom — zodat niemand dit over drie weken opnieuw gaat uitzoeken.
@@ -130,17 +136,24 @@ verzenden bewezen werkt; daarna terug naar `reject`.
 In Vercel (Production + Preview) en in `.env.local`:
 
 ```
-RESEND_API_KEY=          # of de Migadu-SMTP-gegevens, zie hieronder
+MAIL_SMTP_GEBRUIKER=     # het volledige mailadres, bijv. beheer@beleggingscollege.nl
+MAIL_SMTP_WACHTWOORD=
+MAIL_SMTP_HOST=          # optioneel, standaard smtp.migadu.com
+MAIL_SMTP_PORT=          # optioneel, standaard 465
 MAIL_AFZENDER=Beleggingscollege <beheer@beleggingscollege.nl>
 BEDRIJF_ADRES=
 BEDRIJF_BTW_NUMMER=NL004813328B30
 ```
 
-**Let op bij het omzetten naar Migadu:** `src/lib/mail.ts` praat nu met de HTTP-API van Resend.
-Migadu heeft geen verzend-API, alleen SMTP. Bij het inschakelen moet die functie dus omgebouwd
-worden naar SMTP (`smtp.migadu.com`, poort 465, gebruikersnaam is het volledige mailadres). De
-rest van de keten — `orderbevestiging.ts`, `mailteksten.ts`, de webhook — verandert niet: die
-roepen alleen `verstuurMail()` aan.
+**De ombouw naar Migadu is gedaan** (3 augustus 2026). `src/lib/mail.ts` praat via nodemailer
+met `smtp.migadu.com`; de gebruikersnaam is het volledige mailadres. De rest van de keten —
+`orderbevestiging.ts`, `mailteksten.ts`, de webhook — is niet aangeraakt: die roepen alleen
+`verstuurMail()` aan. Dat was precies het punt van die modulegrens.
+
+**nodemailer staat exact op 8.0.11 en dat is geen slordigheid.** Auth.js (`next-auth`,
+`@auth/core`) heeft een peer dependency op `nodemailer@^7 || ^8`. Installeer je 9, dan weigert
+npm de installatie met een ERESOLVE-fout en breekt de auth-adapter. Optrekken kan pas als
+Auth.js zelf meegaat.
 
 Zonder verzendgegevens verstuurt de app niets en logt hij een waarschuwing. De aankoop werkt
 gewoon door; dat is met opzet.
@@ -173,7 +186,7 @@ Mollie-id. De Belastingdienst wil een reeks zonder gaten.
 
 ## Wat hierna nog moet
 
-- [ ] `src/lib/mail.ts` omzetten van de Resend-API naar Migadu SMTP.
+- [x] ~~`src/lib/mail.ts` omzetten van de Resend-API naar Migadu SMTP.~~ Gedaan 3 aug 2026.
 - [ ] Een herkansing als de bevestigingsmail mislukt. Nu wordt dat alleen naar de console
       gelogd, terwijl juist die mail bepaalt of het herroepingsrecht vervalt.
 - [ ] Bounces afhandelen. Bij Migadu komen die terug in de postbus; er moet iemand kijken.

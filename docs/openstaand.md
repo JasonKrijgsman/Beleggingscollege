@@ -72,8 +72,11 @@ juridisch niet mag verkopen, of kun je een geschil niet winnen.
       **Staat bewust nog uit.** Verzendkeuze is Migadu (niet Resend) en we wachten op de
       verhuizing van de `.nl`, omdat er toch geen echt geld binnen kan komen. Ontsnappingsroute
       als Strato treuzelt, plus de hele afweging: `docs/e-mail-versturen.md`.
-- [ ] **`src/lib/mail.ts` omzetten van de Resend-API naar Migadu SMTP.** De rest van de keten
-      raakt dat niet; alleen die ene functie.
+- [x] ~~**`src/lib/mail.ts` omzetten van de Resend-API naar Migadu SMTP.**~~ **Gedaan 3 aug
+      2026.** Via nodemailer (exact 8.0.11 — Auth.js accepteert geen 9). De rest van de keten
+      is inderdaad niet aangeraakt. Wat er nu nog ontbreekt zijn de gegevens zelf:
+      `MAIL_SMTP_GEBRUIKER` en `MAIL_SMTP_WACHTWOORD` in Vercel, en die kunnen pas als de
+      Migadu-postbus bestaat.
 - [ ] **Twee gegevens die er nog niet zijn (KOR is beantwoord):**
       - ~~KOR?~~ **Beantwoord op 2 aug 2026: geen KOR.** De 21%-regel in de mail klopt dus.
       - **Vestigingsadres.** Jason wil zijn woonadres niet op internet. Onderzoek naar de
@@ -483,12 +486,18 @@ Wat de review verder opleverde en nog openstaat:
 
 ## 8. Domein en e-mail
 
-- **De verhuizing zit niet vast, hij loopt.** In het Strato-paneel staat onder
-  Domeinen → beleggingscollege.nl → DNS → DNSSEC letterlijk "DNSSEC: Wordt gedeactiveerd".
-  Er is geen knop om iets te versnellen. Het DS-record (keytag 43361) staat nog bij de
-  registry; gecontroleerd via vier onafhankelijke resolvers. Zodra
-  `Resolve-DnsName -Name beleggingscollege.nl -Type DS -Server 1.1.1.1` niets meer
-  teruggeeft, kan de naamserverwissel door.
+- **DNSSEC is eraf en de naamservers zijn omgezet (3 aug 2026).** Het DS-record (keytag 43361)
+  is verdwenen bij de registry — gecontroleerd via `ns1.dns.nl`, 1.1.1.1 en 8.8.8.8 — en
+  Strato's eigen paneel meldt nu "DNSSEC: Niet actief". Daarmee kwam het NS-formulier vrij en
+  staan `joan.ns.cloudflare.com` / `rene.ns.cloudflare.com` ingevuld; Strato bevestigde
+  "De NS-records zijn opgeslagen". Wat er nog moet: wachten tot de delegatie doorwerkt, dan
+  Cloudflare laten verifiëren, Migadu → Rerun Checks, en dan pas de Providerwissel.
+- **Let op bij de Providerwissel:** Strato waarschuwt op de NS-pagina dat "STRATO
+  e-mailfuncties bij gebruik van eigen nameservers niet beschikbaar zijn voor dit domein".
+  De aanname in `docs/domain-migration-plan.md` dat je de Strato-postbus door de
+  naamserverwissel heen levend houdt door de MX te kopiëren, klopt dus niet — en de
+  Cloudflare-zone wijst sowieso al naar Migadu. Jason heeft op 3 aug bevestigd dat de inhoud
+  van die postbussen gemist kan worden.
 - **De e-mail werkt gewoon.** `beheer@beleggingscollege.nl` bestaat als postbus bij Strato
   en bevat mail; `info@` ook. Uitgaande post wordt door Strato met DKIM ondertekend
   (`strato-dkim-0002`, `strato-dkim-0003`), dus de DMARC-regel op `p=reject` slaagt ondanks
