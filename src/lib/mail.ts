@@ -30,9 +30,17 @@ import nodemailer, { type Transporter } from "nodemailer";
  * werkt. Zie docs/migadu-records.txt voor de records.
  */
 
-/** Standaard Migadu; overschrijfbaar zodat een test of een andere provider kan. */
-const HOST = process.env.MAIL_SMTP_HOST ?? "smtp.migadu.com";
-const POORT = Number(process.env.MAIL_SMTP_PORT ?? 465);
+/**
+ * Standaard Migadu; overschrijfbaar zodat een test of een andere provider kan.
+ *
+ * Let op de `||` in plaats van `??`. Een omgevingsvariabele die wél bestaat
+ * maar leeg is, is in Node `""` en niet `undefined` — en dat is precies wat je
+ * krijgt als iemand `.env.example` kopieert. Met `??` zou de host dan leeg
+ * blijven en `Number("")` de poort op 0 zetten: elke mail mislukt, terwijl de
+ * configuratie er ingevuld uitziet. `||` vangt leeg, 0 en NaN allemaal af.
+ */
+const HOST = process.env.MAIL_SMTP_HOST || "smtp.migadu.com";
+const POORT = Number(process.env.MAIL_SMTP_PORT) || 465;
 
 /** Bij Migadu is de gebruikersnaam het volledige mailadres. */
 const GEBRUIKER = process.env.MAIL_SMTP_GEBRUIKER;

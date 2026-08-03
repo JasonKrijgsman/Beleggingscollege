@@ -509,6 +509,7 @@ Wat de review verder opleverde en nog openstaat:
       verzonnen testimonials laat zien — precies waarom deze verhuizing haast had. Domein
       toevoegen in Vercel, A/CNAME omzetten, `NEXT_PUBLIC_SITE_URL` naar de `.nl` en een
       permanente redirect `.com` → `.nl`. Dit hoeft **niet** op de verhuiscode te wachten.
+      **Volledig stappenplan met de valkuilen: `docs/nl-als-hoofddomein.md`.**
 - **Let op bij de Providerwissel:** Strato waarschuwt op de NS-pagina dat "STRATO
   e-mailfuncties bij gebruik van eigen nameservers niet beschikbaar zijn voor dit domein".
   De aanname in `docs/domain-migration-plan.md` dat je de Strato-postbus door de

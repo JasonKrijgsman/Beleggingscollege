@@ -156,6 +156,28 @@ describe("met inloggegevens — het gelukte geval", () => {
     expect(h.createTransport).toHaveBeenCalledOnce();
   });
 
+  it("lege host en poort vallen terug op Migadu — niet op '' en 0", async () => {
+    // Dit is precies wat je krijgt als iemand .env.example kopieert: de
+    // variabelen bestaan, maar zijn leeg. Met `??` zou dat de standaard
+    // overschrijven en elke mail stilletjes mislukken.
+    vi.resetModules();
+    vi.stubEnv("MAIL_SMTP_GEBRUIKER", INGELOGD.gebruiker);
+    vi.stubEnv("MAIL_SMTP_WACHTWOORD", INGELOGD.wachtwoord);
+    vi.stubEnv("MAIL_SMTP_HOST", "");
+    vi.stubEnv("MAIL_SMTP_PORT", "");
+    const { verstuurMail } = await import("@/lib/mail");
+    metSendMail(vi.fn().mockResolvedValue({ messageId: "<a@migadu>" }));
+
+    await verstuurMail(BERICHT);
+    expect(h.createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: "smtp.migadu.com",
+        port: 465,
+        secure: true,
+      })
+    );
+  });
+
   it("poort 587 draait STARTTLS in plaats van impliciete TLS", async () => {
     const { verstuurMail } = await laadMail({ ...INGELOGD, poort: "587" });
     metSendMail(vi.fn().mockResolvedValue({ messageId: "<a@migadu>" }));
