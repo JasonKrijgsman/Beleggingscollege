@@ -75,7 +75,18 @@ Accounts, aankopen en voortgang hangen aan gebruikers-id's, niet aan een URL. Bi
 - Elke pagina heeft een eigen `<title>` + meta description (via `generateMetadata`); nieuwe pagina's ook.
 - Aanwezig: sitemap (`src/app/sitemap.ts`), robots (`src/app/robots.ts`, blokkeert /leerpad + certificaten), Open Graph-defaults (layout), canonicals per pagina, schema.org Course-markup (cursusdetailpagina). Certificaatpagina's zijn noindex.
 - Canonicals volgen `SITE_URL` (nu .com). Zodra de .nl live is: variabele omzetten én `.com` permanent naar `.nl` redirecten, anders concurreren twee identieke sites met elkaar.
-- Nog te doen: OG-afbeelding, Google Search Console aanmelden + sitemap indienen.
+- **Een eigen `openGraph`-blok in `generateMetadata` vervángt dat van de root-layout, inclusief de afbeelding uit `opengraph-image.tsx`.** Zet je er een neer, haal de afbeelding dan expliciet bij de ouder op (`(await parent).openGraph?.images`) — anders deelt die pagina zonder kaart. Precies zo ging het mis op de cursus- en blogpagina's, hersteld 3 aug 2026.
+- **De sitemap bevat alleen lessen van gratis cursussen.** Een vergrendelde les toont een uitgelogde crawler alleen het slotscherm; die dienen we niet aan. `test/sitemap.test.ts` bewaakt beide kanten.
+- **Stuur niemand naar een pagina die voor hem op slot zit.** Een betaalde cursuspagina toont niet-kopers het curriculum in plaats van een "start"-knop, en de lessenlijst een slotje vóór de klik. `heeftToegangTot()` blijft de autorisatie; dit gaat alleen over wat je tóónt.
+
+## Bezoekmeting
+
+**Gebouwd op 3 aug 2026, staat nog uit.** Umami, zelf gehost als tweede Vercel-project met een eigen Neon-database — géén Google Analytics en geen gehoste statistiekdienst, want dat zou een verwerker toevoegen aan een site die zich juist op privacy verkoopt. Cookieloos, geen profielen, respecteert Do Not Track; daarom blijft de site zónder cookiebanner.
+
+- `src/lib/analytics.ts` bepaalt als enige óf er gemeten wordt; `src/components/Analytics.tsx` rendert het script, of niets.
+- **Leeg = echt uit.** Zonder `NEXT_PUBLIC_UMAMI_URL` én `NEXT_PUBLIC_UMAMI_WEBSITE_ID` laadt er geen script en gaat er geen verzoek uit. `test/analytics.test.ts` pint dat vast.
+- De instantie opzetten kan een agent niet afmaken (Vercel werkt met passkeys). Stappen, afwegingen en de juridische grens: `docs/analytics.md`.
+- **Niet op veggie.** `*.jasonkrijgsman.com` wijst naar `192.168.2.15`, dus de homelab is voor bezoekers onbereikbaar. Zie `docs/analytics.md`.
 
 ## Eerlijkheid is een productvereiste, geen sfeer
 

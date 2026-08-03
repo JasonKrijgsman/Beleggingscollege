@@ -72,6 +72,12 @@ export default function PrivacyPage() {
             Geen trackingcookies, geen advertentiecookies, geen profilering.
           </li>
           <li>
+            We tellen bezoeken met onze eigen, cookieloze meetsoftware. Er
+            wordt niets op je apparaat opgeslagen, je IP-adres bewaren we niet
+            en we volgen je niet over andere websites. Daarom is er ook geen
+            cookiebanner.
+          </li>
+          <li>
             Log je in of koop je een cursus, dan verwerken we daarnaast je
             naam, e-mailadres en bestelgegevens. Betalingen lopen via Mollie;
             wij zien nooit je volledige bank- of kaartgegevens.
@@ -170,9 +176,35 @@ export default function PrivacyPage() {
         We plaatsen geen trackingcookies en geen advertentiecookies, en we
         gebruiken geen advertentienetwerken. De lokale opslag die we gebruiken
         is puur functioneel: zonder die opslag kunnen we je voortgang niet
-        onthouden. Daarvoor is geen toestemmingsbanner vereist. Zetten we later
-        wél meetsoftware in, dan vragen we daar vooraf toestemming voor en
-        passen we deze verklaring aan.
+        onthouden. Daarvoor is geen toestemmingsbanner vereist.
+      </p>
+      <p className="mt-3 leading-relaxed text-body">
+        We tellen wél hoe vaak pagina&apos;s bezocht worden, want zonder dat
+        weten we niet welke uitleg aankomt en welke niet. Dat doen we met{" "}
+        <strong className="text-ink">Umami</strong>: meetsoftware die we zelf
+        draaien, op onze eigen omgeving, met de gegevens in onze eigen database
+        in Frankfurt. Er gaat dus geen bezoekgegeven naar Google of naar een
+        advertentiebedrijf.
+      </p>
+      <p className="mt-3 leading-relaxed text-body">
+        Wat die teller vastlegt: welke pagina je bekeek, wanneer, via welke site
+        je binnenkwam, en globaal je land, je browser en je soort apparaat. Wat
+        hij <em>niet</em> doet: een cookie zetten, iets op je apparaat
+        opslaan, je over andere websites volgen, of je bezoeken aan elkaar
+        knopen tot een profiel. Je IP-adres bewaren we niet — het wordt alleen
+        gebruikt om er samen met de datum een onherleidbare code van te maken,
+        zodat we terugkerende bezoekers per dag kunnen tellen. Die code klopt de
+        volgende dag niet meer en is niet naar jou terug te rekenen.
+      </p>
+      <p className="mt-3 leading-relaxed text-body">
+        Omdat er niets op je apparaat wordt opgeslagen of uitgelezen en er geen
+        profielen ontstaan, is hiervoor geen toestemming nodig (artikel 11.7a
+        Telecommunicatiewet). Daarom zie je hier geen cookiebanner — niet omdat
+        we het vergeten zijn, maar omdat er niets te vragen valt. Staat in je
+        browser <strong className="text-ink">Do Not Track</strong> aan, dan
+        tellen we je sowieso niet mee. Willen we ooit iets meten dat hier niet
+        onder valt, dan vragen we daar eerst toestemming voor en passen we deze
+        verklaring aan.
       </p>
 
       <h2 className="mt-12 flex items-center gap-2 text-2xl font-bold text-ink">
@@ -260,6 +292,13 @@ export default function PrivacyPage() {
               <td className="py-3">Gerechtvaardigd belang</td>
             </tr>
             <tr className="border-b border-lijn">
+              <td className="py-3 pr-4">Bezoekstatistieken (cookieloos)</td>
+              <td className="py-3 pr-4">
+                Weten welke uitleg aankomt en welke niet
+              </td>
+              <td className="py-3">Gerechtvaardigd belang</td>
+            </tr>
+            <tr className="border-b border-lijn">
               <td className="py-3 pr-4">
                 Account- en voortgangsgegevens (ingelogd)
               </td>
@@ -300,6 +339,12 @@ export default function PrivacyPage() {
           regel niet langer dan enkele maanden.
         </li>
         <li>
+          <strong className="text-ink">Bezoekstatistieken:</strong> die gaan
+          nergens over een persoon, dus er valt ook niets aan jou te koppelen of
+          voor jou te verwijderen. We bewaren ze als optelsom, zodat we kunnen
+          zien of een cursus over een jaar beter of slechter gevonden wordt.
+        </li>
+        <li>
           <strong className="text-ink">Accountgegevens:</strong> zolang je
           account bestaat. Zeg je op en vraag je om verwijdering, dan wissen we
           je account; wat we wettelijk moeten bewaren blijft staan.
@@ -335,7 +380,10 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong className="text-ink">Vercel Inc.</strong> — hosting van de
-          website, inclusief de technische logs.
+          website, inclusief de technische logs. Onze meetsoftware draait op
+          dezelfde omgeving; daar komt dus géén extra partij bij kijken. Dat is
+          precies waarom we hem zelf draaien en geen kant-en-klare
+          statistiekdienst gebruiken.
         </li>
         <li>
           <strong className="text-ink">Neon Inc.</strong> — de database waarin

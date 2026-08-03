@@ -401,13 +401,23 @@ Organization-/WebSite-markup.
 
 Wat de review verder opleverde en nog openstaat:
 
-- [ ] **Er is geen enkele meting.** Nul analytics, nul trackingscripts — goed voor de privacy
-      en de reden dat er geen cookiebanner nodig is, maar het betekent ook dat er straks
-      verkocht wordt zonder te weten hoeveel mensen de gratis cursus starten, waar ze
-      afhaken of hoeveel er een cursuspagina bereiken. Een cookieloze, zelfgehoste teller
-      (Umami of Plausible op veggie) houdt de privacybelofte heel én maakt de trechter
-      zichtbaar. **Let op:** zodra dit er staat, moet §10 ("geen cookiebanner nodig") en de
-      privacyverklaring mee — die belooft nu expliciet dat we later toestemming vragen.
+- [ ] **De meting is gebouwd maar staat nog uit.** Umami, zelf gehost, cookieloos:
+      `src/lib/analytics.ts` + `src/components/Analytics.tsx`, gemount in de root-layout.
+      Zolang `NEXT_PUBLIC_UMAMI_URL` en `NEXT_PUBLIC_UMAMI_WEBSITE_ID` niet allebei gevuld
+      zijn, laadt er geen script en gaat er geen verzoek uit; `test/analytics.test.ts` pint
+      dat vast. De privacyverklaring is bijgewerkt (§10 hieronder ook) en beschrijft nu wat
+      er gemeten wordt en waarom er geen banner nodig is.
+      **Wat er nog moet:** de instantie zelf opzetten — Neon-database, tweede Vercel-project,
+      `stats.beleggingscollege.com`, en de twee variabelen in het site-project. Dat vraagt
+      Jasons login (passkeys), dus een agent kan het niet afmaken. Stappen staan in
+      `docs/analytics.md`.
+      **Niet vergeten:** de onderbouwing "geen toestemming nodig onder art. 11.7a Tw" is van
+      ons, niet van een jurist. Neem dit mee in de toetsing die al openstaat voor de drie
+      juridische pagina's (hoofdstuk 2).
+- [ ] **Gebeurtenissen, niet alleen paginaweergaven.** De trechter die er echt toe doet —
+      les 1 afgerond, cursuspagina bereikt, vinkje aan en tóch afgehaakt — vraagt om
+      expliciete `umami.track(...)`-aanroepen. Bewust nog niet gebouwd: eerst zien of de
+      basis klopt.
 - [ ] **Niets vangt een e-mailadres op.** De privacyverklaring beschrijft een nieuwsbrief en
       er is een inschrijfroute in de database, maar op de site staat nergens een
       aanmeldveld. De gratis cursus van negen lessen is het beste lokmiddel dat er is en
@@ -549,8 +559,12 @@ Wat de review verder opleverde en nog openstaat:
 - **De cursusinhoud is schoon** op auteursrecht en op de AFM-grens. Geen
   rendementsbeloftes, geen persoonlijk advies, geen overgeschreven boekteksten.
 - **Er is geen verzonnen social proof** op de nieuwe site.
-- **Geen cookiebanner nodig** — er is geen analytics en er zijn geen trackingcookies. Dat
-  geldt alleen zolang dat zo blijft.
+- **Geen cookiebanner nodig** — er zijn geen trackingcookies. De bezoekmeting die op
+  3 aug 2026 is gebouwd (Umami, zelf gehost) zet géén cookies en schrijft niets naar de
+  browser, dus die verandert hier niets aan: cookieloze statistiek zonder profilering valt
+  onder de uitzondering van art. 11.7a Telecommunicatiewet. Zie `docs/analytics.md` voor de
+  redenering en de grens. Gaan we ooit iets meten dat wél op het apparaat leest of schrijft,
+  dan is een banner alsnog verplicht.
 - **Bezoekers-IP's gaan niet naar Google voor het lettertype.** `next/font/google` host het
   lettertype bij de bouw zelf; de pagina doet nul verzoeken naar Google's fontservers.
   Google ziet je alleen bij het inloggen, en dat staat in de privacyverklaring.
