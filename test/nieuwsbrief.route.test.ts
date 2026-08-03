@@ -22,7 +22,8 @@ import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
  *    worden vastgelegd.
  * 3. Wie zich afmeldde moet zich opnieuw kunnen aanmelden. Dat kon niet — de
  *    oude onConflictDoNothing deed dan niets terwijl het formulier "gelukt"
- *    meldde.
+ *    meldde. Maar alleen de eigenaar mag dat: het endpoint is publiek, dus
+ *    anders draait een willekeurige derde jouw afmelding terug.
  * 4. Eén IP kan hier niet eindeloos op blijven rammen.
  */
 
@@ -95,6 +96,22 @@ describe("vastleggen", () => {
     expect(rijen[0].userId).toBeNull();
   });
 
+  it("gelooft x-real-ip boven de voorste waarde uit x-forwarded-for", async () => {
+    // Eén waarde, door de rand gezet: daar valt niets verkeerd uit te kiezen.
+    // De keten is de terugval en die is per definitie minder betrouwbaar.
+    await POST(
+      verzoek(
+        { email: "echt@voorbeeld.nl" },
+        {
+          "x-real-ip": "203.0.113.9",
+          "x-forwarded-for": "1.2.3.4, 203.0.113.9",
+        }
+      )
+    );
+    const rijen = await db.select().from(newsletterSignups);
+    expect(rijen[0].consentIp).toBe("203.0.113.9");
+  });
+
   it("koppelt het account als de aanmelder is ingelogd", async () => {
     await maakGebruiker("u1");
     authMock.mockResolvedValue({ user: { id: "u1" } } as never);
@@ -156,20 +173,32 @@ describe("geen orakel", () => {
 });
 
 describe("opnieuw aanmelden na afmelden", () => {
-  it("maakt de afgemelde rij weer actief, met verse toestemming", async () => {
-    await POST(
-      verzoek(
-        { email: "terug@voorbeeld.nl", bron: "certificaat/waardebeleggen" },
-        { "x-forwarded-for": "203.0.113.1" }
-      )
-    );
-    // Uitschrijven zoals de afmeldknop dat straks doet. De toestemmingsdatum
-    // zetten we er ver vóór, zodat straks aantoonbaar is dát hij ververst is.
-    const OUD = new Date("2026-06-01T12:00:00Z");
+  const AFGEMELD_OP = new Date("2026-07-01T12:00:00Z");
+
+  /** Zet een adres neer dat ooit is bevestigd en zich daarna heeft afgemeld. */
+  async function afgemeldAdres(email: string, consentedAt: Date) {
+    await POST(verzoek({ email, bron: "certificaat/waardebeleggen" }));
     await db
       .update(newsletterSignups)
-      .set({ consentedAt: OUD, unsubscribedAt: new Date("2026-07-01T12:00:00Z") })
-      .where(eq(newsletterSignups.email, "terug@voorbeeld.nl"));
+      .set({
+        consentedAt,
+        confirmedAt: new Date("2026-06-02T12:00:00Z"),
+        unsubscribedAt: AFGEMELD_OP,
+      })
+      .where(eq(newsletterSignups.email, email));
+  }
+
+  it("de eigenaar zet zichzelf weer aan, met verse toestemming", async () => {
+    // De toestemmingsdatum zetten we er ver vóór, zodat aantoonbaar is dát hij
+    // ververst is.
+    const OUD = new Date("2026-06-01T12:00:00Z");
+    await afgemeldAdres("terug@voorbeeld.nl", OUD);
+
+    // Eigenaarschap is hier één ding: ingelogd met precies dit adres.
+    await maakGebruiker("u1", "terug@voorbeeld.nl");
+    authMock.mockResolvedValue({
+      user: { id: "u1", email: "Terug@Voorbeeld.NL" },
+    } as never);
 
     const res = await POST(
       verzoek(
@@ -187,19 +216,54 @@ describe("opnieuw aanmelden na afmelden", () => {
     expect(rijen[0].consentedAt.getTime()).toBeGreaterThan(OUD.getTime());
     expect(rijen[0].consentIp).toBe("198.51.100.9");
     expect(rijen[0].source).toBe("voettekst");
+    // De oude dubbele bevestiging verviel met de afmelding: er moet straks
+    // opnieuw op een bevestigingslink geklikt worden vóór er post uitgaat.
+    expect(rijen[0].confirmedAt).toBeNull();
+    expect(rijen[0].userId).toBe("u1");
   });
 
-  it("vergeet het eerder gekoppelde account niet bij een anonieme herinschrijving", async () => {
-    await maakGebruiker("u1");
-    authMock.mockResolvedValue({ user: { id: "u1" } } as never);
+  it("een uitgelogde aanvraag draait een afmelding NIET terug", async () => {
+    await afgemeldAdres("rust@voorbeeld.nl", new Date("2026-06-01T12:00:00Z"));
+    authMock.mockResolvedValue(null as never);
+
+    const res = await POST(verzoek({ email: "rust@voorbeeld.nl" }));
+    // Nog steeds hetzelfde antwoord — dit endpoint is geen orakel.
+    expect(res.status).toBe(200);
+
+    const rijen = await db.select().from(newsletterSignups);
+    expect(rijen[0].unsubscribedAt?.getTime()).toBe(AFGEMELD_OP.getTime());
+  });
+
+  it("een ingelogde dérde kan andermans afmelding niet terugdraaien", async () => {
+    await afgemeldAdres("slachtoffer@voorbeeld.nl", new Date("2026-06-01T12:00:00Z"));
+    await maakGebruiker("u2", "iemand-anders@voorbeeld.nl");
+    authMock.mockResolvedValue({
+      user: { id: "u2", email: "iemand-anders@voorbeeld.nl" },
+    } as never);
+
+    await POST(verzoek({ email: "slachtoffer@voorbeeld.nl" }));
+
+    const rijen = await db.select().from(newsletterSignups);
+    // Het opt-outsignaal blijft staan; wissen zou het bewijs ervan uitgommen.
+    expect(rijen[0].unsubscribedAt?.getTime()).toBe(AFGEMELD_OP.getTime());
+    expect(rijen[0].userId).toBeNull();
+  });
+
+  it("vergeet het eerder gekoppelde account niet", async () => {
+    await maakGebruiker("u1", "gekoppeld@voorbeeld.nl");
+    authMock.mockResolvedValue({
+      user: { id: "u1", email: "gekoppeld@voorbeeld.nl" },
+    } as never);
     await POST(verzoek({ email: "gekoppeld@voorbeeld.nl" }));
 
     await db
       .update(newsletterSignups)
-      .set({ unsubscribedAt: new Date("2026-07-01T12:00:00Z") })
+      .set({ unsubscribedAt: AFGEMELD_OP })
       .where(eq(newsletterSignups.email, "gekoppeld@voorbeeld.nl"));
 
-    authMock.mockResolvedValue(null as never);
+    // Sessie zonder id (zou niet moeten kunnen, maar dan nog): de bestaande
+    // koppeling mag daar niet door verdwijnen.
+    authMock.mockResolvedValue({ user: { email: "gekoppeld@voorbeeld.nl" } } as never);
     await POST(verzoek({ email: "gekoppeld@voorbeeld.nl" }));
 
     const rijen = await db.select().from(newsletterSignups);

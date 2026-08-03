@@ -16,10 +16,20 @@
  * duurder dan de vijftien regels.
  */
 
-/** Boven dit aantal sleutels ruimen we verlopen vensters op. Geheugen van een
+/** Harde bovengrens op het aantal gevolgde sleutels. Geheugen van een
  *  serverless-instantie is niet gratis, en een lijst die alleen groeit is een
- *  lek dat je pas merkt als het te laat is. */
-const MAX_SLEUTELS = 5000;
+ *  lek dat je pas merkt als het te laat is.
+ *
+ *  Alléén verlopen vensters opruimen is hier geen grens maar een wens: wie met
+ *  steeds nieuwe sleutels strooit — en bij de nieuwsbriefroute is de sleutel
+ *  een IP uit een header — houdt alle vensters lopend, en dan valt er niets te
+ *  verlopen. Daarom gooit `dwingGrensAf()` er zo nodig ook lopende vensters
+ *  uit. */
+export const MAX_SLEUTELS = 5000;
+
+/** Als lopende vensters weg moeten, ruimen we in één keer tot hier terug. Dan
+ *  hoeft dat sorteerwerk niet bij élke volgende poging opnieuw. */
+const NA_OPRUIMEN = 4500;
 
 type Venster = { /** einde van het venster in ms sinds epoch */ tot: number; aantal: number };
 
@@ -48,7 +58,7 @@ export function verbruikPoging(
   if (!lopend || nu >= lopend.tot) {
     // Nieuw venster (of het vorige is verlopen): deze poging telt als eerste.
     vensters.set(sleutel, { tot: nu + vensterMs, aantal: 1 });
-    if (vensters.size > MAX_SLEUTELS) ruimVerlopenOp(nu);
+    if (vensters.size > MAX_SLEUTELS) dwingGrensAf(nu);
     return { toegestaan: true };
   }
 
@@ -65,10 +75,26 @@ export function verbruikPoging(
   return { toegestaan: true };
 }
 
-function ruimVerlopenOp(nu: number): void {
+function dwingGrensAf(nu: number): void {
+  // Eerst het goedkope en gratis deel: alles wat toch al afgelopen is.
   for (const [sleutel, venster] of vensters) {
     if (nu >= venster.tot) vensters.delete(sleutel);
   }
+  if (vensters.size <= MAX_SLEUTELS) return;
+
+  /*
+   * Nog steeds vol, dus loopt élk venster nog. Dan is er geen nette keuze meer,
+   * alleen een eerlijke: de vensters die het eerst aflopen gaan eruit.
+   *
+   * Wees precies over wat je hiermee opgeeft. Wie zijn venster kwijtraakt begint
+   * bij de volgende poging weer bij nul, dus wie meer dan vijfduizend verschillende
+   * sleutels per venster kan verzinnen, kan zichzelf zo een schone lei kopen.
+   * Dat is de mindere van de twee kwaden: een teller die je kunt resetten is
+   * hinderlijk, een Map die alleen groeit legt de instantie om.
+   */
+  const opAflooptijd = [...vensters.entries()].sort((a, b) => a[1].tot - b[1].tot);
+  const teveel = vensters.size - NA_OPRUIMEN;
+  for (let i = 0; i < teveel; i++) vensters.delete(opAflooptijd[i][0]);
 }
 
 /** Alleen voor tests: begin met schone tellers. */

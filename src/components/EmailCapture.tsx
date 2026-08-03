@@ -18,19 +18,35 @@ export default function EmailCapture({ bron }: { bron: string }) {
   const [status, setStatus] = useState<"idle" | "bezig" | "klaar" | "fout">(
     "idle"
   );
+  const [fout, setFout] = useState("");
 
   async function meldAan(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || status === "bezig") return;
     setStatus("bezig");
+    setFout("");
     try {
       const res = await fetch("/api/nieuwsbrief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), bron }),
       });
-      setStatus(res.ok ? "klaar" : "fout");
+      if (res.ok) {
+        setStatus("klaar");
+        return;
+      }
+      // De route schrijft zelf een nette reden (te snel achter elkaar, geen
+      // geldig adres). Die tonen we; anders staat iemand die de ratelimiet
+      // raakt zijn e-mailadres na te lopen terwijl daar niets mis mee is.
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      setFout(
+        data?.error ?? "Dat lukte niet — controleer het adres en probeer het nog eens."
+      );
+      setStatus("fout");
     } catch {
+      setFout("Dat lukte niet — controleer je verbinding en probeer het nog eens.");
       setStatus("fout");
     }
   }
@@ -86,7 +102,7 @@ export default function EmailCapture({ bron }: { bron: string }) {
       </div>
       {status === "fout" && (
         <p className="mt-2 text-xs font-semibold text-body" aria-live="polite">
-          Dat lukte niet — controleer het adres en probeer het nog eens.
+          {fout}
         </p>
       )}
       <p className="mt-2 text-xs text-body">
