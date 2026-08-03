@@ -10,14 +10,14 @@ import { POST as moderatiePOST } from "@/app/api/lesvragen/moderatie/route";
 import { auth } from "@/auth";
 import { isBeheerder } from "@/lib/beheer";
 import { zichtbareVragen } from "@/lib/lesvragen";
-import { lessonQuestions, purchases } from "@/db/schema";
+import { entitlements, lessonQuestions, paymentAttempts } from "@/db/schema";
 import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
 
 /**
  * De HTTP-schil om lesvragen heen. De lespagina toont het formulier alleen aan
  * wie de les mag zien, maar de UI is geen autorisatie: dit endpoint moet zélf
  * opnieuw langs de echte toegangspoort (heeftToegangTot, hier ongemockt, met
- * echte purchases-rijen in PGlite). De moderatieroute verhult bovendien zijn
+ * echte entitlement-rijen in PGlite). De moderatieroute verhult bovendien zijn
  * bestaan voor wie geen beheerder is.
  */
 
@@ -68,13 +68,21 @@ describe("POST /api/lesvragen", () => {
   });
 
   it("betaalde cursus mét aankoop: 200 en de vraag staat te wachten", async () => {
-    await db.insert(purchases).values({
+    // Een betaalde order: de poging én het recht dat de webhook verleent.
+    await db.insert(paymentAttempts).values({
+      id: "poging-betaald",
       userId: "u1",
       courseSlug: BETAALD.courseSlug,
       molliePaymentId: "tr_test",
       status: "paid",
       amountCents: 4900,
       currency: "EUR",
+    });
+    await db.insert(entitlements).values({
+      userId: "u1",
+      courseSlug: BETAALD.courseSlug,
+      status: "actief",
+      attemptId: "poging-betaald",
     });
     const res = await vraagPOST(
       verzoek("/api/lesvragen", { ...BETAALD, vraag: EEN_VRAAG })
@@ -86,7 +94,9 @@ describe("POST /api/lesvragen", () => {
   });
 
   it("een aankoop die niet op 'paid' staat telt niet: 403", async () => {
-    await db.insert(purchases).values({
+    // Alleen een poging, géén recht — precies wat een openstaande betaling is.
+    await db.insert(paymentAttempts).values({
+      id: "poging-openstaand",
       userId: "u1",
       courseSlug: BETAALD.courseSlug,
       molliePaymentId: "tr_pending",

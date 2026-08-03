@@ -104,8 +104,10 @@ export async function verstuurMail(
 /**
  * Ordernummer voor op de bevestiging: BC-2026-0001.
  *
- * De Belastingdienst wil een doorlopende reeks zonder gaten. Daarom tellen we
- * de bestaande aankopen per jaar in plaats van een willekeurig id te gebruiken.
+ * De Belastingdienst wil een doorlopende reeks zonder gaten. Het toekennen
+ * gebeurt tegenwoordig atomair in de paid-verwerking van de Mollie-webhook
+ * (via de teller in `order_counters`); dit is de referentie-implementatie
+ * van het formaat, en de tests leggen de SQL hiernaast.
  */
 export function ordernummer(jaar: number, volgnummer: number): string {
   return `BC-${jaar}-${String(volgnummer).padStart(4, "0")}`;

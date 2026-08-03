@@ -21,13 +21,14 @@ vi.mock("@/lib/mollie", async (importOriginal) => {
 import { POST } from "@/app/api/checkout/route";
 import { auth } from "@/auth";
 import { prijsInCenten } from "@/lib/prijs";
-import { purchases } from "@/db/schema";
+import { entitlements, paymentAttempts } from "@/db/schema";
 import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
 
 /**
  * De checkout: hier moet de regel "de prijs komt uit onze eigen catalogus,
  * nooit uit het verzoek" aantoonbaar gelden, tot en met het exacte bedrag dat
- * naar Mollie gaat.
+ * naar Mollie gaat. Sinds de betaalmodel-splitsing is elke poging bovendien
+ * een eigen, append-only rij in payment_attempts.
  */
 
 const authMock = vi.mocked(auth);
@@ -70,22 +71,27 @@ describe("catalogusprijs -> exact bedrag bij Mollie", () => {
     expect(h.paymentsCreate).toHaveBeenCalledTimes(1);
     const aanmaak = h.paymentsCreate.mock.calls[0][0];
     expect(aanmaak.amount).toEqual({ currency: "EUR", value: "49.00" });
-    expect(aanmaak.metadata).toEqual({
-      userId: "u1",
-      courseSlug: "waardebeleggen",
-    });
 
     // En wat wij vastleggen is hetzelfde bedrag, in centen.
     const rijen = await db
       .select()
-      .from(purchases)
-      .where(eq(purchases.userId, "u1"));
+      .from(paymentAttempts)
+      .where(eq(paymentAttempts.userId, "u1"));
     expect(rijen).toHaveLength(1);
     expect(rijen[0].amountCents).toBe(4900);
     expect(rijen[0].currency).toBe("EUR");
     expect(rijen[0].status).toBe("pending");
     expect(rijen[0].molliePaymentId).toBe("tr_nieuw_1");
     expect(rijen[0].withdrawalWaivedAt).toBeInstanceOf(Date);
+
+    // De metadata draagt onze eigen sleutel + het bedrag: daarmee kan de
+    // webhook-reparatietak een verloren insert reconstrueren (I1).
+    expect(aanmaak.metadata).toEqual({
+      userId: "u1",
+      courseSlug: "waardebeleggen",
+      attemptId: rijen[0].id,
+      amountCents: 4900,
+    });
   });
 
   it("een prijs of bedrag in het verzoek wordt volledig genegeerd", async () => {
@@ -104,6 +110,7 @@ describe("catalogusprijs -> exact bedrag bij Mollie", () => {
       currency: "EUR",
       value: "49.00",
     });
+    expect(h.paymentsCreate.mock.calls[0][0].metadata.amountCents).toBe(4900);
   });
 });
 
@@ -151,8 +158,9 @@ describe("wie en wat er niet doorheen mag", () => {
     expect(h.paymentsCreate).not.toHaveBeenCalled();
   });
 
-  it("al gekocht: 409 en geen tweede betaling", async () => {
-    await db.insert(purchases).values({
+  it("al gekocht (actief entitlement): 409 en geen tweede betaling", async () => {
+    await db.insert(paymentAttempts).values({
+      id: "poging-bestaand",
       userId: "u1",
       courseSlug: "waardebeleggen",
       molliePaymentId: "tr_bestaand",
@@ -160,12 +168,43 @@ describe("wie en wat er niet doorheen mag", () => {
       amountCents: 4900,
       currency: "EUR",
     });
+    await db.insert(entitlements).values({
+      userId: "u1",
+      courseSlug: "waardebeleggen",
+      status: "actief",
+      attemptId: "poging-bestaand",
+    });
     const res = await POST(
       checkoutRequest({ slug: "waardebeleggen", herroepingAkkoord: true })
     );
     expect(res.status).toBe(409);
     expect(await res.json()).toMatchObject({ alGekocht: true });
     expect(h.paymentsCreate).not.toHaveBeenCalled();
+  });
+
+  it("een ingetrokken entitlement (na refund) blokkeert een heraankoop níét", async () => {
+    await db.insert(paymentAttempts).values({
+      id: "poging-refund",
+      userId: "u1",
+      courseSlug: "waardebeleggen",
+      molliePaymentId: "tr_refund",
+      status: "refunded",
+      amountCents: 4900,
+      currency: "EUR",
+    });
+    await db.insert(entitlements).values({
+      userId: "u1",
+      courseSlug: "waardebeleggen",
+      status: "ingetrokken",
+      attemptId: "poging-refund",
+      revokedAt: new Date(),
+      revokedReason: "refund",
+    });
+    const res = await POST(
+      checkoutRequest({ slug: "waardebeleggen", herroepingAkkoord: true })
+    );
+    expect(res.status).toBe(200);
+    expect(h.paymentsCreate).toHaveBeenCalledTimes(1);
   });
 
   it("kapotte JSON: 404 (onbekende cursus), geen crash", async () => {
@@ -181,8 +220,9 @@ describe("wie en wat er niet doorheen mag", () => {
 });
 
 describe("herhaalde pogingen", () => {
-  it("na een eerdere mislukte poging: dezelfde rij wordt bijgewerkt, geen tweede", async () => {
-    await db.insert(purchases).values({
+  it("na een eerdere mislukte poging: een NIEUWE rij ernaast, de oude blijft als historie staan", async () => {
+    await db.insert(paymentAttempts).values({
+      id: "poging-oud",
       userId: "u1",
       courseSlug: "waardebeleggen",
       molliePaymentId: "tr_oud",
@@ -196,13 +236,43 @@ describe("herhaalde pogingen", () => {
     );
     expect(res.status).toBe(200);
 
+    // Append-only (I1): het oude Mollie-id blijft vindbaar, ongewijzigd.
     const rijen = await db
       .select()
-      .from(purchases)
-      .where(eq(purchases.userId, "u1"));
-    expect(rijen).toHaveLength(1);
-    expect(rijen[0].molliePaymentId).toBe("tr_nieuw_1");
-    expect(rijen[0].status).toBe("pending");
+      .from(paymentAttempts)
+      .where(eq(paymentAttempts.userId, "u1"))
+      .orderBy(paymentAttempts.createdAt);
+    expect(rijen).toHaveLength(2);
+    const oud = rijen.find((r) => r.molliePaymentId === "tr_oud");
+    const nieuw = rijen.find((r) => r.molliePaymentId === "tr_nieuw_1");
+    expect(oud?.status).toBe("failed");
+    expect(nieuw?.status).toBe("pending");
+  });
+
+  it("ook een mismatch-rij (bewijs) blijft staan bij een nieuwe poging", async () => {
+    // Scenario 4 uit docs/ontwerp-betaalmodel.md: een retry mag het spoor van
+    // een bedragafwijking nooit wissen.
+    await db.insert(paymentAttempts).values({
+      id: "poging-mismatch",
+      userId: "u1",
+      courseSlug: "waardebeleggen",
+      molliePaymentId: "tr_mismatch",
+      status: "mismatch",
+      amountCents: 4900,
+      currency: "EUR",
+    });
+
+    const res = await POST(
+      checkoutRequest({ slug: "waardebeleggen", herroepingAkkoord: true })
+    );
+    expect(res.status).toBe(200);
+
+    const bewijs = await db
+      .select()
+      .from(paymentAttempts)
+      .where(eq(paymentAttempts.molliePaymentId, "tr_mismatch"));
+    expect(bewijs).toHaveLength(1);
+    expect(bewijs[0].status).toBe("mismatch");
   });
 
   it("Mollie zonder betaallink: 502", async () => {

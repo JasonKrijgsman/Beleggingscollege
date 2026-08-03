@@ -5,7 +5,7 @@ import { and, desc, eq, ilike, inArray, isNull, lt, or } from "drizzle-orm";
 import { auth } from "@/auth";
 import { beheerSessie } from "@/lib/beheer";
 import { db } from "@/db";
-import { purchases, users } from "@/db/schema";
+import { entitlements, paymentAttempts, users } from "@/db/schema";
 import { getCourse } from "@/content";
 
 // Dit scherm toont klantgegevens en moet dus per verzoek renderen, met een
@@ -42,7 +42,7 @@ function cursusTitel(slug: string): string {
   return getCourse(slug)?.title ?? slug;
 }
 
-type AankoopRij = {
+type PogingRij = {
   id: string;
   createdAt: Date;
   status: string;
@@ -82,7 +82,7 @@ function AandachtBlok({
 }: {
   titel: string;
   uitleg: string;
-  rijen: AankoopRij[];
+  rijen: PogingRij[];
   kader: string;
 }) {
   if (rijen.length === 0) return null;
@@ -135,56 +135,56 @@ export default async function BeheerPage({
   const zoek = (q ?? "").trim();
   const patroon = `%${escapeLike(zoek)}%`;
 
-  const aankoopSelect = {
-    id: purchases.id,
-    createdAt: purchases.createdAt,
-    status: purchases.status,
-    amountCents: purchases.amountCents,
-    currency: purchases.currency,
-    molliePaymentId: purchases.molliePaymentId,
-    orderNumber: purchases.orderNumber,
-    confirmationSentAt: purchases.confirmationSentAt,
-    courseSlug: purchases.courseSlug,
+  const pogingSelect = {
+    id: paymentAttempts.id,
+    createdAt: paymentAttempts.createdAt,
+    status: paymentAttempts.status,
+    amountCents: paymentAttempts.amountCents,
+    currency: paymentAttempts.currency,
+    molliePaymentId: paymentAttempts.molliePaymentId,
+    orderNumber: paymentAttempts.orderNumber,
+    confirmationSentAt: paymentAttempts.confirmationSentAt,
+    courseSlug: paymentAttempts.courseSlug,
     email: users.email,
   };
 
   const eenUurGeleden = new Date(Date.now() - 60 * 60 * 1000);
 
-  const [aandacht, aankopen, klanten] = await Promise.all([
+  const [aandacht, pogingen, klanten] = await Promise.all([
     // Alles wat menselijke aandacht vraagt, ongefilterd — een zoekopdracht
     // mag een mismatch niet uit beeld duwen.
     db
-      .select(aankoopSelect)
-      .from(purchases)
-      .innerJoin(users, eq(purchases.userId, users.id))
+      .select(pogingSelect)
+      .from(paymentAttempts)
+      .innerJoin(users, eq(paymentAttempts.userId, users.id))
       .where(
         or(
-          eq(purchases.status, "mismatch"),
+          eq(paymentAttempts.status, "mismatch"),
           and(
-            eq(purchases.status, "pending"),
-            lt(purchases.createdAt, eenUurGeleden)
+            eq(paymentAttempts.status, "pending"),
+            lt(paymentAttempts.createdAt, eenUurGeleden)
           ),
           and(
-            eq(purchases.status, "paid"),
-            isNull(purchases.confirmationSentAt)
+            eq(paymentAttempts.status, "paid"),
+            isNull(paymentAttempts.confirmationSentAt)
           )
         )
       )
-      .orderBy(desc(purchases.createdAt)),
+      .orderBy(desc(paymentAttempts.createdAt)),
 
     db
-      .select(aankoopSelect)
-      .from(purchases)
-      .innerJoin(users, eq(purchases.userId, users.id))
+      .select(pogingSelect)
+      .from(paymentAttempts)
+      .innerJoin(users, eq(paymentAttempts.userId, users.id))
       .where(
         zoek
           ? or(
               ilike(users.email, patroon),
-              eq(purchases.molliePaymentId, zoek)
+              eq(paymentAttempts.molliePaymentId, zoek)
             )
           : undefined
       )
-      .orderBy(desc(purchases.createdAt))
+      .orderBy(desc(paymentAttempts.createdAt))
       .limit(50),
 
     // De Auth.js-tabel heeft geen createdAt, dus "nieuwste eerst" bestaat
@@ -202,30 +202,42 @@ export default async function BeheerPage({
   const zonderBevestiging = aandacht.filter((a) => a.status === "paid");
   const nietsAanDeHand = aandacht.length === 0;
 
-  // Aankopen van de getoonde klanten, in één keer, daarna in JS gegroepeerd.
-  const klantAankopen =
+  // Pogingen en rechten van de getoonde klanten, in één keer opgehaald en
+  // daarna in JS gegroepeerd. Toegang komt uit `entitlements` — dezelfde bron
+  // als heeftToegangTot() — niet uit de betaalpogingen.
+  const klantIds = klanten.map((k) => k.id);
+  const [klantPogingen, klantRechten] =
     klanten.length > 0
-      ? await db
-          .select({
-            userId: purchases.userId,
-            courseSlug: purchases.courseSlug,
-            status: purchases.status,
-          })
-          .from(purchases)
-          .where(
-            inArray(
-              purchases.userId,
-              klanten.map((k) => k.id)
-            )
-          )
-      : [];
+      ? await Promise.all([
+          db
+            .select({
+              userId: paymentAttempts.userId,
+              status: paymentAttempts.status,
+            })
+            .from(paymentAttempts)
+            .where(inArray(paymentAttempts.userId, klantIds)),
+          db
+            .select({
+              userId: entitlements.userId,
+              courseSlug: entitlements.courseSlug,
+              status: entitlements.status,
+            })
+            .from(entitlements)
+            .where(inArray(entitlements.userId, klantIds)),
+        ])
+      : [[], []];
 
-  const perKlant = new Map<string, { totaal: number; paid: string[] }>();
-  for (const a of klantAankopen) {
-    const rij = perKlant.get(a.userId) ?? { totaal: 0, paid: [] };
+  const perKlant = new Map<string, { totaal: number; toegang: string[] }>();
+  for (const p of klantPogingen) {
+    const rij = perKlant.get(p.userId) ?? { totaal: 0, toegang: [] };
     rij.totaal += 1;
-    if (a.status === "paid") rij.paid.push(a.courseSlug);
-    perKlant.set(a.userId, rij);
+    perKlant.set(p.userId, rij);
+  }
+  for (const r of klantRechten) {
+    if (r.status !== "actief") continue;
+    const rij = perKlant.get(r.userId) ?? { totaal: 0, toegang: [] };
+    rij.toegang.push(r.courseSlug);
+    perKlant.set(r.userId, rij);
   }
 
   return (
@@ -306,11 +318,11 @@ export default async function BeheerPage({
       </section>
 
       <section className="mt-10">
-        <h2 className="text-lg font-bold text-ink">Aankopen</h2>
+        <h2 className="text-lg font-bold text-ink">Betaalpogingen</h2>
         <p className="mt-1 text-xs text-body">
           {zoek
             ? `Gefilterd op “${zoek}” (e-mailadres bevat de term, of het Mollie-id is exact gelijk).`
-            : "De laatste 50, nieuwste eerst."}
+            : "De laatste 50, nieuwste eerst — álle pogingen, ook mislukte: elke Mollie-betaling houdt hier zijn eigen rij."}
         </p>
         <div className="mt-3 overflow-x-auto rounded-2xl border border-lijn bg-white shadow-card">
           <table className="w-full min-w-[64rem] text-left text-sm">
@@ -327,16 +339,16 @@ export default async function BeheerPage({
               </tr>
             </thead>
             <tbody>
-              {aankopen.length === 0 ? (
+              {pogingen.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-6 text-body">
                     {zoek
-                      ? `Geen aankopen gevonden voor “${zoek}”.`
-                      : "Nog geen aankopen."}
+                      ? `Geen betaalpogingen gevonden voor “${zoek}”.`
+                      : "Nog geen betaalpogingen."}
                   </td>
                 </tr>
               ) : (
-                aankopen.map((a) => (
+                pogingen.map((a) => (
                   <tr
                     key={a.id}
                     className="border-b border-lijn align-top last:border-0"
@@ -391,7 +403,7 @@ export default async function BeheerPage({
               <tr className="border-b border-lijn text-xs uppercase tracking-wide text-body">
                 <th className="px-4 py-3 font-semibold">Naam</th>
                 <th className="px-4 py-3 font-semibold">E-mail</th>
-                <th className="px-4 py-3 text-right font-semibold">Aankopen</th>
+                <th className="px-4 py-3 text-right font-semibold">Pogingen</th>
                 <th className="px-4 py-3 font-semibold">Toegang tot</th>
               </tr>
             </thead>
@@ -418,9 +430,9 @@ export default async function BeheerPage({
                         {rij?.totaal ?? 0}
                       </td>
                       <td className="px-4 py-3">
-                        {rij && rij.paid.length > 0 ? (
+                        {rij && rij.toegang.length > 0 ? (
                           <ul className="space-y-0.5">
-                            {rij.paid.map((slug) => (
+                            {rij.toegang.map((slug) => (
                               <li key={slug} className="text-ink">
                                 {cursusTitel(slug)}{" "}
                                 <span className="text-xs text-body">

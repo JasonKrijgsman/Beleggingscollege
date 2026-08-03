@@ -1,6 +1,6 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { purchases } from "@/db/schema";
+import { paymentAttempts } from "@/db/schema";
 import { bedragNaarCenten, mollie, mollieIsGeconfigureerd } from "@/lib/mollie";
 import { stuurOrderbevestiging } from "@/lib/orderbevestiging";
 
@@ -12,6 +12,118 @@ export const dynamic = "force-dynamic";
 function mollieStatus(fout: unknown): number | undefined {
   const code = (fout as { statusCode?: unknown })?.statusCode;
   return typeof code === "number" ? code : undefined;
+}
+
+/** Het attemptId-formaat dat de checkout zelf genereert (crypto.randomUUID). */
+const UUID_PATROON =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * De metadata die ónze checkout in de betaling zet. Dit komt uit ons eigen
+ * `payments.get()`-antwoord (opgehaald met onze API-key), dus het is door ons
+ * geschreven data — niet iets uit de publieke payload. De vormcontrole is er
+ * omdat ook betalingen van buiten onze checkout dit endpoint kunnen raken.
+ */
+function onzeMetadata(metadata: unknown): {
+  userId: string;
+  courseSlug: string;
+  attemptId: string;
+  amountCents: number;
+} | null {
+  const m = metadata as {
+    userId?: unknown;
+    courseSlug?: unknown;
+    attemptId?: unknown;
+    amountCents?: unknown;
+  } | null;
+  if (
+    m &&
+    typeof m.userId === "string" &&
+    m.userId.length > 0 &&
+    typeof m.courseSlug === "string" &&
+    m.courseSlug.length > 0 &&
+    typeof m.attemptId === "string" &&
+    UUID_PATROON.test(m.attemptId) &&
+    typeof m.amountCents === "number" &&
+    Number.isInteger(m.amountCents) &&
+    m.amountCents > 0
+  ) {
+    return {
+      userId: m.userId,
+      courseSlug: m.courseSlug,
+      attemptId: m.attemptId,
+      amountCents: m.amountCents,
+    };
+  }
+  return null;
+}
+
+/**
+ * De paid-verwerking als ÉÉN atomair SQL-statement.
+ *
+ * Waarom geen db.transaction(): de neon-http-driver van productie ondersteunt
+ * geen interactieve transacties (hij gooit "No transactions support in
+ * neon-http driver"), en db.batch() kan de uitkomst van het ene statement niet
+ * in het volgende gebruiken — terwijl het ordernummer van de tellerstand
+ * afhangt. Eén statement met data-modifying CTE's is in Postgres per definitie
+ * atomair (alles slaagt of alles rolt terug, teller incluis) en draait
+ * identiek op neon-http, PGlite en elke andere Postgres. Er is zo zelfs geen
+ * crashvenster tússen claim, teller en entitlement: het is één commit.
+ *
+ * De stappen, met de toegestane overgangen uit docs/ontwerp-betaalmodel.md §2.2:
+ *  1. kandidaat: de pending-rij opzoeken en vergrendelen (FOR UPDATE). Een
+ *     gelijktijdige tweede webhook wacht hier, ziet daarna dat de rij niet
+ *     meer pending is, en doet niets — óók de teller niet, dus geen gat.
+ *  2. teller: het jaarnummer atomair ophogen, mét RETURNING.
+ *  3. geclaimd: de overgang pending → paid, in één UPDATE samen met het
+ *     ordernummer (de rij mag in één statement maar één keer gewijzigd worden).
+ *     paidAt wordt precies één keer gezet en schuift dus nooit meer op.
+ *  4. recht: het entitlement verlenen of reactiveren (upsert op user+course);
+ *     een heraankoop na refund wist revoked_at/revoked_reason en hangt het
+ *     recht aan de nieuwe order.
+ *
+ * Nul rijen terug betekent: al verwerkt — een echte no-op.
+ */
+async function verwerkBetaald(paymentId: string): Promise<void> {
+  // Het jaar komt uit paidAt; beide worden in JS bepaald zodat de tests de
+  // klok kunnen sturen. toISOString() is dezelfde UTC-vorm die Drizzle zelf
+  // voor timestamp-kolommen hanteert.
+  const paidAt = new Date();
+  const jaar = paidAt.getFullYear();
+  const nummerVoorvoegsel = `BC-${jaar}-`;
+
+  await db.execute(sql`
+    WITH kandidaat AS (
+      SELECT id, user_id, course_slug FROM payment_attempts
+      WHERE mollie_payment_id = ${paymentId} AND status = 'pending'
+      FOR UPDATE
+    ),
+    teller AS (
+      INSERT INTO order_counters (jaar, laatste)
+      SELECT ${jaar}::int, 1 FROM kandidaat
+      ON CONFLICT (jaar) DO UPDATE SET laatste = order_counters.laatste + 1
+      RETURNING laatste
+    ),
+    geclaimd AS (
+      UPDATE payment_attempts a
+      SET status = 'paid',
+          paid_at = ${paidAt.toISOString()}::timestamp,
+          order_number = ${nummerVoorvoegsel} ||
+            lpad(t.laatste::text, greatest(4, length(t.laatste::text)), '0')
+      FROM kandidaat k, teller t
+      WHERE a.id = k.id AND a.status = 'pending'
+      RETURNING a.id, a.user_id, a.course_slug
+    )
+    INSERT INTO entitlements (id, user_id, course_slug, status, attempt_id, granted_at)
+    SELECT gen_random_uuid(), user_id, course_slug, 'actief', id, ${paidAt.toISOString()}::timestamp
+    FROM geclaimd
+    ON CONFLICT (user_id, course_slug) DO UPDATE
+      SET status = 'actief',
+          attempt_id = excluded.attempt_id,
+          granted_at = excluded.granted_at,
+          revoked_at = NULL,
+          revoked_reason = NULL
+  `);
 }
 
 /**
@@ -49,67 +161,111 @@ export async function POST(request: Request) {
     // Regel 1: status bij Mollie ophalen, niet uit de payload lezen.
     const payment = await mollie().payments.get(paymentId);
 
-    const rijen = await db
+    let rijen = await db
       .select()
-      .from(purchases)
-      .where(eq(purchases.molliePaymentId, paymentId))
+      .from(paymentAttempts)
+      .where(eq(paymentAttempts.molliePaymentId, paymentId))
       .limit(1);
 
-    const aankoop = rijen[0];
-    // Onbekend id: 200 teruggeven, zoals Mollie zelf aanbeveelt.
-    if (!aankoop) return new Response("OK", { status: 200 });
+    // Reparatietak: kennen wij het id niet, maar draagt de betaling ónze
+    // metadata (door onze checkout geschreven, hier uit ons eigen
+    // payments.get()-antwoord gelezen), dan is de insert destijds mislukt
+    // ná payments.create(). Maak de ontbrekende rij alsnog aan en verwerk
+    // de webhook daarna normaal. Het consentbewijs van de oorspronkelijke
+    // poging is daarbij helaas verloren — dat zat alleen in de mislukte
+    // insert; bedrag en valuta leggen we wél opnieuw vast, uit de metadata
+    // die wij er zelf in zetten (we verkopen uitsluitend in EUR).
+    if (!rijen[0]) {
+      const meta = onzeMetadata(payment.metadata);
+      // Staat er niets van ons in: 200, zoals Mollie zelf aanbeveelt.
+      if (!meta) return new Response("OK", { status: 200 });
+
+      console.warn(
+        `[mollie] reparatie: betaling ${paymentId} had geen rij; ` +
+          `aangemaakt uit eigen metadata (attempt ${meta.attemptId})`
+      );
+      // onConflictDoNothing: een gelijktijdige tweede webhook kan ons net
+      // vóór zijn geweest; dan is de rij er al en is dat prima.
+      await db
+        .insert(paymentAttempts)
+        .values({
+          id: meta.attemptId,
+          userId: meta.userId,
+          courseSlug: meta.courseSlug,
+          molliePaymentId: paymentId,
+          status: "pending",
+          amountCents: meta.amountCents,
+          currency: "EUR",
+        })
+        .onConflictDoNothing();
+
+      rijen = await db
+        .select()
+        .from(paymentAttempts)
+        .where(eq(paymentAttempts.molliePaymentId, paymentId))
+        .limit(1);
+      if (!rijen[0]) return new Response("OK", { status: 200 });
+    }
+
+    const poging = rijen[0];
 
     if (payment.status === "paid") {
       // Regel 2: bedrag en valuta moeten kloppen.
       const betaald = bedragNaarCenten(payment.amount.value);
       if (
-        payment.amount.currency !== aankoop.currency ||
-        betaald < aankoop.amountCents
+        payment.amount.currency !== poging.currency ||
+        betaald < poging.amountCents
       ) {
         console.error(
           `[mollie] bedrag komt niet overeen voor ${paymentId}: ` +
             `betaald ${payment.amount.currency} ${payment.amount.value}, ` +
-            `verwacht ${aankoop.currency} ${aankoop.amountCents / 100}`
+            `verwacht ${poging.currency} ${poging.amountCents / 100}`
         );
+        // Alleen pending → mismatch is toegestaan; een rij die al paid of
+        // mismatch is blijft onaangeroerd (bewijs wordt nooit overschreven).
         await db
-          .update(purchases)
+          .update(paymentAttempts)
           .set({ status: "mismatch" })
-          .where(eq(purchases.molliePaymentId, paymentId));
+          .where(
+            and(
+              eq(paymentAttempts.molliePaymentId, paymentId),
+              eq(paymentAttempts.status, "pending")
+            )
+          );
         return new Response("OK", { status: 200 });
       }
 
-      // Idempotent: dezelfde webhook komt gegarandeerd vaker binnen. De
-      // ne-voorwaarde maakt dit een echte no-op als de rij al op "paid"
-      // staat — zonder die voorwaarde schoof paidAt (de orderdatum op de
-      // bevestiging) bij elke herhaling op.
-      await db
-        .update(purchases)
-        .set({ status: "paid", paidAt: new Date() })
-        .where(
-          and(
-            eq(purchases.molliePaymentId, paymentId),
-            ne(purchases.status, "paid")
-          )
-        );
+      // De atomaire claim: pending → paid + ordernummer + entitlement, in
+      // één statement. Een herhaalde webhook is een echte no-op.
+      await verwerkBetaald(paymentId);
 
       // De wettelijk verplichte bevestiging. Bewust ná het vrijgeven van de
       // toegang, en bewust een functie die nooit gooit: gaat het versturen mis,
       // dan mag dat deze webhook niet laten falen. Anders herhaalt Mollie tien
       // keer over 26 uur terwijl de aankoop allang goed staat. De functie
-      // bewaakt zelf dat er maar één mail per aankoop uitgaat.
+      // bewaakt zelf (met een atomaire claim) dat er maar één mail per order
+      // uitgaat.
       await stuurOrderbevestiging(paymentId);
 
       return new Response("OK", { status: 200 });
     }
 
-    // Alle overige statussen 1-op-1 overnemen: failed, expired, canceled.
-    // Bij een terugbetaling zet Mollie de betaling niet op "refunded"; dat
-    // komt via een aparte refund-webhook. Zodra we terugbetalingen gaan doen
-    // moet hier ook de toegang weer ingetrokken worden.
-    await db
-      .update(purchases)
-      .set({ status: payment.status })
-      .where(eq(purchases.molliePaymentId, paymentId));
+    // Eindstatussen van Mollie overnemen, maar uitsluitend vanaf pending —
+    // dat is de volledige lijst toegestane overgangen uit
+    // docs/ontwerp-betaalmodel.md §2.2. Tussenstanden als "open" of
+    // "authorized" zijn gewoon nog pending en muteren hier niets; weg van
+    // "paid" bestaat alleen de (toekomstige) refund-route.
+    if (["failed", "expired", "canceled"].includes(payment.status)) {
+      await db
+        .update(paymentAttempts)
+        .set({ status: payment.status })
+        .where(
+          and(
+            eq(paymentAttempts.molliePaymentId, paymentId),
+            eq(paymentAttempts.status, "pending")
+          )
+        );
+    }
 
     return new Response("OK", { status: 200 });
   } catch (fout) {
