@@ -333,20 +333,22 @@ bevestigde, nog níét elders belegde punten, gereconcilieerd tegen de actuele `
 mogelijk in de code nagekeken. De review zelf is de onderbouwing; hier één eigenaar en één
 acceptatiecheck per punt.
 
-- [ ] **P0 — Betaalpoging, order en toegang zitten in één `purchases`-rij.** De zwaarste
-      bevinding. `src/app/api/checkout/route.ts` doet `select` → `mollie().payments.create()`
-      → `onConflictDoUpdate`, dat dezelfde (`userId`, `courseSlug`)-rij overschrijft met het
-      nieuwe payment-id en `pending`. Een webhook die de rij tussendoor op `paid` zet wordt zo
-      teruggezet naar `pending` (toegang ingetrokken ná echte betaling); twee gelijktijdige
-      checkouts laten maar één payment-id vindbaar; een DB-fout ná `payments.create()` laat een
-      betaalbare, lokaal onbekende betaling achter. De webhook-idempotentie (`ne(status,'paid')`)
-      dekt dit níét — die beschermt alleen `paidAt`. Splits het recht (één entitlement per
-      gebruiker/cursus) van de betaalpoging/order (meerdere rijen, elk eigen Mollie-id + status),
-      met expliciete voorwaardelijke overgangen; `heeftToegangTot()` blijft de enige poort.
-      **Eigenaar:** ontwerpnotitie + migratie vóór code, op een Neon Preview-branch (niet productie).
-      **Acceptatie:** tests met gecontroleerde vertraging bewijzen dat elke Mollie-id
-      reconcilieerbaar blijft, een `paid`-rij nooit stil naar `pending` gaat en betaald geld niet
-      zonder zichtbare order eindigt. **Vóór de live-key.**
+- [x] ~~P0 — Betaalpoging, order en toegang zitten in één `purchases`-rij~~ **Gedaan op
+      3 aug 2026 (PR #22).** `purchases` is gesplitst in `payment_attempts` (append-only, één
+      rij per Mollie-id), `entitlements` (één recht per gebruiker/cursus — het enige dat
+      `heeftToegangTot()` leest) en `order_counters` (atomaire, doorlopende ordernummers).
+      Alle §2.2-overgangen zitten nu als voorwaarde ín de UPDATE, dus geen enkele query kan
+      een `paid`- of `mismatch`-rij nog overschrijven. Ontwerp: `docs/ontwerp-betaalmodel.md`.
+      Migratie `0004` is eerst op een Neon-branch gerepeteerd en daarna op productie gedraaid;
+      de tellingen klopten vóór én na de deploy en de live site bevestigde dat de toegang
+      behouden bleef.
+      **Let op bij de neon-http-driver:** `db.transaction()` bestaat daar niet (hij gooit),
+      terwijl het in de PGlite-tests wél werkt. De paid-verwerking is daarom één SQL-statement
+      met data-modifying CTE's — zie `verwerkBetaald()` in de webhook. Niet "vereenvoudigen"
+      naar losse statements.
+      **Resteert:** de contract-stap — `DROP TABLE purchases` in een eigen migratie, pas als
+      `/beheer` aantoonbaar hetzelfde toont en er een volledige testaankoop doorheen is.
+      Terugrollen kan tot dan met `scripts/rollback-betaalmodel.sql`.
 - [x] ~~P0 — Publieke/juridische teksten beschrijven nog de oude site~~ **Gedaan.**
       `/herroepingsrecht` en `/privacy` op 3 aug (PR #18); `/veelgestelde-vragen` en
       `/voorwaarden` §7 op 3 aug in de reviewronde daarna — die twee waren over het hoofd
@@ -364,13 +366,12 @@ acceptatiecheck per punt.
       **Eigenaar:** één transactioneel, idempotent servercommando per afgeronde les.
       **Acceptatie:** parallelle tests (zelfde les; snapshot-vs-les) houden de invariant
       `user_stats.xp = SUM(lesson_progress.xp_awarded)`.
-- [ ] **P1 — Zichtbare prijs en schema.org-prijs komen niet uit één bron.**
-      `src/app/cursussen/[slug]/page.tsx` gebruikt bij een ontbrekende prijs de fallback `€14,99`
-      in de schema.org-`Offer`, terwijl de checkout op `€49` terugvalt — adverteren ≠ afrekenen
-      (geverifieerd). Bewaar centen als bron en leid tekst én structured data daaruit af.
-      **Eigenaar:** één numerieke prijsbron.
-      **Acceptatie:** catalogus, cursuskaart, detail, checkout, Molliebedrag en schema.org toetsen
-      tegen dezelfde fixture; geen fallback die van de echte prijs afwijkt.
+- [x] ~~P1 — Zichtbare prijs en schema.org-prijs komen niet uit één bron~~ **Gedaan op
+      3 aug 2026 (PR #17).** `schemaOrgPrijs()` in `src/lib/prijs.ts` leidt de geadverteerde
+      prijs af uit dezelfde `prijsInCenten()` die de checkout afrekent; de afwijkende
+      `€14,99`-fallback is weg, en bij een onbekende prijs verschijnt er géén `Offer` in
+      plaats van een verkeerde. `test/prijs.test.ts` bewaakt voor élke koopbare cursus dat
+      adverteren en afrekenen niet meer uit elkaar kunnen lopen.
 - [ ] **P1 — Vraag- en nieuwsbrieflifecycle vóór schaal.** De limiet van drie wachtende vragen
       is `count`-dan-`insert` (concurrencygevoelig); nieuwsbriefinschrijving gebruikt
       `onConflictDoNothing()`, zodat een uitgeschreven adres niet kan herinschrijven; beide
@@ -379,15 +380,12 @@ acceptatiecheck per punt.
       **Eigenaar:** token/confirm/unsubscribe/resubscribe + ratelimiet ontwerpen.
       **Acceptatie:** tests voor twee gelijktijdige vragen, herinschrijven-na-uitschrijven en een
       ratelimietgrens op beide routes.
-- [ ] **P1 — De nieuwste tools hebben geen eigen tests, en één heeft een bug.**
-      `src/components/PaniekSimulatorTool.tsx` (rond regel 195) gebruikt `acties.find(a =>
-      a.maand === m)` per maand en verwerkt zo maar één actie per maand: verkopen én herinstappen
-      in dezelfde gepauzeerde maand laat de tweede actie uit de berekening, terwijl de UI hem wél
-      toont (geverifieerd). `KostenVreterTool` en `BiasTestTool` missen rekentests op grenswaarden;
-      de biastest is bovendien geen gevalideerd meetinstrument en moet dat expliciet vermelden.
-      **Eigenaar:** unit-/browsertests + fix van de find-per-maand.
-      **Acceptatie:** fixtures dekken meerdere acties per maand, grenswaarden en de
-      niet-gevalideerde aard van de biastest.
+- [x] ~~P1 — De nieuwste tools hebben geen eigen tests, en één heeft een bug~~ **Gedaan op
+      3 aug 2026 (PR #20).** De `acties.find()`-bug in de paniek-simulator is gerepareerd
+      (alle acties van een maand tellen nu mee, in volgorde), en de rekenkern van de drie
+      nieuwste tools is uit de componenten gehaald naar pure modules (`src/lib/paniek.ts`,
+      `kostenvreter.ts`, `biastest.ts`) met 43 tests op onafhankelijk narekende fixtures,
+      inclusief grenswaarden en corrupte opslag.
 
 ## 6c. Uit de site-review van 3 aug 2026 (buitenkant, uitgelogd bekeken)
 
