@@ -9,6 +9,21 @@ Nederlands e-learningplatform voor beleggingsonderwijs (beleggingscollege.nl). M
 - Dev server: `npm run dev` (poort 3000). Build: `npm run build`.
 - **`docs/openstaand.md` is de lijst met alles wat nog niet af is.** Lees die vóór je iets belooft of live zet.
 
+### Één onderwerp, één document — anders loopt het uit elkaar
+
+Dit is hier al vier keer misgegaan en het kost elke keer iemand een uur: de FAQ die zei dat voortgang alleen in de browser leefde nadat die naar de server ging, de voorwaarden die "zolang er nog geen accounts zijn" bleven zeggen, `AGENTS.md` dat 74 regels achterliep op dit bestand, en dit bestand dat "wacht op DNSSEC bij Strato" doorgaf terwijl dat al klaar was.
+
+De regel die dat voorkomt: **schrijf een stand van zaken op één plek en verwijs er verder alleen naar.** Wat mag je wél herhalen? Regels — die verouderen niet elke dag. Wat niet? Toestand: wat werkt, wat blokkeert, wat af is.
+
+- Domeinverhuizing → `docs/domain-migration-plan.md`
+- E-mail → `docs/e-mail-versturen.md`
+- Bezoekmeting → `docs/analytics.md`
+- Betalingen → `docs/betalingen-mollie.md`
+- Alles wat nog niet af is → `docs/openstaand.md`
+- `AGENTS.md` bevat sinds 3 aug 2026 **alleen regels** en verwijst hierheen. Zet er geen toestand meer in.
+
+Verander je iets aan het product, loop dan na of de **publieke teksten** nog kloppen (`/privacy`, `/voorwaarden`, `/veelgestelde-vragen`, `/over-ons`, `/herroepingsrecht` en de mailteksten). Bij dit merk is dat geen nettigheid maar een productvereiste.
+
 ## Architectuur
 
 - `src/content/types.ts` — contentschema (Course → Module → Lesson → QuizQuestion). Nieuwe cursus = nieuw bestand in `src/content/courses/` + import in `src/content/index.ts`. **Het volledige recept (agents, tools, verificatie, PR-flow) staat in `docs/cursusfabriek.md`** — zo zijn op 3 aug 2026 zes cursussen gebouwd; de prioriteiten voor de volgende staan in `docs/volgende-cursussen.md`.
@@ -61,8 +76,8 @@ Accounts, aankopen en voortgang hangen aan gebruikers-id's, niet aan een URL. Bi
 - **Cursor Bugbot staat aan in handmatige modus** (sinds 3 aug 2026): je mag zelf een extra review aanvragen door op de PR de reactie `bugbot run` te plaatsen. Gebruik je oordeel — niet spammen omdat het kan. Vuistregel: **wél** bij PR's die geld-, toegangs- of concurrencypaden raken (checkout, Mollie-webhook, entitlements, voortgang-server, moderatie) of bij een groot nieuw stuk logica; **níét** bij docs-, tekst- of commentwijzigingen en triviale fixes — daar is CI genoeg. Eén run per PR-versie; verwerk eerst de bevindingen voordat je opnieuw vraagt. Bugbot is een extra paar ogen, geen vervanger van de vereiste groene CI.
 - **Hosting**: Vercel, team "Visual Future", project `beleggingscollege`. **Elke push naar `main` deployt automatisch**; elke branch krijgt een preview-URL. Login: accounts@jasonkrijgsman.com (wachtwoordloos + passkeys, bewust geen SSO).
 - **`beleggingscollege.com`** — registrar Cloudflare (betaald t/m nov 2027), DNS bij Cloudflare, CNAME `@` → `6d87ec9bdcf67bce.vercel-dns-017.com`, **DNS only (grijze wolk)**. Dit is tijdelijk het canonieke adres.
-- **`beleggingscollege.nl`** — nog bij Strato. De verhuizing wacht op DNSSEC-deactivering, en die **loopt**: in het Strato-paneel staat onder Domeinen → DNS → DNSSEC "Wordt gedeactiveerd". Er is geen knop om het te versnellen. Zodra `Resolve-DnsName -Name beleggingscollege.nl -Type DS -Server 1.1.1.1` niets meer teruggeeft (nu nog keytag 43361), kan de naamserverwissel door. Cloudflare-zone bestaat al met 11 records klaar. Zie `docs/domain-migration-plan.md`.
-- **De `.nl` draait nog de oude WordPress-site**, inclusief drie verzonnen testimonials die we juist uit de nieuwe site hebben gehaald — en dat is het adres in onze eigen footer en op elk certificaat. Dat is de eigenlijke reden dat de verhuizing haast heeft.
+- **`beleggingscollege.nl`** — **`docs/domain-migration-plan.md` is de enige bron over de stand van die verhuizing. Lees dat document; herhaal de stand hier niet.** Dit bestand heeft die stand twee keer overleefd en gaf op 3 aug 2026 nog "wacht op DNSSEC bij Strato" door terwijl dat al een halve dag klaar was — iemand is daardoor opnieuw gaan uitzoeken wat al bekend was. Wat op 3 aug 2026 (avond) waar was: DNSSEC eraf, naamservers bij Cloudflare, Migadu actief, en wat er nog blokkeert is de **providerwissel bij Strato**, niet het DNS. Verandert dat, werk dan het migratieplan bij — niet deze regel.
+- **De `.nl` geeft op dit moment 404** (Apache bij Strato, `81.169.145.93`): de oude WordPress-site is weg, de records wijzen nog naar Strato. Dat adres staat wél in onze voettekst, op elk certificaat en in de drie juridische pagina's als het adres van de verkoper. Zolang dat zo is, verwijzen we klanten naar een dode pagina.
 - **Zodra de .nl verhuisd is**: `NEXT_PUBLIC_SITE_URL` in Vercel op `https://beleggingscollege.nl` zetten en een permanente redirect `.com` → `.nl` toevoegen. Verder hoeft er niets in de code.
 - **Kosten en de Vercel-valkuil rond commercieel gebruik**: `docs/hosting-en-kosten.md`. Kort: Vercel Hobby is alleen voor niet-commercieel gebruik; zodra er betaald kan worden is Pro (~$20/mnd) verplicht.
 - Gered materiaal van de oude WordPress-site: `docs/salvage/`.
@@ -119,7 +134,7 @@ Dit merk verkoopt zichzelf als de eerlijke tegenhanger van get-rich-quick-aanbie
 - **Verzenden en ontvangen zijn twee losse dingen.** Een postbus ontvangt; transactionele mail versturen we via een server of API en dat heeft géén postbus nodig. Dit wachtte dus nooit op Strato — een misvatting die ons een tijd heeft opgehouden.
 - **Gekozen: Migadu**, niet Resend. Jason betaalt er al voor (draait voor bliep.org en jasonkrijgsman.com) en de post van dit domein gaat er na de verhuizing sowieso heen. We geven daarmee bezorglogboeken en bounce-webhooks op; bij nul tot enkele verkopen per maand is dat een prima ruil.
 - **Correctie die je moet kennen:** transactionele mail is níét in strijd met Migadu's voorwaarden. Die verbieden spam en niet-toegestemde mailinglijsten; een orderbevestiging is geen van beide. Het obstakel is dat Migadu een domein pas activeert als de MX ernaartoe wijst.
-- **We wachten op de verhuizing van de `.nl`**, omdat de bevestigingsmail niet op het kritieke pad staat: er kan toch geen echt geld binnenkomen (test-key, Vercel Hobby, geen vestigingsadres). Duurt Strato te lang, dan is er een ontsnappingsroute — de MX kan bij Strato zelf naar Migadu wijzen, zónder naamserverwissel, want DNSSEC blokkeert alleen dat laatste. Stappen staan in `docs/e-mail-versturen.md`.
+- **Dit wachtte op de verhuizing van de `.nl`; dat is voorbij.** Migadu is actief sinds 3 aug 2026 en de postbus `beheer@beleggingscollege.nl` bestaat. Wat er nog ontbreekt zijn de twee SMTP-variabelen in Vercel. De actuele stand staat in `docs/e-mail-versturen.md` en `docs/openstaand.md` — **niet hier**; dezelfde valkuil als bij het domein hierboven.
 - **Valkuil die stil misgaat:** het domein publiceert `p=reject` zónder SPF. Uitgaande post slaagt nu alleen doordat Strato met DKIM ondertekent. Verstuurt Migadu straks zonder eigen DKIM-records, dan wordt élke bevestigingsmail geweigerd — niet in spam, geweigerd. Eerst de records, dan pas verzenden.
 - `src/lib/mail.ts` praat sinds 3 aug 2026 via nodemailer met Migadu SMTP (`smtp.migadu.com`, poort 465, gebruikersnaam = het volledige mailadres). De rest van de keten (`orderbevestiging.ts`, `mailteksten.ts`, de webhook) is daarbij niet aangeraakt: die roepen alleen `verstuurMail()` aan. **nodemailer staat exact op 8.0.11** omdat Auth.js een peer dependency heeft op `^7 || ^8`; 9 breekt de installatie.
 - `verstuurMail()` **gooit nooit**: hij draait in de Mollie-webhook nadat de aankoop al op `paid` staat, en een mislukte mail mag daar geen 500 van maken (Mollie herhaalt dan tien keer over 26 uur).
