@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { purchases } from "@/db/schema";
 import { getCourse } from "@/content";
-import { PRICING } from "@/lib/pricing";
+import { prijsInCenten } from "@/lib/prijs";
 import {
   HERROEPING_TEKST_VERSIE,
   centenNaarBedrag,
@@ -15,18 +15,6 @@ import { SITE_URL } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/** Prijs in centen, uit onze eigen catalogus. Nooit uit de request: anders
- *  bepaalt de klant zelf wat hij betaalt. */
-function prijsInCenten(slug: string): number | null {
-  const course = getCourse(slug);
-  if (!course || course.free || course.comingSoon) return null;
-  const tekst = course.price ?? PRICING.losseCursus; // bijv. "€49"
-  const centen = Math.round(
-    parseFloat(tekst.replace(/[^0-9,.]/g, "").replace(",", ".")) * 100
-  );
-  return Number.isFinite(centen) && centen > 0 ? centen : null;
-}
 
 export async function POST(request: NextRequest) {
   if (!mollieIsGeconfigureerd) {
@@ -60,7 +48,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const centen = prijsInCenten(slug);
+  const centen = prijsInCenten(course);
   if (centen === null) {
     return NextResponse.json(
       { error: "Deze cursus is niet te koop." },

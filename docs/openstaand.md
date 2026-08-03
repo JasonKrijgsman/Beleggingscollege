@@ -209,14 +209,25 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       opruimronde (cron) die verweesde `pending`-rijen bij Mollie naslaat; en een
       gedocumenteerde, één keer echt geoefende restore van de Neon-database — de gratis
       laag kan maar 6 uur terug in de tijd. Zie CODEX-005.
-- [ ] **Geen tests, geen CI, geen lint in de pijplijn** — terwijl elke push naar `main`
-      automatisch naar productie gaat, inclusief het betaalpad. Het enige impliciete hek
-      is dat `next build` typecheckt (strict staat aan) en een kapotte build niet live
-      gaat; ESLint is niet eens geïnstalleerd. Minimaal, vóór de merge: typecheck, lint
-      (mét toegankelijkheidsregels), productiebuild, de bundel-lekcontrole uit hoofdstuk 3
-      (`grep correctIndex`), tests voor de geldpaden — prijsconversie, webhook-idempotentie,
-      `heeftToegangTot()`, voortgang, terugbetaling — en een preview-deploy die groen moet
-      zijn. Zie CODEX-003.
+- [ ] **CI is er, maar het is een struikeldraad en nog geen slagboom** (rest van
+      CODEX-003). Gebouwd op 3 aug 2026 (branch `ci-fundament`): typecheck, ESLint (mét de
+      toegankelijkheidsregels uit next/core-web-vitals), 121 Vitest-tests voor de
+      geldpaden — prijsconversie, checkout-bedrag, webhook-idempotentie én
+      bedrag/valutacontrole, `heeftToegangTot()`, voortgang/XP, de terug-redirect — plus
+      productiebuild en een bundel-lekcontrole die óók op de 85 quizvragen zelf zoekt.
+      Lokaal: `npm ci && npm run controle`; GitHub Actions draait hetzelfde bij elke PR en
+      push naar main, zonder één geheim of databaseverbinding. Bewijs en beperkingen:
+      `docs/ci.md`. Wat nog open staat:
+      - **Branch protection in GitHub** (require de CI-check + alleen via PR's). Zolang dat
+        er niet is deployt een directe push naar main gewoon, ook met rode CI.
+      - Tests voor terugbetaling bestaan niet, want terugbetalen zelf bestaat nog niet
+        (zie het herroepingspunt in hoofdstuk 2).
+      - Vijf bestaande lint-warnings (ongebruikte variabelen) in bestanden die op het
+        bouwmoment door parallelle sessies bewerkt werden; zie `docs/ci.md`.
+      - De losse `ci-poort`-branch van een eerdere parallelle poging (smallere opzet,
+        alleen prijstests) is door `ci-fundament` in alles overtroffen en kan weg.
+      Bijvangst, exact vastgepind in tests maar nog een productkeuze: client en server
+      tellen de streak verschillend bij herhaalde lessen (`docs/ci.md` punt 3).
 - [ ] **Chargeback.** Komt er een terugboeking, dan houdt de klant zijn toegang, kost het
       € 10 en ziet niemand het.
 - [ ] **Kwetsbaarheden in de afhankelijkheden, en niets dat dat ooit zou melden.** Herteld
@@ -229,10 +240,12 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       onderhoudsperiode (±oktober 2026, nextjs.org/support-policy) een geteste migratie
       naar Next 16 inplannen. Zie CODEX-110.
 - [ ] **De prijs wordt met een regex uit een weergavetekst ("€49") gepeuterd** —
-      `prijsInCenten()` in `src/app/api/checkout/route.ts`. Werkt, maar breekt zodra iemand
-      er een punt of komma anders in zet ("€1.234,56" zou stilletjes € 1,23 worden). De
-      prijs hoort een getal in centen te zijn, met de tekst als afgeleide — niet andersom.
-      Zie CODEX-107.
+      `prijsInCenten()`, sinds 3 aug 2026 als pure functie in `src/lib/prijs.ts` (de
+      checkout-route gebruikt hem vandaar). Werkt, maar breekt zodra iemand er een punt of
+      komma anders in zet ("€1.234,56" zou stilletjes € 1,23 worden). De prijs hoort een
+      getal in centen te zijn, met de tekst als afgeleide — niet andersom. Sinds de
+      CI-branch bewaakt `test/prijs.test.ts` wel dat elke catalogusprijs het eenvoudige
+      formaat houdt, dus de zwakte kan niet meer stil toeslaan. Zie CODEX-107.
 - [ ] **`/lab` staat publiek** (HTTP 200). Wel `noindex, nofollow`, dus Google neemt hem
       niet op, maar wie de URL heeft ziet het interne stijllab.
 - [ ] **`auth()` in de root-layout maakt ook publieke marketingpagina's dynamisch.** De live
@@ -242,9 +255,6 @@ Zolang dat zo is heeft een abonnement geen inhoudelijke grond — zie `docs/idee
       Let op bij het oplossen: de aanroep in `layout.tsx` weghalen is niet genoeg —
       `AuthKnop` doet in dezelfde schil een twééde `auth()`-aanroep, en `ProgressProvider`
       krijgt zijn `ingelogd`-vlag van de layout. Die twee moeten client-side of in Suspense.
-- [ ] **Open redirect via `/inloggen?terug=`.** `terug` gaat ongewijzigd naar `redirect()`
-      en Auth.js `redirectTo`. Accepteer alleen een intern pad dat met één `/` begint en val
-      anders terug op `/leerpad`. Zie CODEX-102.
 - [ ] **De mobiele header loopt horizontaal uit.** Bij een viewport van 390px was het
       document 492px breed. De oorzaak zit in `SiteHeader.tsx`: het volledige logo staat op
       `shrink-0`, en logo, "Start gratis"-knop en mobiele navigatie delen één rij zonder

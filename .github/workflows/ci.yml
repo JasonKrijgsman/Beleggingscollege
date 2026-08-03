@@ -1,0 +1,53 @@
+# CI voor Beleggingscollege: elke pull request en elke push naar main draait
+# dezelfde controles als `npm run controle` lokaal. Omdat elke push naar main
+# automatisch naar productie deployt (Vercel), is dit het hek vóór het
+# betaalpad.
+#
+# Bewust ZONDER productiegeheimen en zonder databaseverbinding:
+# - `next build` werkt zonder DATABASE_URL (src/db/index.ts gebruikt dan een
+#   placeholder die nergens verbinding mee maakt);
+# - de tests draaien tegen PGlite, een in-memory Postgres;
+# - Mollie en Auth.js worden in tests gemockt.
+# Heeft een stap hier ooit "toch even een echte key" nodig, dan is dat een
+# ontwerpfout — zie docs/ci.md.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  controle:
+    # Kort gehouden: dít is de naam die je in GitHub bij branch protection
+    # als vereiste status check selecteert (GitHub toont jobnamen).
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code ophalen
+        uses: actions/checkout@v4
+
+      - name: Node 22 met npm-cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Schone installatie (npm ci)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm run test
+
+      - name: Productiebuild
+        run: npm run build
+
+      - name: Bundelcontrole (geen quizantwoorden in publieke chunks)
+        run: npm run controleer:bundel
