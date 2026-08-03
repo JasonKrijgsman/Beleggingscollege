@@ -46,13 +46,14 @@ export default function PrivacyPage() {
         Privacyverklaring
       </h1>
       <p className="mt-3 leading-relaxed text-body">
-        We houden dit zo kort en zo eerlijk mogelijk. Op dit moment verzamelen
-        we vrijwel niets: je voortgang blijft in je eigen browser, we volgen je
-        niet en we verkopen nooit gegevens door. Hieronder lees je precies wat
-        we wél verwerken, en wat er verandert zodra je een account kunt
-        aanmaken en kunt betalen.
+        We houden dit zo kort en zo eerlijk mogelijk. Volg je de gratis cursus
+        zonder in te loggen, dan blijft je voortgang in je eigen browser en
+        verwerken we vrijwel niets. Log je in, dan bewaren we je voortgang in
+        onze database, gekoppeld aan je account. We volgen je niet en we
+        verkopen nooit gegevens door. Hieronder lees je precies wat we in beide
+        situaties verwerken.
       </p>
-      <p className="mt-3 text-sm text-body">Conceptversie 1 — 2 augustus 2026</p>
+      <p className="mt-3 text-sm text-body">Conceptversie 2 — 3 augustus 2026</p>
 
       <div className="mt-8 rounded-2xl border border-brand-200 bg-brand-50 p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold text-ink">
@@ -61,16 +62,19 @@ export default function PrivacyPage() {
         </h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 leading-relaxed text-body">
           <li>
-            Je voortgang, XP en badges staan in de opslag van je eigen browser.
-            Die gegevens verlaten je apparaat niet en wij kunnen er niet bij.
+            Niet ingelogd? Dan staan je voortgang, XP en badges alleen in de
+            opslag van je eigen browser en kunnen wij er niet bij. Ingelogd?
+            Dan bewaren we ze op je account, zodat je op elk apparaat verder
+            kunt. Je individuele quizantwoorden blijven in beide gevallen
+            alleen in je browser.
           </li>
           <li>
             Geen trackingcookies, geen advertentiecookies, geen profilering.
           </li>
           <li>
-            Bij lancering van accounts en betalingen komen daar je naam,
-            e-mailadres en betaalgegevens bij. Betalingen lopen via Mollie; wij
-            zien nooit je volledige bank- of kaartgegevens.
+            Log je in of koop je een cursus, dan verwerken we daarnaast je
+            naam, e-mailadres en bestelgegevens. Betalingen lopen via Mollie;
+            wij zien nooit je volledige bank- of kaartgegevens.
           </li>
           <li>Wij verkopen of verhuren je gegevens nooit aan derden.</li>
         </ul>
@@ -124,20 +128,22 @@ export default function PrivacyPage() {
       </p>
 
       <h3 className="mt-6 text-lg font-bold text-ink">
-        Je voortgang staat in je eigen browser
+        Niet ingelogd: je voortgang staat in je eigen browser
       </h3>
       <p className="mt-2 leading-relaxed text-body">
-        Welke lessen je hebt afgerond, je XP, je level, je streak, je badges en
-        je quizscores slaan we op in de lokale opslag (localStorage) van je
-        browser, onder de sleutel{" "}
+        Zolang je niet bent ingelogd, slaan we welke lessen je hebt afgerond,
+        je XP, je level, je streak, je badges en je quizscores op in de lokale
+        opslag (localStorage) van je browser, onder de sleutel{" "}
         <span className="rounded bg-mist px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
           beleggingscollege-voortgang-v1
         </span>
-        . Die gegevens blijven op jouw apparaat, worden niet naar ons of naar
-        iemand anders verstuurd, en wij kunnen ze niet inzien. Wis je je
+        . Die gegevens blijven dan op jouw apparaat, worden niet naar ons of
+        naar iemand anders verstuurd, en wij kunnen ze niet inzien. Wis je je
         browsergegevens, dan is je voortgang weg — ook voor ons is die dan niet
         te herstellen. Gebruik je een ander apparaat of een andere browser, dan
-        begin je daar met een schone lei.
+        begin je daar met een schone lei. Log je later in, dan neemt de site de
+        voortgang uit je browser eenmalig mee naar je account (zie hoofdstuk
+        3).
       </p>
 
       <h3 className="mt-6 text-lg font-bold text-ink">Technische logs</h3>
@@ -210,11 +216,14 @@ export default function PrivacyPage() {
           je je account laat verwijderen.
         </li>
         <li>
-          <strong className="text-ink">Voortgangsgegevens:</strong> je XP,
-          badges, streak en quizscores staan op dit moment nog uitsluitend in je
-          eigen browser, ook als je bent ingelogd. Ze gaan dus niet mee naar een
-          ander apparaat. Zodra dat verandert passen we deze verklaring aan,
-          vóórdat we ermee beginnen.
+          <strong className="text-ink">Voortgangsgegevens:</strong> ben je
+          ingelogd, dan bewaren we welke lessen je hebt afgerond, je XP, je
+          streak, je badges en je quizscores (het aantal goed per quiz) in onze
+          database, gekoppeld aan je account. Zo reist je voortgang mee naar
+          elk apparaat waarop je inlogt. Bij je eerste keer inloggen nemen we
+          de voortgang die al in je browser stond eenmalig mee. Je individuele
+          quizantwoorden — wélk antwoord je bij een vraag koos — bewaren we
+          niet op de server; die blijven alleen in je browser.
         </li>
         <li>
           <strong className="text-ink">Nieuwsbrief:</strong> alleen als je je
@@ -237,7 +246,9 @@ export default function PrivacyPage() {
           </thead>
           <tbody className="align-top leading-relaxed text-body">
             <tr className="border-b border-lijn">
-              <td className="py-3 pr-4">Lokale voortgang in je browser</td>
+              <td className="py-3 pr-4">
+                Voortgang in je browser (niet ingelogd)
+              </td>
               <td className="py-3 pr-4">De cursus laten werken</td>
               <td className="py-3">
                 Blijft op je apparaat; wij verwerken die gegevens niet
@@ -249,8 +260,13 @@ export default function PrivacyPage() {
               <td className="py-3">Gerechtvaardigd belang</td>
             </tr>
             <tr className="border-b border-lijn">
-              <td className="py-3 pr-4">Account- en voortgangsgegevens</td>
-              <td className="py-3 pr-4">Toegang geven tot wat je hebt gekocht</td>
+              <td className="py-3 pr-4">
+                Account- en voortgangsgegevens (ingelogd)
+              </td>
+              <td className="py-3 pr-4">
+                Toegang geven tot wat je hebt gekocht en je voortgang laten
+                meereizen
+              </td>
               <td className="py-3">Uitvoering van de overeenkomst</td>
             </tr>
             <tr className="border-b border-lijn">
@@ -275,8 +291,9 @@ export default function PrivacyPage() {
       <h2 className="mt-12 text-2xl font-bold text-ink">5. Hoe lang we het bewaren</h2>
       <ul className="mt-4 list-disc space-y-3 pl-5 leading-relaxed text-body">
         <li>
-          <strong className="text-ink">Lokale voortgang:</strong> tot je je
-          browsergegevens wist. Jij hebt hier de knop, niet wij.
+          <strong className="text-ink">Voortgang in je browser:</strong> tot je
+          je browsergegevens wist. Jij hebt hier de knop, niet wij. Voortgang
+          op je account valt onder de accountgegevens hieronder.
         </li>
         <li>
           <strong className="text-ink">Technische logs:</strong> kort, in de
@@ -401,9 +418,9 @@ export default function PrivacyPage() {
       </h2>
       <p className="mt-3 leading-relaxed text-body">
         De site draait volledig over een versleutelde verbinding (https).
-        Wachtwoorden worden na lancering versleuteld opgeslagen, toegang tot
-        gegevens is beperkt tot wie die nodig heeft, en betaalgegevens worden
-        door Mollie afgehandeld in plaats van door ons. Geen enkel systeem is
+        Wachtwoorden slaan we niet op — inloggen gaat via je Google-account.
+        Toegang tot gegevens is beperkt tot wie die nodig heeft, en
+        betaalgegevens worden door Mollie afgehandeld in plaats van door ons. Geen enkel systeem is
         honderd procent veilig; merk je iets wat niet klopt, laat het ons dan
         weten via{" "}
         <a
@@ -438,8 +455,9 @@ export default function PrivacyPage() {
         10. Wijzigingen in deze verklaring
       </h2>
       <p className="mt-3 leading-relaxed text-body">
-        Verandert de manier waarop we gegevens verwerken — bijvoorbeeld zodra
-        accounts en betalingen live gaan — dan passen we deze verklaring aan en
+        Verandert de manier waarop we gegevens verwerken — zoals toen je
+        voortgang met je account mee ging reizen — dan passen we deze
+        verklaring aan en
         vermelden we hier een nieuwe datum. Bij ingrijpende wijzigingen laten we
         het je weten als je een account hebt.
       </p>
