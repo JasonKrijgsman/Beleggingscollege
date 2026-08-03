@@ -2,6 +2,8 @@
 
 Laatst bijgewerkt: 2 augustus 2026. Dit is het levende document voor alles rond betalen.
 Zie ook `docs/wordpress-audit.md` (hoe we dit ontdekten) en `CLAUDE.md` (architectuur).
+Zie ook `docs/ontwerp-betaalmodel.md`: het ontwerp dat betaalpoging, order en toegang
+uit elkaar trekt (P0, vóór de live-key).
 
 > **Stand van zaken:** losse cursussen kopen wérkt en is op 2 augustus 2026 end-to-end
 > getest op de live site met een **test**-key. Het abonnement wacht nog op SEPA-goedkeuring.
