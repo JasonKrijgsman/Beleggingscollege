@@ -321,6 +321,70 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       content-type-, referrer- en permissions-beleid; ontwerp CSP apart rond Google,
       Mollie en een eventuele Payload-preview. Zie CODEX-109.
 
+## 6b. Uit de Codex-harmonisatiereview van 3 aug 2026 — nog niet elders belegd
+
+De tweede Codex-review (`docs/reviews/2026-08-03-codex-repository-harmonisatie-en-synthese.md`)
+vond ruim tien punten; het meeste stond al hierboven of is inmiddels gedicht. Dit zijn de
+bevestigde, nog níét elders belegde punten, gereconcilieerd tegen de actuele `main` en waar
+mogelijk in de code nagekeken. De review zelf is de onderbouwing; hier één eigenaar en één
+acceptatiecheck per punt.
+
+- [ ] **P0 — Betaalpoging, order en toegang zitten in één `purchases`-rij.** De zwaarste
+      bevinding. `src/app/api/checkout/route.ts` doet `select` → `mollie().payments.create()`
+      → `onConflictDoUpdate`, dat dezelfde (`userId`, `courseSlug`)-rij overschrijft met het
+      nieuwe payment-id en `pending`. Een webhook die de rij tussendoor op `paid` zet wordt zo
+      teruggezet naar `pending` (toegang ingetrokken ná echte betaling); twee gelijktijdige
+      checkouts laten maar één payment-id vindbaar; een DB-fout ná `payments.create()` laat een
+      betaalbare, lokaal onbekende betaling achter. De webhook-idempotentie (`ne(status,'paid')`)
+      dekt dit níét — die beschermt alleen `paidAt`. Splits het recht (één entitlement per
+      gebruiker/cursus) van de betaalpoging/order (meerdere rijen, elk eigen Mollie-id + status),
+      met expliciete voorwaardelijke overgangen; `heeftToegangTot()` blijft de enige poort.
+      **Eigenaar:** ontwerpnotitie + migratie vóór code, op een Neon Preview-branch (niet productie).
+      **Acceptatie:** tests met gecontroleerde vertraging bewijzen dat elke Mollie-id
+      reconcilieerbaar blijft, een `paid`-rij nooit stil naar `pending` gaat en betaald geld niet
+      zonder zichtbare order eindigt. **Vóór de live-key.**
+- [ ] **P0 — Publieke/juridische teksten beschrijven nog de oude site.** `/herroepingsrecht`
+      beschrijft twee losse toestemmingsvinkjes, maar `src/components/KoopKnop.tsx` heeft er
+      één gecombineerd (geverifieerd). `/privacy` zegt op meerdere plaatsen dat voortgang alleen
+      in de browser leeft (o.a. regels 50, 64, 127, 131, 240, 395), terwijl ingelogde voortgang
+      sinds 2 aug in Neon staat. (De mailtekst-variant hiervan staat al bij "Ordermail".)
+      **Eigenaar:** claimmatrix (belofte → echte UI/API → bewijs), daarna tekst; consent-flow
+      door een jurist.
+      **Acceptatie:** geen publieke pagina claimt nog browser-only voortgang of een tweede vinkje
+      dat niet bestaat; de herroepingstekst komt overeen met de echte KoopKnop en API.
+- [ ] **P1 — Servervoortgang is niet transactioneel** (naast de entitlement-/quizgaten uit
+      CODEX-104/105 hierboven). `src/lib/voortgang-server.ts` doet `select` → lesson-insert →
+      aparte stats-upsert zonder transactie; twee gelijktijdige afrondingen van dezelfde les
+      botsen op de unieke index (kan 500 geven) en snapshotimport en lesafronding kunnen elkaars
+      XP overschrijven of dubbeltellen.
+      **Eigenaar:** één transactioneel, idempotent servercommando per afgeronde les.
+      **Acceptatie:** parallelle tests (zelfde les; snapshot-vs-les) houden de invariant
+      `user_stats.xp = SUM(lesson_progress.xp_awarded)`.
+- [ ] **P1 — Zichtbare prijs en schema.org-prijs komen niet uit één bron.**
+      `src/app/cursussen/[slug]/page.tsx` gebruikt bij een ontbrekende prijs de fallback `€14,99`
+      in de schema.org-`Offer`, terwijl de checkout op `€49` terugvalt — adverteren ≠ afrekenen
+      (geverifieerd). Bewaar centen als bron en leid tekst én structured data daaruit af.
+      **Eigenaar:** één numerieke prijsbron.
+      **Acceptatie:** catalogus, cursuskaart, detail, checkout, Molliebedrag en schema.org toetsen
+      tegen dezelfde fixture; geen fallback die van de echte prijs afwijkt.
+- [ ] **P1 — Vraag- en nieuwsbrieflifecycle vóór schaal.** De limiet van drie wachtende vragen
+      is `count`-dan-`insert` (concurrencygevoelig); nieuwsbriefinschrijving gebruikt
+      `onConflictDoNothing()`, zodat een uitgeschreven adres niet kan herinschrijven; beide
+      publieke schrijfroutes missen een ratelimiet. (De schema-comment "Jason antwoordt wekelijks"
+      is al verwijderd — PR #14.)
+      **Eigenaar:** token/confirm/unsubscribe/resubscribe + ratelimiet ontwerpen.
+      **Acceptatie:** tests voor twee gelijktijdige vragen, herinschrijven-na-uitschrijven en een
+      ratelimietgrens op beide routes.
+- [ ] **P1 — De nieuwste tools hebben geen eigen tests, en één heeft een bug.**
+      `src/components/PaniekSimulatorTool.tsx` (rond regel 195) gebruikt `acties.find(a =>
+      a.maand === m)` per maand en verwerkt zo maar één actie per maand: verkopen én herinstappen
+      in dezelfde gepauzeerde maand laat de tweede actie uit de berekening, terwijl de UI hem wél
+      toont (geverifieerd). `KostenVreterTool` en `BiasTestTool` missen rekentests op grenswaarden;
+      de biastest is bovendien geen gevalideerd meetinstrument en moet dat expliciet vermelden.
+      **Eigenaar:** unit-/browsertests + fix van de find-per-maand.
+      **Acceptatie:** fixtures dekken meerdere acties per maand, grenswaarden en de
+      niet-gevalideerde aard van de biastest.
+
 ## 7. Vindbaarheid
 
 - [ ] **De oude WordPress-site draait nog op beleggingscollege.nl**, met de drie verzonnen
