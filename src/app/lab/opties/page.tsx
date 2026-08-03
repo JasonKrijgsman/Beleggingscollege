@@ -21,6 +21,8 @@ const TOOLS: { tool: LessonTool; les: string }[] = [
   { tool: "optie-volatiliteit", les: "Volatiliteit & Spreads · Vega en implied volatility" },
   { tool: "optie-greeks", les: "Volatiliteit & Spreads · De Grieken samen" },
   { tool: "hefboom-simulator", les: "Hefboomproducten · De hefboom" },
+  { tool: "paniek-simulator", les: "Beleggingspsychologie · Kuddegedrag, manie en paniek" },
+  { tool: "bias-test", les: "Beleggingspsychologie · Ken je eigen neigingen" },
 ];
 
 export default function LabOptiesPage() {
