@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { activeCourses } from "@/content";
 import { bedragNaarCenten, centenNaarBedrag } from "@/lib/mollie";
-import { prijsInCenten, prijsTekstNaarCenten } from "@/lib/prijs";
+import { prijsInCenten, prijsTekstNaarCenten, schemaOrgPrijs } from "@/lib/prijs";
 import { PRICING } from "@/lib/pricing";
 
 /**
@@ -45,9 +45,47 @@ describe("prijsInCenten", () => {
   });
 });
 
-describe("de catalogus zelf", () => {
-  const koopbaar = activeCourses.filter((c) => !c.free && !c.comingSoon);
+const koopbaar = activeCourses.filter((c) => !c.free && !c.comingSoon);
 
+describe("schemaOrgPrijs", () => {
+  it('adverteert "0" voor een gratis cursus', () => {
+    expect(schemaOrgPrijs({ free: true, price: "€49" })).toBe("0");
+  });
+
+  it("adverteert géén prijs voor een comingSoon-cursus", () => {
+    // prijsInCenten weigert comingSoon; dan is er ook niets te adverteren.
+    expect(schemaOrgPrijs({ comingSoon: true, price: "€49" })).toBeNull();
+  });
+
+  it("valt zonder eigen prijs terug op dezelfde prijs als de checkout", () => {
+    // Dít was de bug: de pagina viel terug op "€14,99" waar de checkout
+    // PRICING.losseCursus (€49) rekende.
+    expect(schemaOrgPrijs({})).toBe(
+      (prijsInCenten({})! / 100).toFixed(2)
+    );
+  });
+
+  // De kernbewaking: voor élke koopbare cursus in de catalogus is de
+  // geadverteerde schema.org-prijs exact het bedrag dat de checkout afrekent.
+  it.each(koopbaar.map((c) => [c.slug, c] as const))(
+    "%s: geadverteerde prijs == afgerekende prijs",
+    (_slug, course) => {
+      const prijs = schemaOrgPrijs(course);
+      expect(prijs).not.toBeNull();
+      // Zelfde formaat als Mollie: punt als decimaalteken, twee decimalen.
+      expect(prijs!).toMatch(/^\d+\.\d{2}$/);
+      expect(bedragNaarCenten(prijs!)).toBe(prijsInCenten(course));
+    }
+  );
+
+  it.each(
+    activeCourses.filter((c) => c.free).map((c) => [c.slug, c] as const)
+  )('%s: gratis cursus adverteert "0"', (_slug, course) => {
+    expect(schemaOrgPrijs(course)).toBe("0");
+  });
+});
+
+describe("de catalogus zelf", () => {
   it("bevat ten minste één koopbare cursus", () => {
     expect(koopbaar.length).toBeGreaterThan(0);
   });
