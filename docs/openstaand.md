@@ -282,16 +282,20 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       `shrink-0`, en logo, "Start gratis"-knop en mobiele navigatie delen één rij zonder
       wrap. Maak een echt mobiel menu of verberg secundaire elementen en test
       320/375/390px. Zie CODEX-103.
-- [ ] **Voortgang mist twee serverregels.** `POST /api/voortgang` controleert geen aankoop
-      voordat betaalde cursusvoortgang wordt geschreven (`heeftToegangTot()` wordt in dat
-      pad nergens aangeroepen), en de quizscore komt van de client en wordt alleen
-      begrensd — de antwoorden zelf gaan nooit mee, dus de foutloos-badge en de quizbonus
-      (tot 25 XP per les) zijn met één fetch te claimen. Er lekt geen lesinhoud, maar
-      badges en certificaten worden er waardeloos van. Daarnaast wist “Voortgang wissen”
-      bij een ingelogde gebruiker alleen de lokale cache: er is geen server-delete en de
-      import is bewust alleen-aanvullend, dus na de volgende paginalading staat alles er
-      weer — terwijl de knop juist "Dit kan niet ongedaan worden gemaakt" zegt. Zie
-      CODEX-104 en CODEX-105.
+- [ ] **Voortgang: de toegangscontrole is er, twee andere serverregels nog niet.**
+      ~~Geen aankoopcontrole vóór het schrijven van betaalde cursusvoortgang~~ **gedicht op
+      3 aug 2026 (PR #32)**: `POST /api/voortgang` weigert nu met 403 wat je niet bezit en
+      met 400 wat niet bestaat, en de snapshotimport snoeit tot gratis + gekochte cursussen.
+      `heeftToegangTot()` bleef daarbij de enige poort. Wat blijft staan:
+      - **De quizscore komt nog altijd van de client** en wordt alleen begrensd — de
+        antwoorden zelf gaan nooit mee, dus de foutloos-badge en de quizbonus (tot 25 XP per
+        les) zijn met één fetch te claimen. Er lekt geen lesinhoud, maar badges en
+        certificaten worden er waardeloos van. Zie CODEX-105.
+      - **"Voortgang wissen" wist bij een ingelogde gebruiker alleen de lokale cache.** Er is
+        geen server-delete en de import is bewust alleen-aanvullend, dus na de volgende
+        paginalading staat alles er weer — terwijl de knop zegt "Dit kan niet ongedaan
+        worden gemaakt". Dat is nu dus een onwaarheid in de UI, en daarmee een merkprobleem
+        én een AVG-punt (recht op verwijdering).
 - [ ] **Ordermail heeft een race en achterhaalde tekst.** Gelijktijdige webhooks kunnen
       allebei mailen vóór `confirmationSentAt` gezet is — de controle in
       `src/lib/orderbevestiging.ts` is lezen-dan-doen, zonder atomische claim
@@ -358,28 +362,41 @@ acceptatiecheck per punt.
       **Resteert:** de mailtekst-variant (staat bij "Ordermail") en het laten toetsen van de
       consent-flow door een jurist. Een echte claimmatrix als document is er nog niet — de
       vier pagina's zijn stuk voor stuk tegen de code nagelopen.
-- [ ] **P1 — Servervoortgang is niet transactioneel** (naast de entitlement-/quizgaten uit
-      CODEX-104/105 hierboven). `src/lib/voortgang-server.ts` doet `select` → lesson-insert →
-      aparte stats-upsert zonder transactie; twee gelijktijdige afrondingen van dezelfde les
-      botsen op de unieke index (kan 500 geven) en snapshotimport en lesafronding kunnen elkaars
-      XP overschrijven of dubbeltellen.
-      **Eigenaar:** één transactioneel, idempotent servercommando per afgeronde les.
-      **Acceptatie:** parallelle tests (zelfde les; snapshot-vs-les) houden de invariant
-      `user_stats.xp = SUM(lesson_progress.xp_awarded)`.
+- [x] ~~P1 — Servervoortgang is niet transactioneel~~ **Gedaan op 3 aug 2026 (PR #32).**
+      `verwerkLes()` en `importeerSnapshot()` zijn elk één SQL-statement met data-modifying
+      CTE's — hetzelfde patroon als `verwerkBetaald()` in de webhook, en om dezelfde reden:
+      `db.transaction()` bestáát niet op de neon-http-driver (hij gooit), terwijl het in de
+      PGlite-tests wél werkt. XP wordt nooit meer absoluut gezet, alleen opgehoogd met de
+      delta uit de lesinsert, zodat `user_stats.xp = SUM(lesson_progress.xp_awarded)` uit de
+      vorm van het statement volgt in plaats van uit een aanname (die laatste stap kwam uit
+      een Bugbot-bevinding op de PR).
+      **Bewijs dat de racetests écht racen:** `houdVast()` in `test/helpers/pglite-db.ts`
+      houdt het eerste passende statement vast tot een ander verzoek er dwars doorheen is.
+      Zonder die klem slaagden 4 van de 5 naïeve `Promise.all`-races óók tegen de kapotte
+      code; mét de klem falen er 3 van de 6 tegen de oude implementatie. Wie hier later aan
+      werkt: schrijf de test eerst zo dat hij tegen de oude code faalt.
 - [x] ~~P1 — Zichtbare prijs en schema.org-prijs komen niet uit één bron~~ **Gedaan op
       3 aug 2026 (PR #17).** `schemaOrgPrijs()` in `src/lib/prijs.ts` leidt de geadverteerde
       prijs af uit dezelfde `prijsInCenten()` die de checkout afrekent; de afwijkende
       `€14,99`-fallback is weg, en bij een onbekende prijs verschijnt er géén `Offer` in
       plaats van een verkeerde. `test/prijs.test.ts` bewaakt voor élke koopbare cursus dat
       adverteren en afrekenen niet meer uit elkaar kunnen lopen.
-- [ ] **P1 — Vraag- en nieuwsbrieflifecycle vóór schaal.** De limiet van drie wachtende vragen
-      is `count`-dan-`insert` (concurrencygevoelig); nieuwsbriefinschrijving gebruikt
-      `onConflictDoNothing()`, zodat een uitgeschreven adres niet kan herinschrijven; beide
-      publieke schrijfroutes missen een ratelimiet. (De schema-comment "Jason antwoordt wekelijks"
-      is al verwijderd — PR #14.)
-      **Eigenaar:** token/confirm/unsubscribe/resubscribe + ratelimiet ontwerpen.
-      **Acceptatie:** tests voor twee gelijktijdige vragen, herinschrijven-na-uitschrijven en een
-      ratelimietgrens op beide routes.
+- [x] ~~P1 — Vraag- en nieuwsbrieflifecycle vóór schaal~~ **Grotendeels gedaan op 3 aug 2026
+      (PR #30).** De limiet van drie wachtende vragen zit nu ín één `INSERT … SELECT … WHERE
+      (SELECT count(*) …) < 3` (de race is eerst gereproduceerd, daarna gedicht);
+      nieuwsbriefinschrijving reactiveert een uitgeschreven adres via `onConflictDoUpdate`
+      met `setWhere: isNotNull(unsubscribedAt)`, zodat een nog actieve inschrijving
+      onaangeroerd blijft en het oorspronkelijke toestemmingsbewijs niet opschuift; beide
+      publieke schrijfroutes hebben een ratelimiet (`src/lib/ratelimiet.ts`, 10 per 15 min,
+      op gebruikers-id resp. IP).
+      **Wat er bewust níét in zit, en dus openstaat:**
+      - Geen dubbele opt-in: token, bevestigingsmail, uitschrijflink en het bewijs daarvan
+        moeten er nog komen vóór de eerste nieuwsbriefmail de deur uit gaat.
+      - De ratelimiet is in-memory en dus **per instance** — een snelheidsdrempel, geen
+        garantie. Echt begrenzen vraagt gedeelde staat (database of KV).
+      - Onder READ COMMITTED kunnen twee exact gelijktijdige vragen in theorie allebei nog
+        ruimte zien. Kosten: één extra vraag in de moderatiewachtrij. Dichttimmeren vraagt
+        een lock of SERIALIZABLE, en dat is die prijs hier niet waard.
 - [x] ~~P1 — De nieuwste tools hebben geen eigen tests, en één heeft een bug~~ **Gedaan op
       3 aug 2026 (PR #20).** De `acties.find()`-bug in de paniek-simulator is gerepareerd
       (alle acties van een maand tellen nu mee, in volgorde), en de rekenkern van de drie
