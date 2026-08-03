@@ -1,5 +1,26 @@
 # Audit van de oude WordPress-site (wp-admin), 2 augustus 2026
 
+> **Momentopname van 2 augustus 2026 — nog niet afgehandeld, wel gedeeltelijk ingehaald.**
+> Dit is een inventarisatie, geen plan; de bevindingen zelf blijven staan zoals ze waren.
+> Wat er sindsdien veranderde:
+>
+> - **De oude WordPress-site draait nog steeds.** De A-records van `beleggingscollege.nl`
+>   wijzen nog naar Strato (`81.169.145.93`), ook al staat de delegatie sinds 3 augustus bij
+>   Cloudflare. Dat is de reden dat de verhuizing haast heeft: die site toont nog de drie
+>   verzonnen testimonials die we uit de nieuwe site hebben gehaald, en het is het adres in
+>   onze eigen voettekst en op elk certificaat. De resterende stappen staan in
+>   `docs/nl-als-hoofddomein.md`.
+> - **De e-mailregel onderaan is achterhaald door de gebeurtenissen.** De postbussen bij
+>   Strato zijn niet meer bereikbaar: de MX wijst sinds 3 augustus naar Migadu, waar
+>   `beheer@beleggingscollege.nl` opnieuw is aangemaakt. Strato waarschuwt zelf dat
+>   e-mailfuncties vervallen zodra je eigen naamservers gebruikt. Zie
+>   `docs/e-mail-versturen.md`.
+> - **De Mollie-bevindingen kloppen nog**, met één aanvulling: SEPA-incasso is op 2 augustus
+>   aangevraagd en wacht nog op goedkeuring. De actuele stand staat in
+>   `docs/betalingen-mollie.md`.
+> - Het veiligheidsargument hieronder (verouderde WordPress, vijftien openstaande
+>   plugin-updates) is met de dag sterker geworden, niet zwakker.
+
 Inventarisatie vóór het opzeggen van het Strato-pakket. Conclusie vooraf:
 **er gaat niets verloren** — geen omzet, geen klanten, geen gepubliceerde inhoud.
 Het enige echt waardevolle is de Mollie-koppeling en de prijshistorie.
@@ -83,4 +104,9 @@ de nieuwe site vers aanmelden bij Search Console en de sitemap indienen.
 
 - [x] Mollie-dashboard: account volledig geverifieerd, bankrekening gekoppeld, profiel Online.
 - [x] Google Site Kit: nooit gekoppeld, niets te migreren.
-- [ ] E-mail: postvakken op het domein zijn al afgevangen — mail gaat straks via Migadu.
+- [x] E-mail: afgehandeld op 3 aug 2026. De MX wijst naar Migadu en
+      `beheer@beleggingscollege.nl` bestaat daar. Let op dat dit géén kopie was: de oude
+      Strato-postbussen (`beheer@`, `info@`) zijn met de naamserverwissel vervallen — Strato
+      levert geen e-mailfuncties meer zodra je eigen naamservers gebruikt. Jason heeft op
+      3 augustus bevestigd dat die inhoud gemist kon worden; er is dus bewust niets
+      geëxporteerd.

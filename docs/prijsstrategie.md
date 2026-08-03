@@ -15,13 +15,21 @@ architectuur), `src/lib/pricing.ts` (de prijzen zoals ze nu in de code staan).
 |---|---|---|---|---|
 | **Beleggen voor Beginners** (9 lessen) | **Gratis** | — | — | Nu |
 | **Losse cursus**, levenslange toegang | **€49** | €40,50 | 3,3 | Fase 1 (iDEAL/kaart) |
-| **Duo-bundel** (beide betaalde cursussen) | **€79** | €65,29 | 5,3 | Fase 1, vervalt bij lancering College+ |
+| ~~**Duo-bundel** (beide betaalde cursussen)~~ | ~~**€79**~~ | ~~€65,29~~ | ~~5,3~~ | **Vervallen op 3 aug 2026** — zie hieronder |
 | **College+ maand** | **€14,99/mnd** | €12,39 | 1 | Fase 2 (SEPA-incasso nodig) |
 | **College+ jaar** | **€149/jaar** (€12,42/mnd) | €123,14 | 10 | Fase 2 (kan zonder SEPA) |
 | Upgrade-krediet los → College+ jaar | betaald bedrag in mindering, max €49 | — | — | Fase 2 |
 
 Drie wijzigingen ten opzichte van vandaag: de losse prijs gaat van €29 naar **€49**, er komt een
 **jaarplan van €149**, en losse verkoop gaat **eerst** live — het abonnement volgt.
+
+> **De duo-bundel is vervallen en is nooit gebouwd.** Hij ging uit van precies twee betaalde
+> cursussen; sinds 3 augustus 2026 zijn dat er **acht** (zeven à €49 plus Hefboomproducten à
+> €29). "Beide betaalde cursussen" heeft geen betekenis meer, en het bijbehorende anker is
+> verschoven: alles los kost nu €372, waar het jaarplan van €149 tegenover staat. §3 rekent
+> dat verderop met de actuele getallen door. Wil je alsnog een bundel, dan is dat een nieuw
+> besluit met een nieuwe rekensom — niet deze regel opnieuw gebruiken. De rest van dit
+> document (de losse prijs, het jaarplan, de juridische randvoorwaarden) staat wél nog.
 
 ---
 

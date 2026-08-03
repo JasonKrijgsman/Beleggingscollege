@@ -1,5 +1,29 @@
 # College+ en de AI-studiecoach — het definitieve concept
 
+> **De cijfers in dit document zijn van 2 augustus 2026, toen er drie gebouwde cursussen
+> stonden (21 lessen, 88 quizvragen, waarvan één cursus gratis). Op 3 augustus zijn het er
+> negen geworden — 69 lessen, 280 quizvragen — en drie dragende getallen zijn daarmee
+> achterhaald.** Het oordeel zelf — College+ verkoopt de oefenlaag, niet de bibliotheek —
+> staat er sterker door en verandert niet: een grotere catalogus maakt "betaal elke maand
+> voor toegang" niet ineens eerlijk. Maar reken niet meer met deze getallen:
+>
+> | Staat er | Werkelijk (3 aug 2026) |
+> |---|---|
+> | "een catalogus van ~100 minuten" | 622 minuten totaal, waarvan 541 achter de betaalmuur |
+> | "88 vragen" in de vragenvijver (twee keer) | 280 quizvragen |
+> | "~17.200 woorden" corpus / ±35.000 tokens prefix | gemeten over 21 lessen; het zijn er nu 69 — hertel vóór gebruik |
+>
+> Twee gevolgen die je moet meenemen. **Ten eerste:** het argument "met 88 vragen is de
+> vijver klein, dus wekelijks en niet dagelijks" steunt niet meer op dit cijfer — de eigen
+> drempel uit `docs/productonderzoek.md` ("laat de voorraad groeien naar 200+ voordat je de
+> frequentie opvoert") is gehaald. Of dagelijks dan ook *wenselijk* is, is een aparte vraag.
+> **Ten tweede: de rekensom in §4 en de conclusie "geen vectordatabase nodig" hangen aan het
+> corpus, en dat corpus is meer dan verdrievoudigd in lessen.** De genoemde omslag lag rond
+> 150K tokens; of het corpus daar nog onder blijft is precies de vraag die je moet hertellen
+> vóór je erop bouwt — schrijf daarvoor eerst het corpus-script uit fase 0 en tel de tokens,
+> in plaats van de oude schatting op te schalen. De kosten per bericht schalen mee. De
+> prijzen zelf staan onveranderd in `docs/prijsstrategie.md`.
+
 Laatst bijgewerkt: 2 augustus 2026. Synthese van drie ontwerpvoorstellen (gewoontelaag, groeiende bibliotheek, coach voorop), getoetst aan `docs/productonderzoek.md`, `docs/prijsstrategie.md`, `docs/ideeen.md` en de merkregels in `CLAUDE.md`. De prijzen zelf staan en blijven in `docs/prijsstrategie.md`; dit document beslist wat College+ ís, wanneer het verkocht mag worden, en wat er tot die tijd gebeurt.
 
 ---

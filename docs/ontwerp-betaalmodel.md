@@ -1,6 +1,39 @@
 # Ontwerpnotitie: splits betaalpoging, order en toegang
 
-Geschreven: 3 augustus 2026. **Status: ontwerp — er is nog geen regel code gewijzigd.**
+Geschreven: 3 augustus 2026.
+
+> ## Status: UITGEVOERD op 3 augustus 2026 (PR #22)
+>
+> **Dit is de onderbouwing, niet een openstaande actie.** Wie dit document koud
+> opslaat en de zin "er is nog geen regel code gewijzigd" leest — die stond hier
+> tot de archiefronde — concludeert ten onrechte dat het betaalmodel nooit
+> gebouwd is. Het is er wél, en het is precies het geldpad waar de site nu op
+> draait.
+>
+> - `payment_attempts`, `entitlements` en `order_counters` staan in
+>   `src/db/schema.ts` en in `drizzle/0004_betaalmodel.sql`, inclusief de
+>   backfill uit `purchases`.
+> - **Migratie 0004 is op productie gedraaid.**
+> - `heeftToegangTot()` leest sindsdien uitsluitend `entitlements` met status
+>   `actief`; de checkout doet een append-only insert in `payment_attempts`;
+>   de webhook zet de poging op `paid`, deelt het ordernummer uit én verleent
+>   het entitlement — in één statement.
+> - `test/betaalmodel.test.ts` en `test/migratie-betaalmodel.test.ts` bewaken de
+>   scenario's uit dit document; `test/entitlements.test.ts` pint af dat een
+>   betaalpoging op `paid` uit zichzelf géén toegang geeft.
+>
+> **Wat er nog wél open staat: de contract-stap.** `purchases` bestaat nog als
+> tabel, maar wordt door geen enkele regel productiecode meer gelezen of
+> geschreven. `DROP TABLE purchases` mag pas na de voorwaarden uit §5 (stap 3)
+> hieronder — zie `docs/openstaand.md` §6b voor de actuele stand.
+>
+> **En één plek waar dit document afwijkt van wat er gebouwd is:** de schets in
+> §2.2 gebruikt `await db.transaction(...)`. Dat **kan niet** op de
+> productiedriver — neon-http gooit "No transactions support in neon-http
+> driver", terwijl PGlite in de tests hem wél accepteert. Neem dat voorbeeld
+> dus niet over. De gebouwde versie is één `db.execute()` met data-modifying
+> CTE's in `verwerkBetaald()` (`src/app/api/mollie/webhook/route.ts`); de
+> waarschuwing staat inmiddels ook in CLAUDE.md.
 
 Dit is de ontwerpnotitie die volgens `docs/openstaand.md` §6b (eerste P0-punt) vóór de
 code moet komen. De bevinding zelf komt uit de Codex-harmonisatiereview van 3 augustus
@@ -257,6 +290,13 @@ ontbrekende rij alsnog aan en verwerk de webhook normaal. Staat er niets van ons
 
 De **paid-verwerking** wordt één transactie:
 
+> **Niet overnemen — zie het statusblok bovenaan.** `db.transaction()` gooit op de
+> neon-http-driver van productie, maar slaagt in de PGlite-tests: een fout die groen
+> door CI komt en pas live omvalt. De gebouwde versie doet hetzelfde als één
+> `db.execute()` met data-modifying CTE's (kandidaat → teller → geclaimd →
+> entitlement-upsert). De schets hieronder blijft staan omdat de vier stappen en hun
+> volgorde nog steeds kloppen; alleen het omhulsel is anders.
+
 ```ts
 await db.transaction(async (tx) => {
   // 1. Atomaire claim: alleen de eerste webhook-aanroep komt hierdoor.
@@ -330,6 +370,12 @@ ophouden).
 ---
 
 ## 3. Migratie: expand → migrate → contract
+
+> **Stand na de uitvoering:** stap 1 (expand) en stap 2 (migrate) zijn op 3 augustus
+> 2026 gedaan — `drizzle/0004_betaalmodel.sql` is op productie gedraaid en PR #22 heeft
+> alle zes de lezers en schrijvers hieronder omgezet. **Stap 3 (contract,
+> `DROP TABLE purchases`) staat nog open.** De rest van dit hoofdstuk leest daarom als
+> het draaiboek dat gevolgd is, niet als werk dat nog moet beginnen.
 
 Uitgangspunt (`docs/openstaand.md` §6b): **eerst op een Neon Preview-branch, nooit
 rechtstreeks vanaf de laptop op productie.** Migraties draaien hier handmatig met
@@ -415,6 +461,16 @@ op Jasons account) — een migratie hoort geen data te laten verdwijnen. Het opr
 ervan blijft de aparte, bewuste actie uit `docs/openstaand.md` §1; na de omschakeling
 betekent dat: de entitlement-rij en de attempt-rij verwijderen (of markeren), niet meer
 de `purchases`-rij.
+
+Dit is sinds de migratie ook echt gebeurd, dus **één `delete` is niet meer genoeg**.
+Die ene testrij bestaat nu drie keer: als `purchases`-rij (dood gewicht), als
+`payment_attempts`-rij en als `entitlements`-rij, plus een tellerstand in
+`order_counters`. Wie alleen `purchases` opruimt verandert niets aan de toegang; wie
+met `payment_attempts` begint botst op de foreign key
+`entitlements_attempt_id_payment_attempts_id_fk`. De volgorde is dus: **eerst het
+entitlement, dan de betaalpoging**, en de `purchases`-rij zolang die tabel er nog
+staat. Denk daarbij aan de bredere waarschuwing: zodra er echte kopers zijn, is een
+blinde `delete` op `entitlements` het intrekken van iemands toegang.
 
 ---
 

@@ -52,9 +52,33 @@ export function analyticsConfig(): AnalyticsConfig | null {
   return {
     scriptUrl: `${basis}/script.js`,
     websiteId: id,
-    // SITE_URL is de bron voor het canonieke adres (zie src/lib/site.ts), dus
-    // ook hier. Bij de verhuizing naar de .nl verschuift het meetdomein zo
-    // vanzelf mee en hoeft hier niets aangepast te worden.
-    domains: new URL(SITE_URL).host,
+    domains: meetDomeinen(),
   };
+}
+
+/**
+ * Op welke domeinen er geteld mag worden.
+ *
+ * Normaal is dat precies één: het canonieke adres uit SITE_URL. Bij de
+ * verhuizing naar de `.nl` schuift dat vanzelf mee.
+ *
+ * De uitzondering is de cutover zélf. Dan serveren `.com` en `.nl` allebei de
+ * site, terwijl `data-domains` maar één naam bevat — en verkeer op de andere
+ * naam wordt dan stil niet geteld. Stil, want er is geen foutmelding: de
+ * cijfers zakken gewoon in en je denkt dat de verhuizing bezoekers heeft
+ * gekost. Zet in die week `NEXT_PUBLIC_UMAMI_DOMAINS` op beide namen,
+ * kommagescheiden, en haal hem daarna weer weg.
+ */
+function meetDomeinen(): string {
+  const override = process.env.NEXT_PUBLIC_UMAMI_DOMAINS?.trim();
+  if (override) {
+    // Umami wil een kommagescheiden lijst zonder spaties; een lijst die met
+    // ", " is ingetypt zou anders stilzwijgend niet matchen.
+    return override
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean)
+      .join(",");
+  }
+  return new URL(SITE_URL).host;
 }

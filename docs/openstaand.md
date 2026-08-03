@@ -241,6 +241,18 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       niet terloops: het herschrijft elke commit-hash, dus open branches en PR's moeten
       eerst leeg zijn. Het nummer zelf hoort in geen enkel bestand — ook niet in de
       opdracht waarmee je het opruimt; zoek op de commit, niet op de waarde.
+- [ ] **Neon zit op 10/10 branches en dat gaat de volgende preview breken.** Geconstateerd
+      3 aug 2026: de console meldt "Branch limit reached" (gratis laag = 10). Negen daarvan
+      zijn `preview/…`-branches die de Vercel-integratie per preview-deployment aanmaakt, en
+      acht horen bij PR's die allang gemerged zijn — `bugbot-werkafspraak`,
+      `ontwerp-betaalmodel`, `publieke-teksten-kloppen`, `betaalmodel-splitsing`,
+      `twitter-kaart`, `sitewide-review-metadata`, `openstaand-6b-bijwerken` en
+      `claude/test-coverage`. Ze worden **niet** automatisch opgeruimd als de PR sluit.
+      Weggooien is veilig: het zijn wegwerpkopieën van `main` en de integratie maakt een
+      nieuwe aan zodra er weer een preview nodig is. Let op de samenhang met het punt
+      hieronder: zodra Preview een eigen vaste branch krijgt, hoort daar meteen een
+      afspraak bij over wie de tijdelijke opruimt, anders loopt het opnieuw vol.
+      (De databases `neondb` en `umami` staan allebei op `main` en raken dit niet.)
 - [ ] **De laptop gebruikt nog de primaire productiedatabase.** Gecontroleerd in Jasons
       Chrome en de Neon-console: Production gebruikt de primaire Neon-branch. Voor Preview
       is isolatie geconfigureerd via de Neon deployment action, die per Preview-deployment
@@ -468,10 +480,16 @@ Wat de review verder opleverde en nog openstaat:
       zijn, laadt er geen script en gaat er geen verzoek uit; `test/analytics.test.ts` pint
       dat vast. De privacyverklaring is bijgewerkt (§10 hieronder ook) en beschrijft nu wat
       er gemeten wordt en waarom er geen banner nodig is.
-      **Wat er nog moet:** de instantie zelf opzetten — Neon-database, tweede Vercel-project,
-      `stats.beleggingscollege.com`, en de twee variabelen in het site-project. Dat vraagt
-      Jasons login (passkeys), dus een agent kan het niet afmaken. Stappen staan in
-      `docs/analytics.md`.
+      **De opzet is op 3 aug 2026 half afgemaakt en daar blijven staan.** Klaar: de
+      Neon-database `umami`, het Vercel-project `umami` (kloon van `umami-software/umami`,
+      repo `JasonKrijgsman/umami`) en zijn twee variabelen — de build meldde "Database
+      version check successful", dus de verbinding klopt. Nog te doen: het domein
+      `stats.beleggingscollege.com` aan het project hangen, de CNAME in Cloudflare
+      (**grijze wolk**), het
+      standaardwachtwoord `admin`/`umami` wijzigen, de website in Umami aanmaken en het
+      website-id in het site-project zetten. De actuele afvinklijst staat bovenaan
+      `docs/analytics.md`; werk die bij in plaats van hier.
+      Dit vraagt Jasons login (passkeys), dus een agent kan het niet alleen afmaken.
       **Niet vergeten:** de onderbouwing "geen toestemming nodig onder art. 11.7a Tw" is van
       ons, niet van een jurist. Neem dit mee in de toetsing die al openstaat voor de drie
       juridische pagina's (hoofdstuk 2).
@@ -522,9 +540,16 @@ Wat de review verder opleverde en nog openstaat:
 
 ## 7. Vindbaarheid
 
-- [ ] **De oude WordPress-site draait nog op beleggingscollege.nl**, met de drie verzonnen
-      testimonials die uit de nieuwe site zijn gehaald, en met aanbod dat niet meer bestaat.
-      Dat is het adres dat in je eigen footer en op elk certificaat staat.
+- [ ] **`beleggingscollege.nl` geeft 404** (gecontroleerd 3 aug 2026, eind van de dag). De oude
+      WordPress-site mét de drie verzonnen testimonials is dus wég — dat deel is opgelost — maar
+      de apex wijst nog naar Strato (`81.169.145.93`, Apache) en daar staat niets meer. Netto is
+      dat een verslechtering: vanochtend stond er nog íets, nu een foutpagina. En dat is het
+      adres in onze voettekst, op elk certificaat en in de drie juridische pagina's als het
+      adres van de verkoper — we sturen klanten dus naar een dode pagina.
+      **Kleinste fix zolang de providerwissel hangt (§8):** de DNS staat al bij Cloudflare, dus
+      de A/AAAA van de apex kunnen nú al naar Vercel wijzen en `beleggingscollege.nl` als domein
+      aan het site-project worden gehangen. Dat vraagt de verhuiscode niet — die is alleen nodig
+      om weg te komen bij Strato als registrar.
 - [x] ~~Geen OG-afbeelding en geen favicon~~ **Gedaan 2 aug 2026.** `src/app/icon.svg`,
       `apple-icon.tsx` en `opengraph-image.tsx` — die laatste twee worden bij de build als PNG
       gegenereerd. Wijzig je `LogoMark` in `src/components/Logo.tsx`, pas dan `icon.svg` mee

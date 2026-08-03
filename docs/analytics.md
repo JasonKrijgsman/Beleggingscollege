@@ -1,6 +1,53 @@
 # Bezoekmeting — Umami, zelf gehost
 
-Stand: 3 augustus 2026. **De code staat klaar, de instantie bestaat nog niet.**
+## Waar dit halverwege bleef staan (3 augustus 2026, avond)
+
+De opzet is samen met Jason begonnen en **niet afgemaakt**. Dit is het punt
+waarop het stopte; werk deze lijst bij als je verder gaat.
+
+| Stap | Stand |
+|---|---|
+| Neon-database `umami` op branch `main` | **klaar** — eigenaar `neondb_owner` |
+| Vercel-project `umami` (kloon van `umami-software/umami`) | **klaar** — repo `JasonKrijgsman/umami`, deploy geslaagd |
+| `DATABASE_URL` (direct, niet-pooled) + `APP_SECRET` | **klaar** — build meldde "Database version check successful" |
+| `stats.beleggingscollege.com` aan het project hangen | **bezig** — dialoog stond open, DNS nog niet gezet |
+| CNAME `stats` in Cloudflare, **grijze wolk** | **nog niet** |
+| Wachtwoord van `admin` wijzigen | **nog niet** — staat nog op `admin`/`umami` |
+| Website toevoegen in Umami, website-id kopiëren | **nog niet** |
+| `NEXT_PUBLIC_UMAMI_URL` + `..._WEBSITE_ID` in het site-project | **nog niet** — daarom meet de site nog niets |
+
+Zolang die laatste twee variabelen leeg zijn, laadt de site geen script en gaat
+er geen enkel verzoek uit. Dat is de bedoelde toestand, niet een storing.
+
+**Geverifieerd onderweg, niet aannemen dat het anders is:** Vercels Standard
+Protection zet de gegenereerde `*.vercel.app`-adressen achter SSO, maar
+custom-productiedomeinen níét. Dat is nagemeten aan het bestaande project
+(`beleggingscollege-visual-future.vercel.app` → 302 naar Vercel-login,
+`beleggingscollege.com` → 200). `stats.beleggingscollege.com` wordt dus vanzelf
+publiek zodra de DNS klopt — controleer dat wel, want als het mis is, krijgt
+élke bezoeker een redirect naar een inlogpagina in plaats van het telscript.
+
+## Dit is een kopie, geen fork
+
+Vercels "clone" maakt een **nieuwe repo zonder verband met de bron**: er staat
+geen "forked from umami-software/umami" boven, en GitHub biedt geen
+"Sync fork"-knop. Over een jaar ziet `JasonKrijgsman/umami` eruit als eigen werk.
+Dat is precies wanneer je een beveiligingsfix wilt binnenhalen. Koppel daarom
+eenmalig de bron als extra remote:
+
+```bash
+git clone https://github.com/JasonKrijgsman/umami && cd umami
+git remote add upstream https://github.com/umami-software/umami
+git fetch upstream
+git merge upstream/master   # of: git log upstream/master --oneline om eerst te kijken
+git push                    # Vercel deployt de nieuwe versie zelf
+```
+
+Kijk vóór het mergen of Umami een migratie meestuurt: die draaien bij de build
+tegen de productiedatabase en zijn niet terug te draaien.
+
+---
+
 Zolang `NEXT_PUBLIC_UMAMI_URL` en `NEXT_PUBLIC_UMAMI_WEBSITE_ID` niet allebei
 ingevuld zijn, laadt de site geen script en gaat er geen enkel verzoek uit.
 
@@ -53,7 +100,7 @@ sessie, dus dit deel kan een agent niet voor je doen.
 1. **Neon-database.** Maak in het bestaande Neon-project een nieuwe database
    (of een apart project) voor Umami, regio Frankfurt. **Niet dezelfde database
    als de site**: Umami draait zijn eigen migraties en je wilt zijn tabellen
-   niet naast `purchases` en `lesson_progress` hebben staan.
+   niet naast `payment_attempts`, `entitlements` en `lesson_progress` hebben staan.
 2. **Vercel-project.** Nieuw project in team "Visual Future", geïmporteerd van
    `github.com/umami-software/umami`, branch `master`. Framework Next.js;
    Umami's eigen `vercel.json` regelt de rest.
@@ -91,9 +138,19 @@ variabelen niet goed — de code faalt bewust stil in plaats van half.
 - **Preview-deploys tellen niet mee.** `data-domains` staat op de host uit
   `NEXT_PUBLIC_SITE_URL`, dus alleen het echte domein schrijft mee. Vul de
   variabelen lokaal niet in, anders meet je jezelf.
-- **Bij de verhuizing naar de `.nl` hoeft hier niets.** `data-domains` volgt
-  `NEXT_PUBLIC_SITE_URL` vanzelf mee. Wél in Umami zelf het domein van de
-  website bijwerken, anders lopen de cijfers over twee namen.
+- **Bij de verhuizing naar de `.nl`:** `data-domains` volgt
+  `NEXT_PUBLIC_SITE_URL` vanzelf mee, dus in de code hoeft niets. Drie dingen
+  wél:
+  1. Hang `stats.beleggingscollege.nl` aan hetzelfde Vercel-project en **laat de
+     `.com` erop staan**. Umami kan het niet schelen op welke naam hij wordt
+     aangesproken, en zo breekt er halverwege niets.
+  2. **Werk in Umami het domein van de bestaande website bíj — maak er geen
+     nieuwe aan.** Een nieuwe website krijgt een nieuw id en dan splitst je
+     historie in tweeën, zonder manier om ze weer samen te voegen.
+  3. Zet tijdens de cutover `NEXT_PUBLIC_UMAMI_DOMAINS` op beide namen. Zolang
+     `.com` en `.nl` allebei de site serveren telt anders één van de twee niet
+     mee, en dat gaat stil: je ziet de cijfers zakken en concludeert dat de
+     verhuizing bezoekers heeft gekost. Weghalen zodra de redirect staat.
 - **Neon's gratis laag schaalt naar nul.** Het eerste verzoek na stilte wekt de
   database; een tellerverzoek kan dan een seconde duren. Dat gebeurt
   asynchroon na het laden van de pagina, dus de bezoeker merkt er niets van.

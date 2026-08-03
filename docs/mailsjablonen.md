@@ -2,6 +2,33 @@
 
 Laatst bijgewerkt: 2 augustus 2026.
 
+> ## Geschreven vóór de betaalmodelsplitsing van 3 augustus 2026 — twee dingen om te weten vóór je hier tekst uit overneemt
+>
+> Dit document is bedoeld om **letterlijk** in code te belanden ("neem de tekst letterlijk
+> over"). Daarom staat deze waarschuwing bovenaan en niet in een voetnoot.
+>
+> **1. Overal waar hieronder `purchases` staat, lees `payment_attempts` of `entitlements`.**
+> De ene tabel is op 3 augustus in drieën gesplitst: `payment_attempts` (de betaling en het
+> order, inclusief `orderNumber`, `confirmationClaimedAt` en `confirmationSentAt`),
+> `entitlements` (het toegangsrecht) en `order_counters` (de nummerreeks). "De aankoop staat
+> niet langer op `paid`" betekent nu: het **entitlement** staat op `ingetrokken` — dát is wat
+> de toegang laat vervallen. En de idempotentie zit niet meer in het lezen van
+> `confirmationSentAt` maar in een **atomaire claim** op `confirmationClaimedAt`; dat was
+> juist de race die deze formulering niet dichtte. Zie `docs/ontwerp-betaalmodel.md`.
+>
+> **2. Eén goedgekeurde zin is onwaar geworden en moet herschreven vóór verzending.** De
+> verantwoording bij `herroeping-verwerkt` keurt de zin over voortgang goed met de
+> motivering "punten en badges leven in localStorage, niet op het account". Sinds 2 augustus
+> is dat voor **ingelogde** cursisten niet meer waar: hun voortgang staat in de database. Een
+> onware mededeling in een juridisch geladen mail is precies wat dit merk niet kan hebben.
+> De orderbevestiging die al in code staat (`src/lib/mailteksten.ts`) is hierop wél
+> bijgewerkt en zegt inmiddels dat aankoop én voortgang aan het account hangen; deze
+> sjabloon moet dezelfde kant op.
+>
+> Verder klopt dit document nog: de juridische onderbouwing, de merkstem-afwegingen en het
+> punt dat `src/lib/mail.ts` geen `attachments` kent (alleen de provider veranderde — het is
+> Migadu SMTP geworden, niet Resend).
+
 Zes transactionele mails, geschreven in de merkstem en juridisch getoetst. Alleen de
 **orderbevestiging** is op dit moment in code omgezet (`src/lib/mailteksten.ts`); de andere
 vijf staan hier klaar tot ze aan de beurt zijn.

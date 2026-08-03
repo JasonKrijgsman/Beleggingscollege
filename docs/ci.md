@@ -1,6 +1,8 @@
 # CI en tests — het hek vóór het betaalpad
 
-Laatst bijgewerkt: 3 augustus 2026.
+Laatst bijgewerkt: 3 augustus 2026, eind van de dag (na het betaalmodel, de
+voortgangsroute en de ratelimiet — de testtabel is toen opnieuw tegen `test/`
+gelegd en de bevroren testtellingen zijn eruit gehaald).
 
 Elke push naar `main` deployt automatisch naar productie. Dit document beschrijft
 het hek dat daarvoor staat: welke controles er draaien, waarom ze geen enkel
@@ -39,16 +41,37 @@ De hele pijplijn draait zonder één omgevingsvariabele. Dat is geverifieerd
 Heeft een stap ooit "toch even een echte key" nodig, dan is dat een
 ontwerpfout in die stap.
 
-## Wat de tests afdekken (±140 tests, `test/` — het aantal groeit mee met de catalogus doordat de content-invarianten per cursus en per vraag draaien)
+## Wat de tests afdekken
+
+De tests staan in `test/`, één bestand per gebied. **Het actuele aantal staat
+bewust niet in dit document** — het groeit met elke cursus mee (de
+content-invarianten draaien per cursus en per vraag) en een getal op papier
+begint binnen dagen te liegen. Wil je het weten: `npm run test` zet het
+onderaan zijn uitvoer, en `ls test/*.test.ts` telt de bestanden.
 
 | Gebied | Bestand(en) |
 | --- | --- |
 | Catalogusprijs → exact bedrag bij Mollie, "prijs nooit uit het verzoek" | `prijs.test.ts`, `checkout.route.test.ts` |
 | Webhook: bedrag- én valutacontrole, idempotentie (incl. stabiele `paidAt`), payload wordt niet geloofd, dichte winkel zonder key | `mollie-webhook.test.ts`, `orderbevestiging.test.ts`, `mollie-niet-geconfigureerd.test.ts` |
-| Toegang: alleen ingelogd mét `purchases.status = 'paid'` | `entitlements.test.ts` |
-| XP-regels, herhaalde lessen, streak, badges — client én server | `voortgang-regels.test.ts`, `voortgang-server.test.ts`, `levels.test.ts` |
+| **Toegang: alleen ingelogd mét een rij in `entitlements` met status `actief`** — en expliciet: géén enkele betaalpoging-status geeft uit zichzelf toegang, `paid` incluis | `entitlements.test.ts`, `lespagina.test.ts` |
+| Het gesplitste betaalmodel onder druk: twee gelijktijdige checkouts, een checkout dwars door de paid-webhook, dubbele webhooks, een databasefout ná `payments.create`, refund gevolgd door heraankoop, en ordernummers over de jaargrens | `betaalmodel.test.ts` |
+| De backfill van migratie 0004: elke `purchases`-rij overgezet, per `paid`-rij één recht, teller aangesloten | `migratie-betaalmodel.test.ts` |
+| XP-regels, herhaalde lessen, streak, badges — client én server | `voortgang-regels.test.ts`, `voortgang-server.test.ts`, `levels.test.ts`, `badges.test.ts` |
+| De voortgangsroute: 403 zonder recht, 400 bij een onbekende les, snoeien van een geïmporteerde snapshot | `voortgang.route.test.ts` |
+| Vragen- en nieuwsbrieflifecycle: cap zonder race, herinschrijven, beheerderspoort | `lesvragen.test.ts`, `lesvragen.route.test.ts`, `nieuwsbrief.route.test.ts`, `beheer.test.ts` |
+| De ratelimiet: venster, sleutelplafond en het opruimen daarvan | `ratelimiet.test.ts` |
 | Open redirect `/inloggen?terug=` (CODEX-102, opgelost) | `veilig-pad.test.ts`, `inloggen-terug.test.ts` |
 | Server/client-contentgrens: geen lesinhoud in view-modellen | `content-grens.test.ts` |
+| Sitemap (alleen gratis lessen), oude WordPress-redirects, bezoekmeting staat écht uit als de variabelen leeg zijn | `sitemap.test.ts`, `redirects.test.ts`, `analytics.test.ts` |
+| Mail: `verstuurMail()` gooit nooit, en de teksten zeggen wat ze moeten zeggen | `mail.test.ts`, `mailteksten.test.ts` |
+| De rekenkern van de lestools (opties, biastest, paniek, kostenvreter) | `opties.test.ts`, `biastest.test.ts`, `paniek.test.ts`, `kostenvreter.test.ts` |
+
+Twee dingen die deze tabel over de toegangspoort níét mag verzwijgen, omdat ze
+hier een keer verkeerd stonden: de poort leest sinds PR #22 (3 aug 2026) de
+tabel `entitlements`, niet `purchases`. Een betaalpoging op `paid` betekent
+"er is geld binnen", niet "deze man mag naar binnen" — het recht ontstaat pas
+als de webhook-verwerking het entitlement verleent, in hetzelfde statement.
+`entitlements.test.ts` loopt daarvoor élke betaalpoging-status langs.
 
 Drie kleine refactors maakten dit testbaar, alle drie gedragsbehoudend:
 `prijsInCenten()` verhuisde naar `src/lib/prijs.ts` (routebestanden mogen
@@ -128,10 +151,13 @@ waar authenticatie, aankopen en voortgang samenkomen. Dat risico weegt niet op
 tegen wat het extra bewijst.
 
 `test/lespagina.test.ts` toetst daarom het server component zelf, mét de echte
-`heeftToegangTot` en echte aankooprijen in PGlite; alleen de sessie is nep.
-Gedekt: koper ziet de volledige les, en op slot bij uitgelogd, ingelogd zonder
-aankoop, een aankoop van een ándere cursus, een aankoop van iemand anders, en
-elke niet-`paid` status. Wat er níét in zit is of de browser het vervolgens
+`heeftToegangTot` en echte rijen in PGlite; alleen de sessie is nep. De helper
+in dat bestand bootst de webhook na: hij schrijft een betaalpoging, en alléén
+bij status `paid` ook het entitlement dat de webhook in hetzelfde statement
+zou verlenen. Zo blijft de bewering na de betaalmodelsplitsing precies
+dezelfde. Gedekt: koper ziet de volledige les, en op slot bij uitgelogd,
+ingelogd zonder aankoop, een aankoop van een ándere cursus, een aankoop van
+iemand anders, en elke niet-`paid` status. Wat er níét in zit is of de browser het vervolgens
 schildert — dat dekt de rooktest af op de gratis les, die dezelfde component
 en dezelfde `LessonRunner` gebruikt.
 
@@ -173,13 +199,20 @@ GitHub-issue met commit en run-link, zodat het nooit stil blijft.
    het eenvoudige formaat houdt, zodat de bekende duizendtallen-zwakte niet
    stil kan toeslaan.
 
-## Uitslag van de verificatierun (3 aug 2026)
+## Uitslag van de verificatierun (3 aug 2026, ochtend — bij het bouwen van de poort)
 
 Verse worktree op `ci-fundament`, `npm ci`, geen `.env.local`:
 `npm run controle` → exit 0. Typecheck schoon; lint 0 errors (een handvol
-bekende warnings); **alle tests groen** (12 bestanden, ~4 s; 121 op het
-bouwmoment, het aantal groeit mee met de catalogus); productiebuild
-compleet; bundelcontrole vond niets (aantallen chunks/vragen groeien mee). De branch is daarna nog door een adversariële
-review gehaald (16 agents, elke bevinding door een scepticus geverifieerd,
-inclusief mutation testing op de datumcontrole); de zeven bevestigde
-bevindingen zijn verwerkt en de poort is opnieuw groen gedraaid.
+bekende warnings); **alle tests groen** (12 bestanden en 121 tests op dát
+moment, ~4 s); productiebuild compleet; bundelcontrole vond niets. De branch
+is daarna nog door een adversariële review gehaald (16 agents, elke bevinding
+door een scepticus geverifieerd, inclusief mutation testing op de
+datumcontrole); de zeven bevestigde bevindingen zijn verwerkt en de poort is
+opnieuw groen gedraaid.
+
+**Lees die getallen als een momentopname, niet als de huidige stand.** Ze zijn
+het bewijs dat de poort op zijn bouwmoment werkte. Op dezelfde dag zijn er nog
+zes cursussen, het gesplitste betaalmodel, de voortgangsroute, de
+vragen-lifecycle en de ratelimiet bij gekomen, elk met eigen tests — de suite
+is sindsdien ruim verdrievoudigd. Het commando is de waarheid, niet dit
+document: draai `npm ci && npm run controle`.

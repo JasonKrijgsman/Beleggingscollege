@@ -4,6 +4,38 @@ Laatst bijgewerkt: 2 augustus 2026. Vijf onafhankelijke onderzoekers keken elk v
 invalshoek naar wat het product mist; een zesde woog alle voorstellen. Bronnen staan per
 onderdeel genoemd.
 
+> ## Onderzoek van 2 augustus 2026 — deels ingehaald. Lees het als onderbouwing, niet als takenlijst.
+>
+> Dit stuk staat in de tegenwoordige tijd en wordt elders aangehaald als levende
+> onderbouwing, maar de dag na het schrijven is er stevig doorgebouwd. Wie het als
+> opdrachtenlijst leest, bouwt dingen die er al zijn — en in één geval iets dat het merk
+> **bewust niet wil**. De actuele takenlijst is `docs/openstaand.md`.
+>
+> **Gebouwd sinds dit stuk:**
+> - **Voortgang naar de database** (voorstel 8, het "fundament onder 2, 5 en 6") — af sinds
+>   2 aug 2026, gehard met een toegangscontrole op 3 aug. De zin hieronder dat voortgang
+>   "in localStorage staat en niet meerreist" geldt alleen nog voor uitgelogde bezoekers.
+> - **De cursus Beleggingspsychologie**, mét de biastest en de paniek-simulator. Het stuk
+>   noemt die cursus verderop "nu nog leeg" en de tool "v2-werk"; beide zijn er.
+> - **De vragenrubriek bij de les** — maar **bewust ánders dan hier voorgesteld**. Het
+>   voorstel hieronder wil een *beloofde reactietermijn* ("antwoord binnen vijf
+>   werkdagen"). Dat is expliciet afgewezen: de rubriek is redactioneel, zonder beloofde
+>   termijn en zonder zichtbare wachtrij, omdat een belofte die je niet kunt waarmaken
+>   precies is waar dit merk zich tegen afzet. Zie `CLAUDE.md` en `src/lib/lesvragen.ts`.
+> - **De sitemap-afscherming.** Het punt "twaalf betaalde lespagina's staan in je sitemap
+>   zonder paywall-markering" is opgelost door ze er hélemaal uit te laten; `test/sitemap.test.ts`
+>   bewaakt beide kanten.
+>
+> **Getallen die niet meer kloppen** (de conclusies eromheen kunnen best overeind blijven,
+> maar niet op deze cijfers — stand 3 aug 2026, 9 cursussen):
+>
+> | Staat er | Werkelijk |
+> |---|---|
+> | "6 lessen à ~50 minuten voor €49" | 8 betaalde cursussen, samen 60 lessen en 541 minuten |
+> | "~100 minuten betaalde inhoud" | 541 minuten betaald (622 in de hele catalogus) |
+> | "88 quizvragen liggen ongebruikt" | 280 quizvragen in de catalogus |
+> | "de sitemap bevestigt dat: 32 URL's live" | 25 URL's, en géén betaalde lespagina's meer |
+
 ## Lens: waarde-per-euro
 
 De vraag "waarom €49 in plaats van gratis YouTube" is met méér tekst niet te winnen. De gratis Nederlandse concurrentie is sterk: DEGIRO's Beleggersacademie is een complete beginnerscursus, Curvo's Backtest is een gratis Europese portefeuillesimulator met 740+ ETF's, Monte Carlo en drawdown-analyse, en Babypips bewijst dat een volledig gratis school met quizzen en voortgangsmeters jarenlang mensen vasthoudt. Tegen dat veld is 6 lessen à ~50 minuten leestekst voor €49 objectief dun.

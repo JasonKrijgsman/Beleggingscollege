@@ -2,6 +2,36 @@
 
 Laatst bijgewerkt: 2 augustus 2026.
 
+> ## Historische analyse — op 3 augustus 2026 deels ingehaald
+>
+> **Lees dit als analyse, niet als gatenlijst.** De zes ontbrekende delen hieronder zijn
+> een momentopname van 2 augustus; de dag erna is er stevig doorgebouwd. Wie dit als
+> takenlijst gebruikt, doet werk over. De actuele stand staat in `docs/openstaand.md`.
+>
+> Wat er sindsdien veranderde, per punt:
+>
+> - **1. Bevestigingsmail** — gebouwd, maar hij vertrekt bewust nog niet. De hele keten
+>   staat er (`mail.ts`, `mailteksten.ts`, `orderbevestiging.ts`, afgevuurd vanuit de
+>   webhook, met een atomaire claim tegen dubbele post). Wat ontbreekt zijn de
+>   SMTP-inloggegevens in Vercel. **En let op de provider: het is Migadu geworden, niet
+>   Resend** — de zin verderop in dit hoofdstuk noemt nog de oude keuze.
+> - **2. Terugbetalen** — nog steeds open, maar het recept is veranderd. Toegang intrekken
+>   gebeurt nu op `entitlements` (status `ingetrokken`, met `revoked_at`/`revoked_reason`);
+>   de betaalpoging krijgt daarnaast `refunded`. Zet je alleen `purchases.status` om, dan
+>   verandert er niets aan iemands toegang.
+> - **3. Voortgang reist niet mee** — **gebouwd op 2 augustus, gehard op 3 augustus.** Voor
+>   ingelogde gebruikers is de database leidend en reist de voortgang wél mee
+>   (`src/lib/voortgang-server.ts`, `POST /api/voortgang`, met toegangscontrole en
+>   atomaire schrijfacties). Uitgelogd blijft localStorage leidend en de individuele
+>   quizantwoorden blijven lokaal. De bewering "geen enkele regel code" hieronder is dus
+>   niet meer waar.
+> - **6. Bewijs klopt niet met wat je belooft** — half. Het btw-identificatienummer
+>   `NL004813328B30` staat inmiddels in de voettekst, en de ordernummering bestaat
+>   (`payment_attempts.order_number`, atomair uitgedeeld uit `order_counters`). Het
+>   **vestigingsadres** staat er nog steeds niet — zie `docs/vestigingsadres-en-marktpraktijk.md`.
+>
+> Punt 4 en 5 zijn niet ingehaald; die staan nog gewoon open.
+
 Er is een verschil tussen "de koopknop werkt" en "je hebt een winkel". De knop werkt sinds
 2 augustus. Wat hieronder staat is het verschil.
 
@@ -38,6 +68,14 @@ database zodat een klant niet tien keer dezelfde mail krijgt als Mollie de webho
 Wat resteert is de tekst en het aanroepen vanuit de webhook. **Dit is de goedkoopste van de
 zes en tegelijk de belangrijkste — een halve dag werk.**
 
+> *Zo is het niet gegaan, en dat is beter.* **Resend is afgevallen; het is Migadu geworden**
+> (Jason betaalt er al voor, en de post van dit domein gaat er toch heen — `src/lib/mail.ts`
+> praat sinds 3 aug 2026 via nodemailer met `smtp.migadu.com`). De records staan bij
+> Cloudflare, niet bij Strato. De anti-dubbelmail zit niet in `confirmationSentAt` maar in een
+> atomaire claim op `confirmationClaimedAt`, en beide velden staan op `payment_attempts`. De
+> tekst en de aanroep vanuit de webhook zijn af. Wat écht resteert: twee omgevingsvariabelen
+> in Vercel.
+
 ---
 
 ## 2. Een terugbetaling doet niets
@@ -53,15 +91,27 @@ zich tegen afzet. En praktisch: bij een chargeback verlies je het geld én houdt
 product, plus € 10 kosten van Mollie. Bij een MOI is dat € 65.
 
 **Hoe ik het zou oplossen.** Twee stappen, klein en groot:
-- *Klein, nu:* Mollie's refund-webhook afvangen en bij een terugbetaling `purchases.status` op
-  `refunded` zetten. `heeftToegangTot()` kijkt al alleen naar `paid`, dus daarmee vervalt de
-  toegang automatisch. Dit is een uur werk en dicht het gat.
+- *Klein, nu:* Mollie's refund-webhook afvangen en bij een terugbetaling de status omzetten.
+  **Sinds 3 aug 2026 zijn dat twee handelingen, niet één:** de betaalpoging krijgt status
+  `refunded` in `payment_attempts`, en het **entitlement** gaat op `ingetrokken` met
+  `revoked_at` en `revoked_reason`. Dat laatste is wat de deur dichtdoet — `heeftToegangTot()`
+  kijkt naar `entitlements` met status `actief`, niet meer naar `purchases.status = 'paid'`.
+  Zet je alleen de oude kolom om, dan houdt de klant zijn toegang. Nog steeds ongeveer een
+  uur werk, maar op de goede tabellen.
 - *Groot, later:* een knop in `/account` waarmee de klant binnen 14 dagen zelf kan ontbinden.
   Dat haalt de aanleiding voor chargebacks en MOI's weg — goedkoper dan het alternatief.
 
 ---
 
 ## 3. Voortgang reist niet mee, terwijl je het tegendeel verkoopt
+
+> **Opgelost op 2 augustus 2026, gehard op 3 augustus.** Dit hoofdstuk beschrijft het gat
+> zoals het bestond; de analyse klopte, en het is precies daarom gebouwd. Voor ingelogde
+> gebruikers is de database nu de bron van waarheid: `src/lib/voortgang-server.ts` schrijft
+> `lesson_progress` en `user_stats`, `POST /api/voortgang` roept dat aan en controleert
+> sinds PR #32 ook toegang. Uitgelogd blijft localStorage leidend, en de individuele
+> quizantwoorden blijven bewust lokaal. Het certificaat is nog wél volledig client-side —
+> dát deel van de klacht staat nog open, zie hoofdstuk 4.
 
 **Wat mist er.** XP, level, streak, alle tien de badges, elk lesvinkje en elk certificaat staan
 in `localStorage`. De tabellen `lesson_progress` en `user_stats` staan wél in de database, zijn
@@ -131,6 +181,14 @@ herroeping is 14 dagen; die loopt door of je de mail leest of niet.
 **Wat mist er.** Btw wordt nergens uitgesplitst, er is geen factuurnummering (dat komt nu pas
 met `orderNumber`), er staat geen vestigingsadres en geen btw-identificatienummer op de site, en
 er is geen vastlegging van waar de klant zit — terwijl je btw-plicht daarvan afhangt.
+
+> *Half opgelost.* Het **btw-identificatienummer `NL004813328B30` staat inmiddels in de
+> voettekst** (samen met het KVK-nummer), en de nummering bestaat: `payment_attempts.order_number`,
+> atomair uitgedeeld uit `order_counters` binnen de paid-verwerking, dus een reeks zonder
+> gaten. Het **vestigingsadres staat er nog niet** — dat is geen tekstwijziging van tien
+> minuten gebleken maar een echte afweging, want het gaat om Jasons woonadres; zie
+> `docs/vestigingsadres-en-marktpraktijk.md`. De btw-uitsplitsing zit in de bevestigingsmail
+> die nog niet vertrekt, en een echte factuur is er nog steeds niet.
 
 **Waarom dit een kerndeel is.** Dit is het soort ding dat maandenlang niets doet en dan in één
 keer een probleem is: bij de aangifte, bij een controle, of bij een klant die om een factuur
