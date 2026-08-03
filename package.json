@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "controleer:bundel": "node scripts/controleer-bundel.mjs",
     "controle": "npm run typecheck && npm run lint && npm run test && npm run build && npm run controleer:bundel",
-    "plattegrond": "node scripts/plattegrond.mjs"
+    "plattegrond": "node scripts/plattegrond.mjs",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",
