@@ -208,6 +208,18 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
 
 ## 6. Techniek en bedrijfsvoering
 
+- [ ] **Neon zit op 10/10 branches en dat gaat de volgende preview breken.** Geconstateerd
+      3 aug 2026: de console meldt "Branch limit reached" (gratis laag = 10). Negen daarvan
+      zijn `preview/…`-branches die de Vercel-integratie per preview-deployment aanmaakt, en
+      acht horen bij PR's die allang gemerged zijn — `bugbot-werkafspraak`,
+      `ontwerp-betaalmodel`, `publieke-teksten-kloppen`, `betaalmodel-splitsing`,
+      `twitter-kaart`, `sitewide-review-metadata`, `openstaand-6b-bijwerken` en
+      `claude/test-coverage`. Ze worden **niet** automatisch opgeruimd als de PR sluit.
+      Weggooien is veilig: het zijn wegwerpkopieën van `main` en de integratie maakt een
+      nieuwe aan zodra er weer een preview nodig is. Let op de samenhang met het punt
+      hieronder: zodra Preview een eigen vaste branch krijgt, hoort daar meteen een
+      afspraak bij over wie de tijdelijke opruimt, anders loopt het opnieuw vol.
+      (De databases `neondb` en `umami` staan allebei op `main` en raken dit niet.)
 - [ ] **De laptop gebruikt nog de primaire productiedatabase.** Gecontroleerd in Jasons
       Chrome en de Neon-console: Production gebruikt de primaire Neon-branch. Voor Preview
       is isolatie geconfigureerd via de Neon deployment action, die per Preview-deployment
