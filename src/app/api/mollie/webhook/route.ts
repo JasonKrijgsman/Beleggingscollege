@@ -127,6 +127,105 @@ async function verwerkBetaald(paymentId: string): Promise<void> {
 }
 
 /**
+ * Waarom een terugbetaling niet uit `payment.status` te lezen is.
+ *
+ * Mollie kent geen status "refunded": een terugbetaalde betaling blijft
+ * gewoon `paid` staan, en wat er verandert zijn de velden `amountRefunded`
+ * en `amountChargedBack`. Wie alleen naar de status kijkt, ziet een
+ * terugbetaling dus nooit — precies waardoor toegang bleef staan nadat het
+ * geld terug was.
+ *
+ * Wanneer trekken we in?
+ *  - Chargeback van welk bedrag dan ook. De bank heeft het geld al
+ *    teruggehaald; dat is geen coulance maar een geschil.
+ *  - Volledige terugbetaling (terug >= betaald). De koop is ongedaan.
+ *
+ * Wat we bewust NIET doen: intrekken bij een gedeeltelijke terugbetaling.
+ * Een korting achteraf of een compensatie van een paar euro hoort de cursus
+ * niet af te pakken. Dat blijft handwerk in /beheer.
+ */
+function terugbetaalReden(payment: {
+  amount: { value: string };
+  amountRefunded?: { value: string };
+  amountChargedBack?: { value: string };
+}): "chargeback" | "refund" | null {
+  const betaald = bedragNaarCenten(payment.amount.value);
+  const teruggeboekt = payment.amountChargedBack
+    ? bedragNaarCenten(payment.amountChargedBack.value)
+    : 0;
+  const terugbetaald = payment.amountRefunded
+    ? bedragNaarCenten(payment.amountRefunded.value)
+    : 0;
+
+  // Number.isFinite vangt een onbruikbaar bedrag af: NaN zou bij elke
+  // vergelijking false opleveren en de terugbetaling stil laten verdwijnen.
+  if (Number.isFinite(teruggeboekt) && teruggeboekt > 0) return "chargeback";
+  if (
+    Number.isFinite(terugbetaald) &&
+    Number.isFinite(betaald) &&
+    terugbetaald > 0 &&
+    terugbetaald >= betaald
+  ) {
+    return "refund";
+  }
+  return null;
+}
+
+/**
+ * Het spiegelbeeld van verwerkBetaald(): geld terug, dus recht eraf — ook
+ * weer als ÉÉN atomair statement, om dezelfde reden (geen transacties op de
+ * neon-http-driver).
+ *
+ * Twee details die het verschil maken:
+ *
+ *  1. We pakken zowel `paid` als `pending`. Komt de terugbetaling binnen
+ *     vóórdat wij de betaling ooit als betaald verwerkt hebben — Mollie's
+ *     eerste webhook kan vertraagd of verloren zijn — dan mag die pending-rij
+ *     daarna nóóit alsnog toegang verlenen. Door hem hier direct op
+ *     `refunded` te zetten, vindt verwerkBetaald() later geen pending-rij
+ *     meer en is de no-op precies wat we willen.
+ *
+ *  2. Het entitlement wordt alleen ingetrokken als het aan DEZE poging hangt
+ *     (`attempt_id = k.id`). Heeft de klant na de terugbetaling opnieuw
+ *     gekocht, dan wijst het recht naar de nieuwe order en laat een late
+ *     webhook over de oude terugbetaling dat met rust. Zonder die voorwaarde
+ *     zou een oude refund de nieuwe aankoop ongedaan maken.
+ *
+ * Nul rijen betekent: al verwerkt. Herhaalde webhooks zijn dus gratis.
+ */
+async function verwerkTerugbetaald(
+  paymentId: string,
+  reden: "chargeback" | "refund"
+): Promise<void> {
+  const nu = new Date().toISOString();
+
+  await db.execute(sql`
+    WITH kandidaat AS (
+      SELECT id, user_id, course_slug FROM payment_attempts
+      WHERE mollie_payment_id = ${paymentId}
+        AND status IN ('pending', 'paid')
+      FOR UPDATE
+    ),
+    gemarkeerd AS (
+      UPDATE payment_attempts a
+      SET status = 'refunded'
+      FROM kandidaat k
+      WHERE a.id = k.id
+      RETURNING a.id
+    )
+    UPDATE entitlements e
+    SET status = 'ingetrokken',
+        revoked_at = ${nu}::timestamp,
+        revoked_reason = ${reden}
+    FROM kandidaat k
+    WHERE e.user_id = k.user_id
+      AND e.course_slug = k.course_slug
+      AND e.attempt_id = k.id
+      AND e.status = 'actief'
+  `);
+}
+
+/**
  * Mollie meldt hier dat er iets veranderd is aan een betaling.
  *
  * Wat Mollie stuurt is één form-veld: `id=tr_...`. Meer niet. Géén status,
@@ -210,6 +309,16 @@ export async function POST(request: Request) {
     const poging = rijen[0];
 
     if (payment.status === "paid") {
+      // Geld terug gaat vóór geld binnen. Mollie laat de status op "paid"
+      // staan bij een terugbetaling, dus dit moet hier gecontroleerd worden
+      // en niet verderop: anders verleent de tak hieronder alsnog toegang
+      // voor een betaling die allang teruggeboekt is.
+      const reden = terugbetaalReden(payment);
+      if (reden) {
+        await verwerkTerugbetaald(paymentId, reden);
+        return new Response("OK", { status: 200 });
+      }
+
       // Regel 2: bedrag en valuta moeten kloppen.
       const betaald = bedragNaarCenten(payment.amount.value);
       if (
@@ -245,7 +354,22 @@ export async function POST(request: Request) {
       // keer over 26 uur terwijl de aankoop allang goed staat. De functie
       // bewaakt zelf (met een atomaire claim) dat er maar één mail per order
       // uitgaat.
-      await stuurOrderbevestiging(paymentId);
+      //
+      // Alleen voor een rij die ook echt op paid staat. Was er eerder al een
+      // terugbetaling langsgekomen, dan staat de rij op 'refunded', verleent
+      // verwerkBetaald() niets meer, en hoort er dus ook geen orderbevestiging
+      // uit te gaan voor een aankoop die niet bestaat. Bij een gewone herhaalde
+      // webhook staat de rij nog gewoon op paid, dus een eerder mislukte mail
+      // houdt hier zijn nieuwe kans.
+      const [naVerwerking] = await db
+        .select({ status: paymentAttempts.status })
+        .from(paymentAttempts)
+        .where(eq(paymentAttempts.molliePaymentId, paymentId))
+        .limit(1);
+
+      if (naVerwerking?.status === "paid") {
+        await stuurOrderbevestiging(paymentId);
+      }
 
       return new Response("OK", { status: 200 });
     }
@@ -253,8 +377,8 @@ export async function POST(request: Request) {
     // Eindstatussen van Mollie overnemen, maar uitsluitend vanaf pending —
     // dat is de volledige lijst toegestane overgangen uit
     // docs/ontwerp-betaalmodel.md §2.2. Tussenstanden als "open" of
-    // "authorized" zijn gewoon nog pending en muteren hier niets; weg van
-    // "paid" bestaat alleen de (toekomstige) refund-route.
+    // "authorized" zijn gewoon nog pending en muteren hier niets. De enige weg
+    // wég van "paid" is de terugbetaalroute hierboven.
     if (["failed", "expired", "canceled"].includes(payment.status)) {
       await db
         .update(paymentAttempts)

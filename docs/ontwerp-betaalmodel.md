@@ -117,8 +117,13 @@ poging uit de geschiedenis.
 
 ### Scenario 5 — heraankoop na refund hergebruikt oud order- en mailbewijs
 
-Zodra terugbetalen bestaat (roadmap; de webhook reserveert er al een status voor,
-`webhook/route.ts:105-108`) komt dit pad vrij: rij op `refunded`, klant koopt later
+**Dit pad is sinds migratie 0005 geen roadmap meer** — de refund-webhook bestaat, dus
+lees dit scenario als een openstaande waarschuwing en niet als een toekomstbeeld. Wat
+`test/terugbetaling.test.ts` wél vastlegt: intrekken bij volledige terugbetaling en bij
+elke chargeback, en dat een heraankoop dáárna een eigen poging met een eigen recht
+oplevert. Wat het (nog) niet vastlegt is de mail- en ordernummerkant hieronder.
+
+Rij op `refunded`, klant koopt later
 opnieuw. De upsert-`set` (`route.ts:103-110`) wist `confirmationSentAt`, `orderNumber`
 en `paidAt` **niet**. Na de nieuwe betaling ziet `stuurOrderbevestiging()` het oude
 `confirmationSentAt` staan en stopt (`src/lib/orderbevestiging.ts:50`): de nieuwe
@@ -259,7 +264,8 @@ consentvelden en `created_at` zijn na de insert onveranderlijk.
 | `pending` | `paid` | webhook | `WHERE status = 'pending'` |
 | `pending` | `failed` / `expired` / `canceled` | webhook | `WHERE status = 'pending'` |
 | `pending` | `mismatch` | webhook | `WHERE status = 'pending'` |
-| `paid` | `refunded` | toekomstige refund-webhook | `WHERE status = 'paid'`, trekt in dezelfde transactie het entitlement in |
+| `paid` | `refunded` | refund-webhook (bestaat sinds 0005) | `WHERE status IN ('pending','paid')`, trekt in hetzelfde statement het entitlement in |
+| `pending` | `refunded` | refund-webhook (bestaat sinds 0005) | idem — een terugbetaling die binnenkomt vóór de eerste paid-webhook mag daarna nooit alsnog toegang verlenen |
 
 Bewust afwezig: élke overgang die op `paid` uitkomt behalve vanaf `pending`, en élke
 overgang wég van `paid` behalve `refunded`. Een `mismatch` blijft `mismatch` tot een
@@ -483,6 +489,23 @@ blinde `delete` op `entitlements` het intrekken van iemands toegang.
 - **I2 — Maximaal één actief recht per gebruiker per cursus.** Afgedwongen door
   `entitlements_user_course_idx` plus de upsert; een heraankoop reactiveert, maakt
   nooit een tweede rij.
+- **I1b — Maximaal één ópenstaande poging per gebruiker per cursus** (toegevoegd in
+  migratie 0005). Afgedwongen door `payment_attempts_open_per_course_idx`, een
+  partiële unique index op `(user_id, course_slug) WHERE status = 'pending'`.
+
+  **Dit is een correctie op dit ontwerp, geen aanvulling.** §5 scenario 1 beschreef
+  twee gelijktijdige checkouts als "twee attempt-rijen, béíde Mollie-id's vindbaar"
+  en zag dat als de gewenste uitkomst. Dat loste de onvindbare order op, maar liet
+  een duurder gat open: twee betaalbare links naast elkaar. Betaalde de klant ze
+  allebei, dan gaf de tweede betaling door I2 géén extra recht — alleen een tweede
+  afschrijving, met tot 0005 geen terugbetaalroute om dat mee recht te zetten.
+
+  I1 zelf blijft gelden en verandert niet: bestáát er een rij, dan blijft die
+  reconcilieerbaar. De checkout maakt alleen geen tweede betaalbare link meer — hij
+  vraagt Mollie wat de openstaande poging nog waard is en geeft diezelfde link terug,
+  of sluit de poging af als Mollie zegt dat hij verlopen is. Dat laatste is geen
+  nettigheid maar noodzaak: zonder die zelfherstelstap zou één blijven hangen
+  pending-rij de klant voorgoed blokkeren.
 - **I3 — Betaald geld eindigt nooit zonder zichtbare order.** Elke rij die `paid`
   bereikt heeft in dezelfde transactie een ordernummer gekregen en is in `/beheer`
   zichtbaar; een paid-webhook voor een link die wij hebben uitgegeven kan nooit in de

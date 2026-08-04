@@ -125,7 +125,22 @@ afterEach(() => {
 });
 
 describe("1. twee gelijktijdige checkouts (scenario 1 — I1, I2, I3)", () => {
-  it("levert twee vindbare pogingen op; betalen van de EERSTE link geeft gewoon toegang", async () => {
+  /**
+   * DEZE TEST IS OMGEDRAAID IN MIGRATIE 0005 — lees dit voor je hem "herstelt".
+   *
+   * Hij eiste eerst [200, 200] en twee openstaande rijen: twee betaalbare
+   * links naast elkaar, want de splitsing van PR #22 ging erover dat béíde
+   * vindbaar bleven (geen wees meer). Dat loste de onvindbare order op, maar
+   * liet het duurdere gat open: de klant kón ze allebei betalen, en omdat
+   * entitlements uniek is op (user, course) leverde de tweede betaling geen
+   * extra recht op — alleen een tweede afschrijving.
+   *
+   * Sinds 0005 laat een partiële unique index nog maar één pending poging per
+   * (gebruiker, cursus) toe. Wat I1 beschermde blijft overeind en wordt
+   * hieronder nog steeds getest: een betaling die bij Mollie bestaat, moet aan
+   * onze kant altijd terug te vinden zijn.
+   */
+  it("levert samen precies één betaalbare link op", async () => {
     const eerste = uitgesteld<unknown>();
     const tweede = uitgesteld<unknown>();
     h.paymentsCreate
@@ -140,21 +155,39 @@ describe("1. twee gelijktijdige checkouts (scenario 1 — I1, I2, I3)", () => {
     ];
     await vi.waitFor(() => expect(h.paymentsCreate).toHaveBeenCalledTimes(2));
 
+    // De verliezer vraagt de winnaar op om diens link terug te kunnen geven.
+    h.paymentsGet.mockResolvedValue(
+      mollieBetaling("tr_A", { userId: "u1", courseSlug: "waardebeleggen" })
+    );
     eerste.vrijgeven(checkoutAntwoord("tr_A"));
     tweede.vrijgeven(checkoutAntwoord("tr_B"));
     const antwoorden = await Promise.all(posts);
-    expect(antwoorden.map((a) => a.status)).toEqual([200, 200]);
 
-    // I1: twee rijen, béíde Mollie-id's blijven vindbaar — geen wees meer.
-    const rijen = await alleRijen();
-    expect(rijen).toHaveLength(2);
-    expect(rijen.map((r) => r.molliePaymentId).sort()).toEqual([
-      "tr_A",
-      "tr_B",
-    ]);
+    // Eén van de twee wint. De ander krijgt óf dezelfde link (200) óf een
+    // nette 409 — nooit een tweede betaalbare link.
+    for (const a of antwoorden) expect([200, 409]).toContain(a.status);
 
-    // De klant betaalt de link uit het éérste tabblad — vandaag het zwaarste
-    // scenario (betaald geld, onvindbare order). Nu: gewoon verwerkt.
+    const openstaand = (await alleRijen()).filter(
+      (r) => r.status === "pending"
+    );
+    expect(openstaand).toHaveLength(1);
+  });
+
+  it("houdt elke betaling die bij Mollie bestaat vindbaar (I1, I2, I3)", async () => {
+    // De kern van I1, los van hoe de rijen ontstaan zijn: staat er een rij,
+    // dan is de betaling een volwaardige order zodra hij betaald wordt. We
+    // zetten de rij hier direct neer — zo dekt de test ook rijen van vóór
+    // 0005 en die van de reparatietak.
+    await db.insert(paymentAttempts).values({
+      id: "33333333-3333-4333-8333-333333333333",
+      userId: "u1",
+      courseSlug: "waardebeleggen",
+      molliePaymentId: "tr_A",
+      status: "pending",
+      amountCents: 4900,
+      currency: "EUR",
+    });
+
     h.paymentsGet.mockResolvedValue(
       mollieBetaling("tr_A", { userId: "u1", courseSlug: "waardebeleggen" })
     );
@@ -170,8 +203,6 @@ describe("1. twee gelijktijdige checkouts (scenario 1 — I1, I2, I3)", () => {
     expect(rechten).toHaveLength(1);
     expect(rechten[0].status).toBe("actief");
     expect(rechten[0].attemptId).toBe(a.id);
-    // De tweede link staat er gewoon nog naast, onaangeroerd.
-    expect((await rijVoor("tr_B")).status).toBe("pending");
   });
 });
 
@@ -188,12 +219,16 @@ describe("2. checkout tegen webhook (scenario 2 — I1, I5)", () => {
       currency: "EUR",
     });
 
-    // De ongeduldige tweede klik: de checkout is voorbij zijn dedupe-select
-    // (er is nog geen entitlement) en hangt in payments.create …
+    // De ongeduldige tweede klik. Sinds 0005 ziet de checkout de openstaande
+    // poging en vraagt Mollie wat die nog waard is, in plaats van meteen een
+    // tweede betaling te maken. We laten dat ophalen hangen, zodat de webhook
+    // er precies doorheen kan lopen.
     const hangend = uitgesteld<unknown>();
-    h.paymentsCreate.mockReturnValueOnce(hangend.promise);
+    h.paymentsGet.mockReturnValueOnce(
+      hangend.promise as ReturnType<typeof h.paymentsGet>
+    );
     const post = checkoutPOST(checkoutRequest("waardebeleggen"));
-    await vi.waitFor(() => expect(h.paymentsCreate).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(h.paymentsGet).toHaveBeenCalledTimes(1));
 
     // … en precies dáár landt de paid-webhook voor tr_A.
     h.paymentsGet.mockResolvedValue(
@@ -202,16 +237,22 @@ describe("2. checkout tegen webhook (scenario 2 — I1, I5)", () => {
     await webhookPOST(webhookRequest("tr_A"));
     expect((await rechtVoor("u1", "waardebeleggen"))?.status).toBe("actief");
 
-    // Nu pas rondt de checkout af.
-    hangend.vrijgeven(checkoutAntwoord("tr_B"));
-    expect((await post).status).toBe(200);
+    // Nu pas rondt de checkout af: de betaling die hij opvroeg blijkt betaald.
+    hangend.vrijgeven(
+      mollieBetaling("tr_A", { userId: "u1", courseSlug: "waardebeleggen" })
+    );
+    const antwoord = await post;
 
-    // I5: geen enkele rij heeft paid verlaten, en het recht staat er nog.
+    // I5: geen enkele rij heeft paid verlaten, en het recht staat er nog. Dat
+    // is wat deze test bewaakt — een late checkout mag toegang nooit
+    // terugdraaien.
     expect((await rijVoor("tr_A")).status).toBe("paid");
     expect((await rechtVoor("u1", "waardebeleggen"))?.status).toBe("actief");
-    // I1: de tweede poging is een eigen rij ernaast, geen overschrijving.
-    expect((await rijVoor("tr_B")).status).toBe("pending");
-    expect(await alleRijen()).toHaveLength(2);
+
+    // En hij heeft er geen tweede betaalbare link naast gezet.
+    expect(antwoord.status).toBe(409);
+    expect(h.paymentsCreate).not.toHaveBeenCalled();
+    expect(await alleRijen()).toHaveLength(1);
   });
 });
 
