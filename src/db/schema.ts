@@ -8,6 +8,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { AdapterAccountType } from "@auth/core/adapters";
 
 /* ------------------------------------------------------------------
@@ -162,7 +163,9 @@ export const paymentAttempts = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     courseSlug: text("course_slug").notNull(),
     /** Uniek: een dubbele webhook kan nooit een tweede rij voor dezelfde
-     *  betaling maken; twee checkouts maken juist wél twee rijen. */
+     *  betaling maken. Twee checkouts voor dezelfde cursus maakten hiervóór
+     *  wél twee rijen — en dus twee betaalbare links. Sinds migratie 0005
+     *  staat de partiële index hieronder maar één openstaande poging toe. */
     molliePaymentId: text("mollie_payment_id").notNull().unique(),
     /** pending | paid | failed | expired | canceled | mismatch | refunded */
     status: text("status").notNull().default("pending"),
@@ -188,6 +191,16 @@ export const paymentAttempts = pgTable(
     index("payment_attempts_user_course_idx").on(t.userId, t.courseSlug),
     // Voor de opruimronde uit docs/openstaand.md §6 (hangende pendings naslaan).
     index("payment_attempts_status_idx").on(t.status, t.createdAt),
+    // Hooguit ÉÉN openstaande poging per gebruiker per cursus. Zonder dit kwam
+    // je met twee tabbladen allebei door de "al gekocht?"-controle en kreeg je
+    // twee betaalbare links: dubbel betalen, terwijl entitlements uniek is op
+    // (user, course) en de tweede betaling dus niets extra's opleverde.
+    // Bewust PARTIEEL: afgeronde pogingen (paid/failed/expired/canceled/
+    // mismatch/refunded) mogen onbeperkt naast elkaar blijven staan — de tabel
+    // is append-only en een heraankoop na terugbetaling moet gewoon kunnen.
+    uniqueIndex("payment_attempts_open_per_course_idx")
+      .on(t.userId, t.courseSlug)
+      .where(sql`${t.status} = 'pending'`),
   ]
 );
 

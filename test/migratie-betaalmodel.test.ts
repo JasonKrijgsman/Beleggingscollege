@@ -39,11 +39,18 @@ describe("migratie 0004_betaalmodel", () => {
   it("kopieert elke purchases-rij, verleent per paid-rij één recht en sluit de teller aan", async () => {
     const client = new PGlite();
     const tags = await journaalTags();
-    const laatste = tags[tags.length - 1];
-    expect(laatste).toBe("0004_betaalmodel");
+
+    // Bewust op naam gezocht en niet "de laatste migratie" genomen. Dat stond
+    // hier eerst, en het brak zodra 0005 erbij kwam: `slice(0, -1)` betekende
+    // dan "tot en met 0004", waardoor de migratie die deze test wíl toetsen al
+    // gedraaid was voordat de test hem zelf uitvoerde. Zo blijft dit bestand
+    // over 0004 gaan, hoeveel migraties er daarna ook nog bij komen.
+    const index = tags.indexOf("0004_betaalmodel");
+    expect(index).toBeGreaterThanOrEqual(0);
+    const laatste = tags[index];
 
     // Alles tot en met 0003: de wereld zoals productie die vóór de splitsing had.
-    for (const tag of tags.slice(0, -1)) await voerMigratieUit(client, tag);
+    for (const tag of tags.slice(0, index)) await voerMigratieUit(client, tag);
 
     // De inhoud van die wereld: één betaalde aankoop (mét ordernummer, zoals
     // de echte testaankoop) en één mislukte poging zonder nummer.
