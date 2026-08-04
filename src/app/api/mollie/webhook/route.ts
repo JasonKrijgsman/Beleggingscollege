@@ -283,8 +283,15 @@ export async function POST(request: Request) {
         `[mollie] reparatie: betaling ${paymentId} had geen rij; ` +
           `aangemaakt uit eigen metadata (attempt ${meta.attemptId})`
       );
-      // onConflictDoNothing: een gelijktijdige tweede webhook kan ons net
-      // vóór zijn geweest; dan is de rij er al en is dat prima.
+      // onConflictDoNothing GERICHT op mollie_payment_id: een gelijktijdige
+      // tweede webhook kan ons net vóór zijn geweest; dan is de rij er al en
+      // is dat prima. Bewust NIET ongericht — deze insert kan sinds 0005 ook
+      // op de partiële unique index botsen (gebruiker heeft al een ándere
+      // pending poging voor dezelfde cursus). Die botsing stil wegslikken
+      // betekende: betaald geld, geen rij, 200 naar Mollie, nooit een retry.
+      // Nu gooit hij, vangt de catch onderaan hem als 500, en herhaalt Mollie
+      // tot tien keer over 26 uur — tegen die tijd is de pending-rij opgelost
+      // en slaagt de reparatie alsnog.
       await db
         .insert(paymentAttempts)
         .values({
@@ -296,7 +303,7 @@ export async function POST(request: Request) {
           amountCents: meta.amountCents,
           currency: "EUR",
         })
-        .onConflictDoNothing();
+        .onConflictDoNothing({ target: paymentAttempts.molliePaymentId });
 
       rijen = await db
         .select()
@@ -317,6 +324,26 @@ export async function POST(request: Request) {
       if (reden) {
         await verwerkTerugbetaald(paymentId, reden);
         return new Response("OK", { status: 200 });
+      }
+
+      // Betaald geld op een rij die wij al hebben afgesloten is per definitie
+      // een probleem dat een mens moet zien — niet iets om stil met 200 te
+      // bevestigen, want dan verdwijnt het: verwerkBetaald() claimt alleen
+      // pending-rijen, dus er zou geen recht, geen ordernummer en geen spoor
+      // ontstaan. Een 500 laat Mollie tot tien keer over 26 uur terugkomen en
+      // houdt de fout zichtbaar in de logs tot er ingegrepen is. Dit hoort
+      // nooit te gebeuren (expired/canceled/failed zetten we alleen als
+      // Mollie de betaling zelf zo noemde), en juist daarom mag het niet
+      // geluidloos zijn als het tóch gebeurt. `mismatch` valt hier bewust
+      // buiten: die heeft zijn eigen afhandeling hieronder en zijn eigen
+      // bewijsregel.
+      if (["expired", "canceled", "failed"].includes(poging.status)) {
+        console.error(
+          `[mollie] betaald geld op afgesloten rij: betaling ${paymentId} ` +
+            `is paid bij Mollie maar staat bij ons op '${poging.status}'. ` +
+            `Handmatig herstellen (rij, recht, ordernummer) en dan pas 200.`
+        );
+        return new Response("Tijdelijke fout", { status: 500 });
       }
 
       // Regel 2: bedrag en valuta moeten kloppen.

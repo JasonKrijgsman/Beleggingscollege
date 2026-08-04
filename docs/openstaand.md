@@ -34,6 +34,16 @@ vast; de nog uit te voeren punten blijven uitsluitend in dit document staan.
 Dit zijn geen vergissingen. Ze staan hier omdat ze bewust zijn aanvaard en omdat iemand
 over een maand moet kunnen zien dat het een keuze was.
 
+### Een teruggedraaide chargeback herstelt de toegang niet vanzelf
+
+Sinds 4 aug 2026 trekt de webhook toegang in bij elke chargeback (PR #42). Wint wíj́
+daarna het geschil bij de bank — het geld komt terug naar ons — dan blijft het recht op
+`ingetrokken` staan: Mollie meldt een chargeback-terugdraaiing niet op een manier die
+wij verwerken. Bewust zo gelaten: het komt vrijwel nooit voor, een heraankoop
+reactiveert het recht netjes, en handmatig herstellen kan zodra `/beheer` een
+intrek/herstel-knop heeft (§4). Tot die tijd: rij opzoeken, `entitlements.status` terug
+naar `actief`, `revoked_at`/`revoked_reason` leegmaken.
+
 ### De test-key staat in productie en dat is een open deur
 
 `MOLLIE_API_KEY` in Vercel begint met `test_`. Gevolg: **iedereen kan op dit moment een
