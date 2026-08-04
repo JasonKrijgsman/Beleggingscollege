@@ -77,6 +77,35 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Loopt er al een betaling voor deze cursus? Dan geen tweede aanmaken —
+  // anders schrijft een dubbelklik of een tweede tabblad twee keer af. Dit
+  // vangt het rustige geval nog vóór we Mollie bellen; de partiële unieke
+  // index (status = 'pending') hieronder is het echte slot voor de race waarin
+  // twee verzoeken deze controle allebei net passeren.
+  const lopend = await db
+    .select({ id: paymentAttempts.id })
+    .from(paymentAttempts)
+    .where(
+      and(
+        eq(paymentAttempts.userId, userId),
+        eq(paymentAttempts.courseSlug, slug),
+        eq(paymentAttempts.status, "pending")
+      )
+    )
+    .limit(1);
+
+  if (lopend.length > 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Er loopt al een betaling voor deze cursus. Rond die af of wacht " +
+          "tot hij vervalt.",
+        lopendeBetaling: true,
+      },
+      { status: 409 }
+    );
+  }
+
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
@@ -95,18 +124,43 @@ export async function POST(request: NextRequest) {
 
   // Elke poging is een eigen rij, append-only: bewust een kale insert, géén
   // upsert. Een eerdere mislukte of hangende poging blijft als historie staan.
-  await db.insert(paymentAttempts).values({
-    id: attemptId,
-    userId,
-    courseSlug: slug,
-    molliePaymentId: payment.id,
-    status: "pending",
-    amountCents: centen,
-    currency: "EUR",
-    withdrawalWaivedAt: new Date(),
-    consentIp: ip,
-    consentTermsVersion: HERROEPING_TEKST_VERSIE,
-  });
+  // onConflictDoNothing sluit de gelijktijdige race: passeerden twee verzoeken
+  // allebei de pending-controle hierboven, dan botst de tweede insert op de
+  // partiële unieke index en levert niets terug. De Mollie-betaling die we
+  // net maakten wordt die gebruiker dan nooit getoond en vervalt vanzelf —
+  // geen tweede afschrijving.
+  const ingevoegd = await db
+    .insert(paymentAttempts)
+    .values({
+      id: attemptId,
+      userId,
+      courseSlug: slug,
+      molliePaymentId: payment.id,
+      status: "pending",
+      amountCents: centen,
+      currency: "EUR",
+      withdrawalWaivedAt: new Date(),
+      consentIp: ip,
+      consentTermsVersion: HERROEPING_TEKST_VERSIE,
+    })
+    .onConflictDoNothing()
+    .returning({ id: paymentAttempts.id });
+
+  if (ingevoegd.length === 0) {
+    console.warn(
+      `[checkout] gelijktijdige poging voor ${userId}/${slug} geweigerd; ` +
+        `Mollie-betaling ${payment.id} blijft ongebruikt en vervalt`
+    );
+    return NextResponse.json(
+      {
+        error:
+          "Er loopt al een betaling voor deze cursus. Rond die af of wacht " +
+          "tot hij vervalt.",
+        lopendeBetaling: true,
+      },
+      { status: 409 }
+    );
+  }
 
   const checkoutUrl = payment.getCheckoutUrl();
   if (!checkoutUrl) {

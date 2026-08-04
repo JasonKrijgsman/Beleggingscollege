@@ -345,6 +345,31 @@ productietabel bevat op dit moment **één** rij (de testaankoop, `docs/openstaa
 voorwaardelijke-overgangen-discipline nemen we daarbij gewoon mee — die is in het
 nieuwe model geen alternatief maar een bouwsteen (§2.2).
 
+> **Update 4 augustus 2026 — scenario 1 is alsnog gedicht (review-bevinding #2).**
+> Bovenstaande liet scenario 1 bewust open: het splitsingsmodel maakt bij twee
+> gelijktijdige checkouts nog steeds twéé betaalbare links, en de enige uitweg —
+> de checkout blokkeren zolang er een `pending` staat — heeft als prijs dat een
+> verlaten betaallink de winkel voor die klant op slot zet tot de expiry-webhook
+> langskomt. De architectuurreview van augustus 2026 woog dat opnieuw en koos
+> vóór de blokkade: een tweede betaalbare link betekent dat de klant twee keer
+> kan afrekenen, en er is (nog) geen terugbetaalroute (review #1) om dat te
+> herstellen — dubbel afschrijven weegt zwaarder dan even wachten op de expiry.
+> Concreet: een **partiële unieke index** `payment_attempts (user_id,
+> course_slug) WHERE status = 'pending'` (migratie `0005`) staat hooguit één
+> lopende betaling per cursus toe, en de checkout dedupet daar bovenop nog vóór
+> Mollie (`checkout/route.ts`). Zie invariant **I7** en de test in
+> `test/checkout.route.test.ts` + het herschreven scenario 1/2 in
+> `test/betaalmodel.test.ts`.
+>
+> Wat híermee nog niet dicht is: een uiterst smalle race waarin de paid-webhook
+> voor de eerste betaling precies tussen de twee dedupe-selects van een tweede
+> checkout commit — dan ziet die tweede checkout géén actief recht én geen
+> pending, en kan alsnog een tweede link ontstaan. Dat restje hoort bij review
+> #1 (terugbetaling): pas met een refund-route is "geld binnen voor een al
+> bezeten cursus" netjes te herstellen. Een fijnere UX-variant (de bestaande
+> betaallink hervatten in plaats van 409) staat als vervolg in
+> `docs/openstaand.md`.
+
 ### 2.4 Ordermail: claim in plaats van lezen-dan-doen
 
 Vandaag is de dubbelmail-bescherming lezen-dan-doen (`orderbevestiging.ts:49-50` leest,
@@ -496,6 +521,14 @@ blinde `delete` op `entitlements` het intrekken van iemands toegang.
   zetten. `paidAt` verandert na de eerste keer nooit meer.
 - **I6 — De webhookcontrole op bedrag én valuta blijft exact zoals hij is**
   (`webhook/route.ts:62-79`), inclusief de `mismatch`-status bij afwijking.
+- **I7 — Hooguit één lopende betaling per gebruiker per cursus.** Afgedwongen door
+  de partiële unieke index `payment_attempts_pending_uniek` (`user_id, course_slug`
+  `WHERE status = 'pending'`, migratie `0005`); de checkout dedupet daarnaast al
+  vóór `payments.create` (`checkout/route.ts`). Twee gelijktijdige checkouts
+  leveren dus nooit twee betaalbare links op — precies één wint, de ander krijgt
+  409. Append-only blijft intact: mislukte/verlopen/betaalde pogingen mogen naast
+  elkaar blijven staan, want de index geldt alleen voor `pending`. Toegevoegd na
+  review-bevinding #2 (augustus 2026); zie de update onder §2.3.
 
 ---
 
@@ -520,11 +553,15 @@ CI-vereiste.
 De vijf verplichte concurrency-tests, elk gekoppeld aan invarianten:
 
 1. **Twee gelijktijdige checkouts** (scenario 1): beide `payments.create`-aanroepen
-   tegelijk laten afronden → twee attempt-rijen, béíde Mollie-id's vindbaar (I1);
-   daarna een paid-webhook voor de éérste id → entitlement `actief` (I2, I3).
-2. **Checkout tegen webhook** (scenario 2): checkout pauzeren tussen dedupe-select en
-   insert, webhook intussen `paid` laten claimen → entitlement blijft `actief`, geen
-   enkele rij verlaat `paid` (I5), de tweede poging staat er als eigen rij naast (I1).
+   tegelijk laten afronden → precies één attempt-rij overleeft, de andere insert
+   botst op de partiële unieke index en krijgt 409 (I7); daarna een paid-webhook
+   voor de overlevende id → entitlement `actief` (I2, I3). Er is geen tweede
+   betaalbare link meer.
+2. **Tweede checkout terwijl er al een pending staat** (scenario 2): met een
+   bestaande `pending`-rij wordt de tweede checkout vóór `payments.create`
+   geweigerd (409, I7); de lopende betaling en het latere recht blijven intact
+   (I5). De oude paid→pending-terugdraaival kan in het splitsingsmodel al niet
+   meer, en de front-doorcontrole sluit ook het ontstaan van een tweede link.
 3. **Dubbele webhook** (en §2.4): twee paid-webhooks voor dezelfde id tegelijk →
    precies één claim wint, één ordernummer, één mail, `paidAt` stabiel (I4, I5).
 4. **Databasefout ná `payments.create()`** (scenario 3): de insert één keer laten

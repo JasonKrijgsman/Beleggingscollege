@@ -304,6 +304,17 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       opruimronde (cron) die verweesde `pending`-rijen bij Mollie naslaat; en een
       gedocumenteerde, één keer echt geoefende restore van de Neon-database — de gratis
       laag kan maar 6 uur terug in de tijd. Zie CODEX-005.
+- [ ] **Vervolg op de dubbele-afschrijvingsfix (review #2, gedicht 4 aug 2026).** De
+      checkout laat sinds migratie `0005` hooguit één lopende betaling per cursus toe
+      (partiële unieke index + dedupe vóór Mollie; zie `ontwerp-betaalmodel.md` I7).
+      Twee dingen blijven staan. **UX:** een klant die een betaling laat hangen krijgt
+      bij "opnieuw kopen" een 409 tot de Mollie-betaling vervalt; fijner is de bestaande
+      betaallink hervatten (de `pending`-rij naslaan bij Mollie en diens `getCheckoutUrl`
+      teruggeven) of de opruimronde hierboven de stale pending laten sluiten. **Restrace:**
+      commit de paid-webhook precies tussen de twee dedupe-selects van een tweede checkout,
+      dan kan er alsnog een tweede link ontstaan — netjes herstellen vraagt de
+      terugbetaalroute uit hoofdstuk 2 (review #1). Geen launchblokker, wél de reden om #1
+      niet lang uit te stellen.
 - [ ] **CI-restpunten** (CODEX-003 is verder af: gebouwd 3 aug 2026 en gemerged via PR #3 —
       typecheck, ESLint mét toegankelijkheidsregels, Vitest-tests voor de geldpaden (het
       aantal groeit mee met de catalogus — draai `npm run controle` voor de stand),

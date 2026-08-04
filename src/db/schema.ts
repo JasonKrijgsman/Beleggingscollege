@@ -8,6 +8,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { AdapterAccountType } from "@auth/core/adapters";
 
 /* ------------------------------------------------------------------
@@ -188,6 +189,15 @@ export const paymentAttempts = pgTable(
     index("payment_attempts_user_course_idx").on(t.userId, t.courseSlug),
     // Voor de opruimronde uit docs/openstaand.md §6 (hangende pendings naslaan).
     index("payment_attempts_status_idx").on(t.status, t.createdAt),
+    // Hooguit ÉÉN lopende betaling per gebruiker per cursus. Partieel, want de
+    // tabel is append-only: mislukte/verlopen/betaalde pogingen mogen naast
+    // elkaar blijven staan (een gewone unique zou elke retry breken), maar twee
+    // gelijktijdige checkouts mogen nooit allebei een pending-rij maken en dus
+    // twee keer afschrijven. De checkout dedupet al vóóraf; deze index is het
+    // slot dat de race sluit die die controle niet kan zien.
+    uniqueIndex("payment_attempts_pending_uniek")
+      .on(t.userId, t.courseSlug)
+      .where(sql`${t.status} = 'pending'`),
   ]
 );
 

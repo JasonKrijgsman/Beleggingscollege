@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 
 const h = vi.hoisted(() => ({ paymentsCreate: vi.fn() }));
@@ -22,7 +22,12 @@ import { POST } from "@/app/api/checkout/route";
 import { auth } from "@/auth";
 import { prijsInCenten } from "@/lib/prijs";
 import { entitlements, paymentAttempts } from "@/db/schema";
-import { db, leegAlleTabellen, maakGebruiker } from "./helpers/pglite-db";
+import {
+  db,
+  houdVast,
+  leegAlleTabellen,
+  maakGebruiker,
+} from "./helpers/pglite-db";
 
 /**
  * De checkout: hier moet de regel "de prijs komt uit onze eigen catalogus,
@@ -284,5 +289,139 @@ describe("herhaalde pogingen", () => {
       checkoutRequest({ slug: "waardebeleggen", herroepingAkkoord: true })
     );
     expect(res.status).toBe(502);
+  });
+});
+
+/**
+ * Dubbele-afschrijving (priority-actions.md P0 #2). Twee tabbladen mogen niet
+ * allebei een betaallink krijgen: de tweede afschrijving pakt geld en levert
+ * niets, want het entitlement is al uniek per (gebruiker, cursus) — en er is
+ * geen terugbetaalroute. Twee sloten sluiten dit: een dedupe-controle vóór
+ * Mollie (het rustige geval) en een partiële unieke index op de pending-rij
+ * (de echte race).
+ */
+describe("dubbele afschrijving — hooguit één lopende betaling per cursus", () => {
+  it("een lopende (pending) betaling blokkeert een tweede checkout: 409, Mollie wordt niet gebeld", async () => {
+    await db.insert(paymentAttempts).values({
+      id: "poging-lopend",
+      userId: "u1",
+      courseSlug: "waardebeleggen",
+      molliePaymentId: "tr_lopend",
+      status: "pending",
+      amountCents: 4900,
+      currency: "EUR",
+    });
+
+    const res = await POST(
+      checkoutRequest({ slug: "waardebeleggen", herroepingAkkoord: true })
+    );
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ lopendeBetaling: true });
+    expect(h.paymentsCreate).not.toHaveBeenCalled();
+
+    // Er is geen tweede rij bij gekomen.
+    const rijen = await db
+      .select()
+      .from(paymentAttempts)
+      .where(eq(paymentAttempts.userId, "u1"));
+    expect(rijen).toHaveLength(1);
+  });
+
+  it("een pending betaling voor een ándere cursus blokkeert deze niet", async () => {
+    await db.insert(paymentAttempts).values({
+      id: "poging-andere-cursus",
+      userId: "u1",
+      courseSlug: "technische-analyse",
+      molliePaymentId: "tr_andere",
+      status: "pending",
+      amountCents: 4900,
+      currency: "EUR",
+    });
+
+    const res = await POST(
+      checkoutRequest({ slug: "waardebeleggen", herroepingAkkoord: true })
+    );
+    expect(res.status).toBe(200);
+    expect(h.paymentsCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("twee gelijktijdige checkouts die de controle allebei passeren: precies één betaling, de ander 409", async () => {
+    // Elke Mollie-aanmaak een eigen id, zodat de tweede insert botst op de
+    // (gebruiker, cursus)-index en niet toevallig op het Mollie-id.
+    let n = 0;
+    h.paymentsCreate.mockImplementation(async () => {
+      const i = ++n;
+      return { id: `tr_race_${i}`, getCheckoutUrl: () => `https://mollie.test/checkout/${i}` };
+    });
+
+    // A wordt stilgezet vlak vóór het schrijven van zijn pending-rij; B loopt er
+    // dan volledig langs. B's dedupe-controle ziet nog geen pending (A's insert
+    // hangt), dus B maakt een betaling én zijn rij. Pas dan mag A verder: A's
+    // insert botst op de partiële unieke index en geeft niets terug → 409.
+    const haak = houdVast(/insert\s+into\s+"?payment_attempts"?/i);
+    const a = POST(
+      checkoutRequest({ slug: "waardebeleggen", herroepingAkkoord: true })
+    );
+    await haak.bereikt;
+    const bRes = await POST(
+      checkoutRequest({ slug: "waardebeleggen", herroepingAkkoord: true })
+    );
+    haak.laatLos();
+    const aRes = await a;
+
+    // Eén 200 en één 409, ongeacht welke van de twee won.
+    expect([aRes.status, bRes.status].sort()).toEqual([200, 409]);
+
+    // Beide riepen Mollie aan (de controle liet ze allebei door), maar er staat
+    // precies één pending-rij: de index liet de tweede afschrijving niet toe.
+    expect(h.paymentsCreate).toHaveBeenCalledTimes(2);
+    const pending = await db
+      .select()
+      .from(paymentAttempts)
+      .where(
+        and(
+          eq(paymentAttempts.userId, "u1"),
+          eq(paymentAttempts.status, "pending")
+        )
+      );
+    expect(pending).toHaveLength(1);
+  });
+
+  it("de database weigert twee pending-rijen voor dezelfde cursus rechtstreeks (de index zelf)", async () => {
+    await db.insert(paymentAttempts).values({
+      id: "pending-1",
+      userId: "u1",
+      courseSlug: "waardebeleggen",
+      molliePaymentId: "tr_p1",
+      status: "pending",
+      amountCents: 4900,
+      currency: "EUR",
+    });
+
+    await expect(
+      db.insert(paymentAttempts).values({
+        id: "pending-2",
+        userId: "u1",
+        courseSlug: "waardebeleggen",
+        molliePaymentId: "tr_p2",
+        status: "pending",
+        amountCents: 4900,
+        currency: "EUR",
+      })
+    ).rejects.toThrow();
+
+    // Maar een tweede NIET-pending rij (bijv. een verlopen poging) mag wél:
+    // append-only historie blijft mogelijk.
+    await expect(
+      db.insert(paymentAttempts).values({
+        id: "verlopen-1",
+        userId: "u1",
+        courseSlug: "waardebeleggen",
+        molliePaymentId: "tr_v1",
+        status: "expired",
+        amountCents: 4900,
+        currency: "EUR",
+      })
+    ).resolves.toBeDefined();
   });
 });

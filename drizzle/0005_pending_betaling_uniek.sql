@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "payment_attempts_pending_uniek" ON "payment_attempts" USING btree ("user_id","course_slug") WHERE "payment_attempts"."status" = 'pending';

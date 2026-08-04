@@ -39,11 +39,15 @@ describe("migratie 0004_betaalmodel", () => {
   it("kopieert elke purchases-rij, verleent per paid-rij één recht en sluit de teller aan", async () => {
     const client = new PGlite();
     const tags = await journaalTags();
-    const laatste = tags[tags.length - 1];
-    expect(laatste).toBe("0004_betaalmodel");
+    // Deze test gaat specifiek over de backfill ván 0004; latere migraties doen
+    // hier niet mee. Richt dus op 0004 bij naam in plaats van "de laatste", zodat
+    // een nieuwe migratie erna deze opzet niet omgooit.
+    const doelIdx = tags.indexOf("0004_betaalmodel");
+    expect(doelIdx).toBeGreaterThanOrEqual(0);
+    const doel = tags[doelIdx];
 
     // Alles tot en met 0003: de wereld zoals productie die vóór de splitsing had.
-    for (const tag of tags.slice(0, -1)) await voerMigratieUit(client, tag);
+    for (const tag of tags.slice(0, doelIdx)) await voerMigratieUit(client, tag);
 
     // De inhoud van die wereld: één betaalde aankoop (mét ordernummer, zoals
     // de echte testaankoop) en één mislukte poging zonder nummer.
@@ -59,7 +63,7 @@ describe("migratie 0004_betaalmodel", () => {
         4900, 'EUR', '2026-08-02 11:00:00');
     `);
 
-    await voerMigratieUit(client, laatste);
+    await voerMigratieUit(client, doel);
 
     // Telling 1 uit §3: count(purchases) = count(payment_attempts).
     expect(await telling(client, `SELECT count(*)::int AS n FROM purchases`)).toBe(2);

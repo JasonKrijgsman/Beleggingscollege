@@ -124,16 +124,16 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("1. twee gelijktijdige checkouts (scenario 1 — I1, I2, I3)", () => {
-  it("levert twee vindbare pogingen op; betalen van de EERSTE link geeft gewoon toegang", async () => {
+describe("1. twee gelijktijdige checkouts (scenario 1 — I2, I3, I7)", () => {
+  it("hooguit één betaallink overleeft; de tweede wordt geweigerd, geen dubbele afschrijving", async () => {
     const eerste = uitgesteld<unknown>();
     const tweede = uitgesteld<unknown>();
     h.paymentsCreate
       .mockReturnValueOnce(eerste.promise)
       .mockReturnValueOnce(tweede.promise);
 
-    // Twee tabbladen: beide passeren de dedupe-select (geen van beide ziet
-    // een entitlement) en hangen dan allebei in payments.create.
+    // Twee tabbladen: beide passeren de dedupe-selects (geen entitlement, nog
+    // geen pending) en hangen dan allebei in payments.create.
     const posts = [
       checkoutPOST(checkoutRequest("waardebeleggen")),
       checkoutPOST(checkoutRequest("waardebeleggen")),
@@ -143,40 +143,43 @@ describe("1. twee gelijktijdige checkouts (scenario 1 — I1, I2, I3)", () => {
     eerste.vrijgeven(checkoutAntwoord("tr_A"));
     tweede.vrijgeven(checkoutAntwoord("tr_B"));
     const antwoorden = await Promise.all(posts);
-    expect(antwoorden.map((a) => a.status)).toEqual([200, 200]);
 
-    // I1: twee rijen, béíde Mollie-id's blijven vindbaar — geen wees meer.
+    // I7: precies één insert wint de partiële unieke index; de ander botst en
+    // krijgt 409. Wélke wint hangt van de interleaving af, dus we sorteren.
+    expect(antwoorden.map((a) => a.status).sort()).toEqual([200, 409]);
+
+    // Precies één pending-rij: er is geen tweede betaalbare link die de klant
+    // óók zou kunnen betalen. De verliezende Mollie-betaling draagt geen rij en
+    // vervalt vanzelf.
     const rijen = await alleRijen();
-    expect(rijen).toHaveLength(2);
-    expect(rijen.map((r) => r.molliePaymentId).sort()).toEqual([
-      "tr_A",
-      "tr_B",
-    ]);
+    expect(rijen).toHaveLength(1);
+    const overlevende = rijen[0];
+    expect(overlevende.status).toBe("pending");
+    expect(["tr_A", "tr_B"]).toContain(overlevende.molliePaymentId);
 
-    // De klant betaalt de link uit het éérste tabblad — vandaag het zwaarste
-    // scenario (betaald geld, onvindbare order). Nu: gewoon verwerkt.
+    // Die ene link betalen geeft gewoon toegang: I3 (order met nummer) …
     h.paymentsGet.mockResolvedValue(
-      mollieBetaling("tr_A", { userId: "u1", courseSlug: "waardebeleggen" })
+      mollieBetaling(overlevende.molliePaymentId, {
+        userId: "u1",
+        courseSlug: "waardebeleggen",
+      })
     );
-    const res = await webhookPOST(webhookRequest("tr_A"));
+    const res = await webhookPOST(webhookRequest(overlevende.molliePaymentId));
     expect(res.status).toBe(200);
 
-    // I3: de betaalde poging is een zichtbare order met nummer …
-    const a = await rijVoor("tr_A");
-    expect(a.status).toBe("paid");
-    expect(a.orderNumber).toMatch(/^BC-\d{4}-0001$/);
+    const betaald = await rijVoor(overlevende.molliePaymentId);
+    expect(betaald.status).toBe("paid");
+    expect(betaald.orderNumber).toMatch(/^BC-\d{4}-0001$/);
     // … en I2: precies één actief recht, hangend aan die order.
     const rechten = await db.select().from(entitlements);
     expect(rechten).toHaveLength(1);
     expect(rechten[0].status).toBe("actief");
-    expect(rechten[0].attemptId).toBe(a.id);
-    // De tweede link staat er gewoon nog naast, onaangeroerd.
-    expect((await rijVoor("tr_B")).status).toBe("pending");
+    expect(rechten[0].attemptId).toBe(betaald.id);
   });
 });
 
-describe("2. checkout tegen webhook (scenario 2 — I1, I5)", () => {
-  it("een checkout die dwars door de paid-webhook heen loopt kan de toegang niet meer terugdraaien", async () => {
+describe("2. tweede checkout terwijl er al een pending staat (scenario 2 — I5, I7)", () => {
+  it("de dedupe weigert de tweede checkout vóór Mollie; de lopende betaling en het recht blijven intact", async () => {
     // Er staat al een pending poging (tr_A) van een eerdere klik.
     await db.insert(paymentAttempts).values({
       id: "11111111-1111-4111-8111-111111111111",
@@ -188,30 +191,27 @@ describe("2. checkout tegen webhook (scenario 2 — I1, I5)", () => {
       currency: "EUR",
     });
 
-    // De ongeduldige tweede klik: de checkout is voorbij zijn dedupe-select
-    // (er is nog geen entitlement) en hangt in payments.create …
-    const hangend = uitgesteld<unknown>();
-    h.paymentsCreate.mockReturnValueOnce(hangend.promise);
-    const post = checkoutPOST(checkoutRequest("waardebeleggen"));
-    await vi.waitFor(() => expect(h.paymentsCreate).toHaveBeenCalledTimes(1));
+    // De ongeduldige tweede klik wordt nu vóór payments.create geweigerd: er
+    // loopt al een betaling voor deze cursus. Zo kan er nooit een tweede
+    // betaalbare link ontstaan die de klant óók afrekent.
+    const res = await checkoutPOST(checkoutRequest("waardebeleggen"));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ lopendeBetaling: true });
+    expect(h.paymentsCreate).not.toHaveBeenCalled();
 
-    // … en precies dáár landt de paid-webhook voor tr_A.
+    // Er is geen tweede rij bij gekomen; tr_A staat er nog als enige.
+    const rijen = await alleRijen();
+    expect(rijen).toHaveLength(1);
+    expect(rijen[0].molliePaymentId).toBe("tr_A");
+
+    // En tr_A betalen verloopt normaal: paid + actief recht. I5 blijft triviaal
+    // waar — de tweede checkout maakte niets dat de webhook kon terugdraaien.
     h.paymentsGet.mockResolvedValue(
       mollieBetaling("tr_A", { userId: "u1", courseSlug: "waardebeleggen" })
     );
     await webhookPOST(webhookRequest("tr_A"));
-    expect((await rechtVoor("u1", "waardebeleggen"))?.status).toBe("actief");
-
-    // Nu pas rondt de checkout af.
-    hangend.vrijgeven(checkoutAntwoord("tr_B"));
-    expect((await post).status).toBe(200);
-
-    // I5: geen enkele rij heeft paid verlaten, en het recht staat er nog.
     expect((await rijVoor("tr_A")).status).toBe("paid");
     expect((await rechtVoor("u1", "waardebeleggen"))?.status).toBe("actief");
-    // I1: de tweede poging is een eigen rij ernaast, geen overschrijving.
-    expect((await rijVoor("tr_B")).status).toBe("pending");
-    expect(await alleRijen()).toHaveLength(2);
   });
 });
 
