@@ -54,21 +54,27 @@ reactiveert het recht netjes, en handmatig herstellen kan zodra `/beheer` een
 intrek/herstel-knop heeft (§4). Tot die tijd: rij opzoeken, `entitlements.status` terug
 naar `actief`, `revoked_at`/`revoked_reason` leegmaken.
 
-### De test-key staat in productie en dat is een open deur
+### ~~De test-key staat in productie en dat is een open deur~~ GESLOTEN op 5 aug 2026
 
-`MOLLIE_API_KEY` in Vercel begint met `test_`. Gevolg: **iedereen kan op dit moment een
-cursus van € 49 gratis binnenhalen.** Niet in theorie — zo is de koopflow op 2 augustus
-getest. Inloggen met Google, vinkje aan, afrekenen, bij Mollie "Paid" kiezen, klaar. De
-webhook zet de aankoop op `paid` en de cursus gaat open, zonder dat er geld beweegt.
+**De deur is dicht.** `MOLLIE_API_KEY` is op 5 aug 2026 uit de Production-omgeving van
+Vercel gehaald, precies volgens het recept hieronder: de checkout geeft nu 503
+"Betalen is nog niet ingeschakeld" en er kan níéts meer ontgrendeld worden — ook niet
+via Mollie's testmodus. Aanleiding: de site wordt sindsdien actief bij Google
+aangeboden (zie hieronder), en dit document zei zelf al "dicht vóór er ook maar iets
+van marketing gebeurt".
 
-Op 2 augustus 2026 is besloten dit voorlopig zo te laten, omdat de site nog vrijwel geen
-bezoekers heeft, niet in Search Console staat en er nergens naar gelinkt wordt, en omdat de
-knop bruikbaar moet blijven om te demonstreren. Het risico is dus laag maar echt.
+- **Preview heeft de test-key nog wél** (bewust): op de preview-URL van een PR kan de
+  betaalketen dus gewoon getest worden. De waarde staat ook in `.env.local`.
+- **Weer open doen** = de gewenste key (live óf test) als `MOLLIE_API_KEY` in Vercel
+  Production zetten + redeployen. Vóór de líve-key: hoofdstuk 2 moet af, en Jason wil
+  eerst zelf de hele site grondig nalopen (uitgesproken 5 aug 2026) — de winkel blijft
+  dus dicht tot hij er expliciet voor kiest.
 
-**Dit moet dicht vóór er ook maar iets van marketing gebeurt.** Twee manieren:
-- De live-key erin (maar zie hoofdstuk 2 — dan moeten die dingen eerst af), of
-- `MOLLIE_API_KEY` tijdelijk uit Vercel halen. De checkout geeft dan netjes 503
-  "Betalen is nog niet ingeschakeld" en de knop doet niets meer.
+**Search Console-stand (was hierboven "staat er niet in" — achterhaald):** het domein
+staat sinds 2 aug 2026 als property op Jasons Google-account, de sitemap is ingediend
+en succesvol gelezen (25 pagina's), en de homepage was op 5 aug 2026 al geïndexeerd.
+Het pagina-indexeringsrapport zei op 5 aug nog "gegevens worden verwerkt" — over een
+paar dagen daar kijken hoeveel van de 25 er echt in staan.
 
 ### Er staat een testaankoop in de productiedatabase
 

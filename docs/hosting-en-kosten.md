@@ -79,6 +79,28 @@ termijn is voor dit jaar al verstreken.
 Mollie rekent geen maandbedrag, alleen per transactie (iDEAL ~€0,29, SEPA-incasso €0,35 —
 zie `docs/betalingen-mollie.md` voor het volledige tarievenoverzicht en het MOI-risico).
 
+## Oude WordPress-plugins: Elementor Pro en LearnDash lopen af (5 aug 2026)
+
+De oude `.nl`-site draaide op WordPress met betaalde plugin-licenties (zie de plugin-lijst in
+`docs/wordpress-audit.md`). Twee daarvan waren losse jaarabonnementen, apart van het
+Strato-pakket. Op **5 augustus 2026** is bij allebei de **automatische verlenging uitgezet** —
+niet direct opgezegd, dus de toegang en updates lopen door tot het einde van de al betaalde
+termijn en daarna vervalt het vanzelf, zonder nieuwe afschrijving:
+
+| Abonnement | Waar te beheren | Toegang tot | Volgende afschrijving |
+|---|---|---|---|
+| **Elementor Pro – Essential** (ID 13473233) | `my.elementor.com` → Account settings → Subscriptions | **6 juni 2027** | geen (Renewal: Manual) |
+| **LearnDash** (ID 1036821) | `account.learndash.com` → Subscriptions | einde lopende termijn | geen (Next Payment: N/A, was 9 juni 2027) |
+
+Beide zijn **omkeerbaar**: de auto-verleng-schakelaar staat op dezelfde plek en kan terug aan
+als Jason zich bedenkt. LearnDash had daarnaast een ouder abonnement (844420) dat al eerder was
+opgezegd. Dit past bij het uitfaseren van de oude WordPress-site (nu vervangen door de
+Next.js-build), dus doorlopen laten lapsen is de bedoeling.
+
+**Twijfelt een latere sessie hierover** — wel of niet volledig laten vervallen, opnieuw
+aanzetten, of iets uit de oude site alsnog nodig — **vraag het gerust aan Jason**; hij vindt het
+prima om hierover benaderd te worden.
+
 ## Praktische aandachtspunten
 
 - **Vercel-inlog** loopt via accounts@jasonkrijgsman.com, wachtwoordloos met passkeys. Bewust
