@@ -66,6 +66,12 @@ Twee sporen buiten Claude om, bewust op niet-overlappende opdrachten — het twe
 |---|---|
 | [18-wat-we-ermee-doen.md](18-wat-we-ermee-doen.md) | **Begin hier als je maar één document leest.** Wat de drie onderzoekssporen elk opleverden en waar ze elkaar tegenspraken, gevolgd door dertig kandidaten in vier bakjes: gewoon doen, sterk aanbevolen, het hangt ervan af, en niet aan beginnen |
 
+### Andere platforms, dezelfde acht vragen
+
+| Doc | Onderwerp |
+|---|---|
+| [20-learnpress.md](20-learnpress.md) | **LearnPress** (gratis wordpress.org-versie, GPLv3, gelezen 5 aug 2026). Veertien eigen tabellen en één bron van waarheid voor voortgang, plus een quizmotor die nooit een score van de client accepteert. Daartegenover een PayPal-IPN zonder ontvanger-, bedrag- of valutacontrole, en een terugbetaling die de leergeschiedenis wist |
+
 ## Leeswijzer
 
 - Featurenamen staan in het Engels tussen backticks (`Focus Mode`, `Buy Now`) zodat ze terug te vinden zijn in LearnDash's eigen documentatie.
