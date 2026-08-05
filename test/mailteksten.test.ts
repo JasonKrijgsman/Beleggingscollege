@@ -110,6 +110,24 @@ describe("orderbevestigingMail — HTML-versie", () => {
     expect(html).toContain("Ordernummer: BC-2026-0001");
   });
 
+  it("laat sluitende leestekens buiten de href (geen klikbare 404 in de wettelijke tekst)", () => {
+    // In de echte testmail van 5 aug 2026 werden `…/account).` en
+    // `…/voorwaarden,` klikbare 404-links: de regex nam het leesteken mee de
+    // href in. De verwijzingen staan juist in de wettelijke bevestiging.
+    const { html } = voorbeeld();
+
+    // Een URL gevolgd door `).`: de href stopt vóór de `)` en `.`.
+    expect(html).toContain(
+      `<a href="${SITE_URL}/account" style="color:#0072CE">${SITE_URL}/account</a>).`
+    );
+    // En gevolgd door een komma.
+    expect(html).toContain(
+      `<a href="${SITE_URL}/voorwaarden" style="color:#0072CE">${SITE_URL}/voorwaarden</a>,`
+    );
+    // Geen enkele href eindigt op een leesteken.
+    expect(html).not.toMatch(/href="[^"]*[.,;:!?)\]]"/);
+  });
+
   it("ontsnapt HTML in variabele invoer (een cursusnaam kan geen script injecteren)", () => {
     const kwaad = orderbevestigingMail({
       voornaam: "<b>Jason</b>",
