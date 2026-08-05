@@ -20,6 +20,10 @@
 >   `docs/betalingen-mollie.md`.
 > - Het veiligheidsargument hieronder (verouderde WordPress, vijftien openstaande
 >   plugin-updates) is met de dag sterker geworden, niet zwakker.
+> - **Twee betaalde plugin-licenties zijn op 5 augustus 2026 op niet-verlengen gezet:**
+>   Elementor Pro en LearnDash. De auto-verlenging staat uit, de toegang loopt door tot het
+>   einde van de termijn. Stand, ID's en beheer-URL's staan in `docs/hosting-en-kosten.md`
+>   ("Oude WordPress-plugins: Elementor Pro en LearnDash lopen af") — herhaal ze hier niet.
 
 Inventarisatie vóór het opzeggen van het Strato-pakket. Conclusie vooraf:
 **er gaat niets verloren** — geen omzet, geen klanten, geen gepubliceerde inhoud.
