@@ -86,19 +86,44 @@ Maar lees hem wel na — in datzelfde conflict stond in `main` óók een regel o
 inmiddels achterhaald was, en die moest juist uit de eigen branch komen. **Niet blind
 "theirs", niet blind "ours".**
 
+### Twee sessies kunnen dezelfde bevinding tegelijk oplossen
+
+Op 4 aug 2026 losten twee sessies onafhankelijk het dubbele-afschrijvingsgat op, met één
+minuut ertussen. Ze kwamen op **exact dezelfde kern** uit: dezelfde partiële unique index,
+hetzelfde migratienummer 0005, dezelfde omkering van het ontwerpbesluit (de een noemde het
+I1b, de ander I7). Dat is geen toeval maar een goed teken — twee modellen die los van elkaar
+dezelfde oplossing kiezen, hebben hem waarschijnlijk goed.
+
+Wat je eraan hebt:
+
+- **`gh pr list` leeg zien is geen garantie.** Het andere werk stond lokaal gecommit op een
+  branch in de gedeelde werkmap, nog niet gepusht. Onzichtbaar via GitHub. Kijk óók naar
+  `git branch -v` en naar de branch waar de gedeelde werkmap op staat.
+- **Ze kunnen niet allebei landen** — gelijke migratienummers en een dubbele index. Iemand
+  moet kiezen.
+- **Kies niet zelf als je een agent bent.** Beide oplossingen waren het werk van iemand
+  anders; de keuze is Jasons. Wat wél helpt: het verschil opschrijven (hier: de een gaf een
+  kale 409 bij een lopende betaling, de ander vroeg Mollie of de poging nog te betalen was en
+  gaf diezelfde link terug) en **niets** aan de andere branch aanraken. Geen reset, geen
+  rebase, geen delete.
+
 ## Gedeelde infrastructuur loopt vol
 
 Twee dingen raken op omdat iedereen ze gebruikt:
 
-- **Neon-branches (gratis laag = 10).** Elke preview-deployment maakt er één; ze worden
-  **niet** opgeruimd als de PR sluit. Op 3 augustus stond het twee keer op 10/10, en dan
-  faalt élke preview-deployment met "Branch limit reached" — een rode Vercel-check die niets
-  met jouw code te maken heeft. Vereiste check is `CI`, dus het blokkeert de merge niet,
-  maar het kost je wel een half uur als je denkt dat je iets kapot hebt gemaakt.
+- **Neon-branches (gratis laag = 10).** Elke preview-deployment maakt er één; ze verdwijnen
+  pas als de **Vercel-deployment** verdwijnt, en die bewaart Vercel standaard 180 dagen — dus
+  niet bij het sluiten van de PR. Op 3 augustus stond het twee keer op 10/10, en dan faalt
+  élke preview-deployment. Herkenbaar aan *"Build Failed — Provisioning integrations failed"*
+  **na 1 seconde**: de build begint niet eens, dus het ligt niet aan jouw code. Vereiste check
+  is `CI`, dus het blokkeert de merge niet, maar het kost je een half uur als je denkt dat je
+  iets gesloopt hebt. Snelste oplossing: gooi de oude preview-*deployments* in Vercel weg
+  (`vercel remove`) — Neon ruimt de bijbehorende branch dan meteen op. Volledige uitleg en de
+  structurele optie staan in `docs/openstaand.md` §6.
 - **Worktrees en lokale branches.** Die stapelen zich op. Opruimen mag, maar controleer
   eerst `git status` in élke worktree en laat er met rust wat van een lopende sessie is.
 
-## Agents aansturen: vier dingen die misgingen
+## Agents aansturen: acht dingen die misgingen
 
 - **Subagents kunnen halverwege omvallen** (bijvoorbeeld op een uitgaveplafond van het
   model). Drie reviewers vielen zo weg terwijl de bouwer wél klaar was. Controleer of je
@@ -112,6 +137,30 @@ Twee dingen raken op omdat iedereen ze gebruikt:
 - **Geef agents de valkuilen mee, niet alleen de opdracht.** Zonder de waarschuwing over
   `db.transaction()` op de neon-http-driver had elke agent die fout opnieuw gemaakt — hij
   is groen in de tests en valt pas op productie om.
+
+Uit de review van 3/4 aug 2026 (zeven parallelle passes) kwamen er nog vier bij:
+
+- **Agents verzinnen afwezigheid die ze niet kunnen waarnemen.** Een pass meldde vier
+  ontbrekende bestanden op `jasonkrijgsman.com` als P1/P2. Alle vier bestonden gewoon. De
+  agent draaide in plan-modus zónder shell, las gecommitte build-output en concludeerde
+  "ontbreekt" waar hij alleen "ik zie het niet" kon weten. **Controleer een
+  bestaat-niet-bewering altijd zelf** — het is de goedkoopste controle die er is en de
+  duurste om over te slaan.
+- **Een agent kan in de verkeerde repo terechtkomen.** Eén pass opende de repo van de cwd in
+  plaats van de opgegeven map, en merkte het zelf. Pin de werkmap én laat de agent in zijn
+  eerste regel terugmelden wélke repo hij geopend heeft.
+- **Agents stoppen te vroeg en noemen dat een resultaat.** Drie van de zeven eindigden hun
+  beurt met "de run is nog bezig". Zeg expliciet: wachten in de voorgrond, en pas afronden
+  als het bestand er staat en `git status` schoon is.
+- **Meerregelige prompts sneuvelen op de cmd.exe-shim.** Twee Cursor-runs kregen een
+  verminkte opdracht en deden iets heel anders dan gevraagd — zonder foutmelding. Geef de
+  prompt via stdin in plaats van als argument.
+
+En de belangrijkste: **de verificatielaag verdiende zichzelf terug in het negatieve.** Van de
+bevindingen van zeven toptier-agents hield het nalopen er één tegen die verzonnen was, bracht
+er één van P1 naar P3 terug (de tijdzone-claim: op de live database bleken beide klokken
+identiek), en legde één verband dat geen enkele agent zag — dubbele afschrijving × geen
+terugbetaalroute. Agentrapporten zijn grondstof, geen conclusie.
 
 ## Waar je begint
 

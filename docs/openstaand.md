@@ -1,6 +1,6 @@
 # Openstaand — de eerlijke stand van zaken
 
-Laatst bijgewerkt: 3 augustus 2026.
+Laatst bijgewerkt: 5 augustus 2026.
 
 Dit is de losse-eindjeslijst. Eén plek, zodat je niet de hele `docs/`-map hoeft door te
 lezen om te weten wat er nog moet. De andere documenten beschrijven hóe iets werkt en
@@ -26,6 +26,16 @@ Beide series zijn stuk voor stuk tegen de code geverifieerd — regelnummers gec
 races nagelopen, de npm-audit opnieuw gedraaid — en met die details hieronder verwerkt; wat
 uit de tweede ronde nog openstond staat in §6b. Die reviews leggen bewijs en afwegingen
 vast; de nog uit te voeren punten blijven uitsluitend in dit document staan.
+
+**Derde ronde, nacht van 3 op 4 aug 2026 — vier sites, zeven parallelle passes.** Die
+rapporten staan **buiten deze repo**, omdat ze ook over `jasonkrijgsman.com/.nl` gaan:
+`C:\Users\jason\CodingProjects\website-review-2026-08\`. Daar vind je `priority-actions.md`
+(geprioriteerde actielijst), `architecture-review.md` (de kaart en waar hij schuurt), en
+`raw/` met de onbewerkte passes plus `orchestrator-verifications.md` — dat laatste bestand
+is het belangrijkste: het legt vast wélke agentbevindingen zijn nagelopen, welke zijn
+gecorrigeerd en welke er ééntje verzonnen had. **Lees agentrapporten in `raw/` als
+grondstof, niet als conclusie.** De twee P0's uit die lijst die het geldpad raakten zijn
+inmiddels gedicht (PR #42 en #44); wat er nog uit openstaat is hieronder verwerkt.
 
 ---
 
@@ -300,17 +310,33 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       Doe het pas als er **geen open PR's en geen andere branches dan `main`** zijn, en er
       geen tweede sessie aan het werk is: elke niet-gemergde branch wordt onbruikbaar. Dat
       venster was op 3 aug de schaarste factor, niet het werk zelf.
-- [ ] **Neon zit op 10/10 branches en dat gaat de volgende preview breken.** Geconstateerd
-      3 aug 2026: de console meldt "Branch limit reached" (gratis laag = 10). Negen daarvan
-      zijn `preview/…`-branches die de Vercel-integratie per preview-deployment aanmaakt, en
-      acht horen bij PR's die allang gemerged zijn — `bugbot-werkafspraak`,
-      `ontwerp-betaalmodel`, `publieke-teksten-kloppen`, `betaalmodel-splitsing`,
-      `twitter-kaart`, `sitewide-review-metadata`, `openstaand-6b-bijwerken` en
-      `claude/test-coverage`. Ze worden **niet** automatisch opgeruimd als de PR sluit.
-      Weggooien is veilig: het zijn wegwerpkopieën van `main` en de integratie maakt een
-      nieuwe aan zodra er weer een preview nodig is. Let op de samenhang met het punt
-      hieronder: zodra Preview een eigen vaste branch krijgt, hoort daar meteen een
-      afspraak bij over wie de tijdelijke opruimt, anders loopt het opnieuw vol.
+- [x] **Neon zat op 10/10 branches en dat brak elke preview-deploy.** Geconstateerd
+      3 aug 2026, **opgeruimd 4 aug 2026**: alle negen `preview/…`-branches verwijderd, van
+      10/10 naar 1/10. Elk hoorde bij een gemergede PR (#18 t/m #29) en de git-branch was al
+      weg bij origin. `main` daarna nagemeten: index aanwezig, migraties compleet, rijen
+      intact, opslag onveranderd. De faalmodus was zichtbaar als
+      *"Build Failed — Provisioning integrations failed"* na 1 seconde — de build begint dan
+      niet eens, dus zoek niet in je eigen code.
+
+      **Hoe het opruimen écht werkt** (uitgezocht 5 aug 2026, dit stond hier eerst verkeerd):
+      ze worden wél automatisch opgeruimd, maar niet bij het sluiten van de PR — pas als de
+      bijbehorende **Vercel-deployment** verdwijnt, en Vercel bewaart preview-deployments
+      standaard **180 dagen**. Praktisch gevolg: je zit aan de limiet van tien lang voordat
+      er iets vanzelf opruimt.
+
+      Twee knoppen, in volgorde van gemak:
+      1. **Verwijder de oude preview-deployments in Vercel** (dashboard, `vercel remove`, of
+         de API). Neon krijgt een webhook en gooit de database-branch meteen weg. Scriptbaar,
+         en veel minder werk dan negen dialoogjes in de Neon-console.
+      2. Verlaag Vercels retentie voor pre-productie-deployments (niet gecontroleerd of dat
+         op Hobby kan).
+
+      **Structureel** zou de *Neon-Managed* Vercel-integratie het oplossen: die ruimt op
+      zodra de **git-branch** weg is, in plaats van de deployment. Maar dat is een
+      eigendoms- en billingverhuizing (Vercel-Managed = betaald via Vercel; Neon-Managed =
+      eigen Neon-account), en er is **geen gedocumenteerd migratiepad** tussen die twee. Niet
+      tussendoor doen. Verder is dit lager ingeschat dan het lijkt: de Vercel-check is geen
+      vereiste check, PR's mergen gewoon met een rode preview.
       (De databases `neondb` en `umami` staan allebei op `main` en raken dit niet.)
 - [ ] **De laptop gebruikt nog de primaire productiedatabase.** Gecontroleerd in Jasons
       Chrome en de Neon-console: Production gebruikt de primaire Neon-branch. Voor Preview
