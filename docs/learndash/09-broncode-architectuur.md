@@ -2,6 +2,8 @@
 
 > Onderdeel van de LearnDash-kennisbank (5 aug 2026). De hoofdstukken 01–08 zijn gebouwd op de officiële documentatie: wat LearnDash *zegt* dat het kan. Dit hoofdstuk leest de **broncode** van `sfwd-lms` **versie 4.6.0 (release 31 mei 2023)**, uit Jasons eigen licentiearchief — een geldige, betaalde kopie waar we niets van herpubliceren, alleen uit leren.
 >
+> ⚠️ **Inmiddels is 5.1.8 opgehaald en ernaast gelegd — lees `12-broncode-4.6-vs-5.1.8.md` erbij.** Dit hoofdstuk werd van alle het zwaarst geraakt: "de herschrijving is 6,5% klaar" is achterhaald (het is 29,3%, en de "not stable"-banners zakten van 91% naar 8%). De *patronen* die hieronder staan — de god-klasse, de `Semper_Fi_Module`-erfenis, drie modelgeneraties naast elkaar, de filter/actie-verhouding, "we verwijderen niets, we verplaatsen" — staan alle nog overeind en zijn eerder sterker geworden.
+>
 > **Dit is een momentopname en die is oud.** 4.6.0 is de laatste versie die in het archief zit; de actuele lijn is 5.x (sinds feb 2026). Alles hieronder beschrijft dus de plugin zoals hij er in mei 2023 uitzag, midden in een verbouwing die inmiddels drie jaar verder is. Getallen die je hier leest — bestandstellingen, hooktellingen — kloppen exact voor 4.6.0 en vrijwel zeker niet meer voor 5.x. Wat wél overdraagbaar is: de *patronen*, en hoe een volwassen commerciële codebase zichzelf incrementeel moderniseert.
 >
 > Featurenamen, klassen en functies staan in het Engels zodat je ze terugvindt. Codefragmenten zijn kort en illustratief — dit is propriëtaire code, we analyseren hem, we drukken hem niet af.
