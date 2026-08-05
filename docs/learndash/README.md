@@ -66,6 +66,18 @@ Twee sporen buiten Claude om, bewust op niet-overlappende opdrachten — het twe
 |---|---|
 | [18-wat-we-ermee-doen.md](18-wat-we-ermee-doen.md) | **Begin hier als je maar één document leest.** Wat de drie onderzoekssporen elk opleverden en waar ze elkaar tegenspraken, gevolgd door dertig kandidaten in vier bakjes: gewoon doen, sterk aanbevolen, het hangt ervan af, en niet aan beginnen |
 
+### Andere platforms, dezelfde acht vragen (hoofdstuk 19–23)
+
+Vier open source-concurrenten, alle vier gratis van wordpress.org en GPL, gelezen met exact dezelfde acht vragen als LearnDash — zodat de antwoorden naast elkaar te leggen zijn in plaats van vier losse essays op te leveren.
+
+| Doc | Onderwerp |
+|---|---|
+| [19-tutor-lms.md](19-tutor-lms.md) | **Tutor LMS 4.0.4.** De modernste codebase van het veld (PSR-4, DI-container, echte foreign keys) en tegelijk de zwakste toegangscontrole: drie poorten die de "openbare cursus"-uitzondering verschillend toepassen. Kijkt volledig server-side na, maar zet de juiste antwoord-id's onvoorwaardelijk in de pagina en haalt de noemer van de score uit een verborgen formulierveld |
+| [20-learnpress.md](20-learnpress.md) | **LearnPress 4.2.7.** Veertien eigen tabellen en één bron van waarheid voor voortgang, plus een quizmotor die nooit een score van de client accepteert. Daartegenover een PayPal-IPN zonder ontvanger-, bedrag- of valutacontrole, en een annulering die de leergeschiedenis wist |
+| [21-sensei-lms.md](21-sensei-lms.md) | **Sensei LMS 4.26.2 (Automattic).** Inschrijving als stemming onder providers, met zelfongeldigende cache en auditjournaal — het volwassenste toegangsontwerp van de vijf. Voortgang staat wel in `wp_comments`, en de betere backend heet na drie jaar nog "experimenteel". Nul transacties in de hele plugin |
+| [22-lifterlms.md](22-lifterlms.md) | **LifterLMS 10.1.0.** Intrekking gebonden aan de réden van inschrijving, in de gratis kern — precies wat wij voor College+ nodig hebben. Schoonste quizmotor van het veld. Corrigeert ook de schaalclaim uit hoofdstuk 7 |
+| [23-vijf-lmsen-naast-elkaar.md](23-vijf-lmsen-naast-elkaar.md) | **De synthese van dit spoor.** Vijf platforms in één tabel, en de belangrijkste uitkomst: **vier op vier concurrenten accepteren geen score van de client** — LearnDash' ondertekening is een pleister op hun eigen architectuur. Herziet punt 2 van hoofdstuk 18 en versterkt punt 1 en 28 |
+
 ## Leeswijzer
 
 - Featurenamen staan in het Engels tussen backticks (`Focus Mode`, `Buy Now`) zodat ze terug te vinden zijn in LearnDash's eigen documentatie.

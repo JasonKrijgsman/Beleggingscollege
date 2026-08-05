@@ -70,7 +70,11 @@ LearnDash lost exact dat probleem op, en anders dan wij dacht ik dat zij het nie
 
 Het patroon is dus: *de client mag rekenen, maar mag het resultaat niet beweren*. Elke deelscore is een door de server ondertekende claim.
 
-Voor ons vertaalbaar zonder ons privacyprincipe op te geven: laat de client bij het afronden van een quiz een korte, aan sessie + les + score gebonden HMAC meesturen die de server eerder heeft afgegeven — of, simpeler en waarschijnlijk voldoende voor de inzet (XP en een badge, geen diploma): laat de server de quizvragen kennen en alleen de gekozen indexen ontvangen, zonder ze op te slaan. Dan reist er geen antwoordgeschiedenis, maar is de score wel echt. **Welke van de twee is een ontwerpbeslissing voor Jason** — het punt hier is dat "client-side nakijken" en "een betrouwbare score" elkaar niet uitsluiten, wat we tot nu toe aannamen.
+Voor ons vertaalbaar zonder ons privacyprincipe op te geven: laat de client bij het afronden van een quiz een korte, aan sessie + les + score gebonden HMAC meesturen die de server eerder heeft afgegeven — of, simpeler en waarschijnlijk voldoende voor de inzet (XP en een badge, geen diploma): laat de server de quizvragen kennen en alleen de gekozen indexen ontvangen, zonder ze op te slaan. Dan reist er geen antwoordgeschiedenis, maar is de score wel echt.
+
+> ⚠️ **Die keuze is inmiddels beslecht — bouw de tweede variant (hoofdstuk 23).** De HMAC-route is niet nodig: **Tutor, LearnPress, Sensei en LifterLMS accepteren geen van alle een score van de client.** Zij ontvangen alleen wélke antwoorden gegeven zijn en rekenen punten, percentage en slagen/zakken zelf uit. LearnDash' ondertekening blijkt daarmee geen briljante vondst maar een pleister op hun eigen AJAX-architectuur: wie de score nooit uit handen geeft, heeft niets te ondertekenen. Vier op vier concurrenten doen het zo; wij zijn de uitzondering, niet zij.
+>
+> Eén aanscherping die volgt uit de fouten die drie van die vier alsnog maken: server-side nakijken is waardeloos als een ándere invoer uit de client komt. Tutor haalt de **noemer** uit een verborgen veld (stuur één vraag-id mee en je scoort 100%), Sensei neemt de **vragenverzameling** ongevalideerd aan, LearnPress de **bestede tijd** waar de tijdslimiet aan hangt. Wij hebben de spiegelfout: `total` veilig uit de catalogus, `correct` uit de client. **Numerator, noemer én vragenverzameling moeten alle drie uit onze eigen catalogus komen.**
 
 ### 2.1c Een recht kan meer dan één bron hebben — en dat breekt College+ stil
 
@@ -81,6 +85,8 @@ Zolang we alleen losse cursussen verkopen is dat prima. Zodra College+ bestaat, 
 De ingreep is klein zolang hij vóór College+ gebeurt: een bron op het entitlement (aankoop / abonnement / handmatig) en intrekken pas als er geen bron meer over is. **Dit is geen "leuk idee" maar een voorwaarde voor het abonnement** en hoort daarom in `docs/openstaand.md` zodra Jason het overneemt.
 
 Bijvangst uit hetzelfde hoofdstuk, met dezelfde strekking: hun membership-add-ons hanteren consequent **"opzeggen trekt niet in, verlopen wel"** — de klant houdt toegang tot het eind van de betaalde periode. Dat is het gedrag dat wij voor College+ willen, en het is bij hen expliciet in code vastgelegd in plaats van een aanname.
+
+> **Bevestigd door twee bronnen buiten LearnDash om (hoofdstuk 23).** LifterLMS bindt intrekking in zijn **gratis kern** aan de réden van inschrijving: alle negatieve orderstatussen lopen via één pad naar uitschrijven. Sensei doet het nog een slag netter met een *stemming* — meerdere providers beantwoorden los van elkaar "is deze gebruiker ingeschreven?", geOR'd, met een zelfongeldigende cache en een auditjournaal ernaast. Dat laatste is het ontwerp om naar toe te groeien zodra er meer dan twee toegangsbronnen zijn. Dit punt is daarmee geen suggestie meer maar de gevestigde standaard, en wij zijn de uitzondering.
 
 ### 2.2 De minimale beheerset: vier tellers, een feed, een filter, en handmatige correctie
 

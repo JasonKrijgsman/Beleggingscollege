@@ -172,10 +172,12 @@ Bronnen: [developers.learndash.com](https://developers.learndash.com/) ([REST v2
 
 ### WordPress-plugins (zelf hosten, eigenaarschap)
 
+> ⚠️ **Deze paragraaf komt volledig uit recensiesites en is inmiddels op twee feitelijke fouten betrapt.** Alle vier de concurrenten zijn later in de broncode gelezen (hoofdstuk 19–22, samengevat in **23**). Lees die voor de techniek; behandel wat hieronder staat als marktbeeld, niet als feit.
+
 | | Sterk in | Zwak in |
 |---|---|---|
 | **LearnDash** | quizdiepte, schaal (eigen tabellen), ecosysteemvolwassenheid, enterprise/compliance | gedateerde UX, alles-is-een-add-on, onzekere koers sinds 2026 |
-| **LifterLMS** | memberships en betaalplannen ingebouwd, engagement | postmeta-datamodel schaalt slechter (±2.000 cursisten, daarna optimalisatie nodig) |
+| **LifterLMS** | memberships en betaalplannen ingebouwd, engagement; **in de code bleek ook: één intrekkingspad en de schoonste quizmotor van het veld** | ~~postmeta-datamodel schaalt slechter (±2.000 cursisten)~~ ⚠️ **onjuist, zie h. 22/23**: LifterLMS gebruikt tien eigen tabellen, geen postmeta (de tabelnaam `wp_lifterlms_user_postmeta` heeft de bronnen misleid). Het schaalprobleem is echt maar zit in de indexen, en het getal dat LifterLMS zélf in code hanteert is **500**, niet 2.000 |
 | **Tutor LMS** | moderne interface, sterke gratis versie, frontend course builder, marktplaats/multi-instructor | minder diep quiz- en rapportagewerk, jonger ecosysteem |
 | **Sensei LMS** | naadloos voor wie al vol op WooCommerce/Automattic zit | smalste featureset van de vier |
 | **LearnPress** | gratis instap | kwaliteit en support wisselvallig; add-on-afhankelijk voor alles |
