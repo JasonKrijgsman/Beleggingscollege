@@ -43,6 +43,14 @@ Hoofdstuk 1–8 komen uit documentatie. Daarna is de **échte plugincode** gelez
 
 Kort: de quizmotor, de voortgangsopslag en het activity-schema zijn ongewijzigd; de `src/`-laag groeide van 6,5% naar 29,3%; hoofdstuk 10 heeft twee correcties nodig (zie §"Wat dit betekent voor onze kennisbank" in hoofdstuk 12).
 
+### De add-ons en het ecosysteem eromheen (hoofdstuk 13–15)
+
+| Doc | Onderwerp |
+|---|---|
+| [13-broncode-addons-commerce.md](13-broncode-addons-commerce.md) | Zeven officiële commerce- en toegangs-add-ons (2026-releases): hoe zij aankopen, terugbetalingen en memberships op toegang vertalen — inclusief de referentieteller die één recht meerdere bronnen geeft |
+| [14-broncode-addons-engagement.md](14-broncode-addons-engagement.md) | De engagement-add-ons: de Notifications-wachtrij van binnen, de "streak" die eigenlijk een logintelling is, en de certificaatketen |
+| [15-uncanny-toolkit-de-ontbrekende-instellingen.md](15-uncanny-toolkit-de-ontbrekende-instellingen.md) | **De Uncanny Toolkit (gratis, v3.8.0.3)** als telling van LearnDash's gaten zoals échte cursusverkopers ze voelen: alle 16 gratis modules, de ~35 Pro-modules, hun feature-flag-architectuur, en welke van die gaten wij ook hebben |
+
 ## Leeswijzer
 
 - Featurenamen staan in het Engels tussen backticks (`Focus Mode`, `Buy Now`) zodat ze terug te vinden zijn in LearnDash's eigen documentatie.
