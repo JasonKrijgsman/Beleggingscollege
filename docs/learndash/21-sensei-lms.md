@@ -199,7 +199,9 @@ if ( in_array( true, $provider_results, true ) ) {
 }
 ```
 
-In de gratis versie is er precies één provider: `Sensei_Course_Manual_Enrolment_Provider` met id `manual`. WooCommerce, groepen en abonnementen registreren zich in Sensei Pro via de filter `sensei_course_enrolment_providers`.
+In de gratis versie is er precies één provider: `Sensei_Course_Manual_Enrolment_Provider` (id `manual`, `handles_enrolment()` geeft altijd `true`, `get_version()` geeft `'3.0.0'`). WooCommerce, groepen en abonnementen registreren zich in Sensei Pro via de filter `sensei_course_enrolment_providers`. Alleen providers waarvan `handles_enrolment( $course_id )` waar is, worden bevraagd.
+
+Er is één veto boven de stemming uit: `remove_learner()`, een beheerdersoverride die vóór de providers wordt gecontroleerd en die zijn lijst als JSON in de postmeta `sensei_removed_learners` op de cursus zet. Ook een cursus die niet `publish` is, geeft direct `false`.
 
 Drie dingen die het ontwerp compleet maken:
 
@@ -224,30 +226,49 @@ Drie dingen die het ontwerp compleet maken:
 
 3. **Er is een audit-logboek**: `Sensei_Enrolment_Provider_Journal_Store` legt vast wanneer welke provider van mening veranderde. Als een klant belt met "mijn cursus is weg", kun je terugkijken welke reden wegviel.
 
-Intrekken is het spiegelbeeld: `withdraw_learner()` zet de providerstatus op false en triggert een herberekening. Er zijn achtergrondtaken (`Sensei_Enrolment_Job_Scheduler`, `Sensei_Enrolment_Course_Calculation_Job`, `Sensei_Enrolment_Learner_Calculation_Job`) die hele cursussen of hele gebruikers opnieuw doorrekenen.
+De sleutels, voor wie het na wil bouwen: de providerstatus zelf staat in usermeta `{blog_prefix}sensei_enrolment_providers_state`, het journaal in `{blog_prefix}sensei_enrolment_providers_journal`, de berekende uitkomst per cursus in `{blog_prefix}sensei_course_enrolment_{course_id}` (JSON met tijd, versiehash en de stemmen per provider), de cursus-salt in postmeta `_course_enrolment_version` en de site-salt in de optie `sensei_course_enrolment_site_salt`. Schrijfacties worden verzameld en op `shutdown` in één keer weggeschreven.
 
-### 3.3 Kan een filter de poort uitzetten? Ja, vier keer, en er is ook een instelling
+Intrekken is het spiegelbeeld: `withdraw_learner()` zet de providerstatus op false en triggert een herberekening; blijft een ándere provider ja zeggen, dan valt `Sensei_Course_Enrolment::withdraw()` terug op de botte `remove_learner()`-override. Herberekenen loopt via achtergrondtaken (`Sensei_Enrolment_Job_Scheduler` met `Sensei_Enrolment_Course_Calculation_Job` en `Sensei_Enrolment_Learner_Calculation_Job`, op Action Scheduler of WP-Cron), met beheerdersknoppen onder `includes/admin/tools/` en WP-CLI-commando's ernaast. Er is zelfs een debugscherm per cursist dat per provider laat zien waaróm hij ja of nee zei.
 
-Ja, en Sensei is er opvallend eerlijk over. Vier filters kunnen de uitkomst overschrijven:
+Twee randgevallen: er is een **open-access-modus** (postmeta `_open_access`) die via `Sensei_Guest_User` automatisch een gastaccount aanmaakt (`sensei_guest_…@guest.senseilms`) en de `sensei_is_enrolled`-filter op waar dwingt, en zelfinschrijving is per cursus uit te zetten met `_sensei_self_enrollment_not_allowed`.
 
-- `sensei_can_user_view_lesson` (de eindbeslissing, met sinds 4.24.2 een `$checks`-array erbij zodat een filter kan zien waaróp geweigerd is)
-- `sensei_can_access_course_content`
-- `sensei_user_all_access`
-- `sensei_is_enrolled`, en die laatste heeft de eerlijkste docblock van de hele plugin:
+### 3.3 Kan een filter de poort uitzetten? Ja, zes keer, en er is ook een instelling
 
-  ```php
-  /**
-   * Allow complete side-stepping of enrolment handling in Sensei.
-   * This will have some other side-effects. ...
-   */
-  $is_enrolled = apply_filters( 'sensei_is_enrolled', null, $user_id, $this->course_id, $check_cache );
-  ```
+Ja, en Sensei is er opvallend eerlijk over. Zes filters kunnen de uitkomst overschrijven, geordend op reikwijdte:
+
+| Filter | Effect als je hem forceert |
+|---|---|
+| `sensei_can_user_view_lesson` | `__return_true`: alle les- en quizinhoud zichtbaar voor iedereen. De grootste knop. |
+| `sensei_is_enrolled` | Keert terug vóór álle provider- en cachelogica. `__return_true` is universele inschrijving. |
+| `sensei_can_access_course_content` | De cursuscontrole slaagt altijd. |
+| `sensei_user_all_access` | Iedereen wordt als docent of beheerder behandeld. |
+| `sensei_is_login_required` | `__return_false`: de hele OR-keten valt weg. |
+| `sensei_course_enrolment_providers` | `__return_empty_array`: niemand is ooit ingeschreven. |
+
+De docblock bij `sensei_is_enrolled` is de eerlijkste van de plugin:
+
+```php
+/**
+ * Allow complete side-stepping of enrolment handling in Sensei.
+ * This will have some other side-effects. ...
+ */
+$is_enrolled = apply_filters( 'sensei_is_enrolled', null, $user_id, $this->course_id, $check_cache );
+```
+
+Sensei gebruikt die twee laatste knoppen zelf als noodrem. Draait er een te oude versie van de betaalde WooCommerce-plugin, dan zet `Sensei_Course_Enrolment_Manager::detect_wcpc_1()` het hele inschrijfsysteem uit:
+
+```php
+add_filter( 'sensei_is_enrolled', '__return_false' );
+add_filter( 'sensei_course_enrolment_providers', '__return_empty_array', 100 );
+```
+
+Dat is de goede kant op falen (iedereen buitengesloten in plaats van iedereen binnen), maar het laat wel zien hoe hard die filters zijn.
 
 Daarnaast is er een **site-brede instelling** `access_permission` (uitgelezen via `sensei_is_login_required()`, zelf ook filterbaar). Staat die uit, dan is `$login_not_required` waar en heeft **iedereen toegang tot alle lesinhoud**, ongeacht inschrijving. Dat is bewust ("open cursussen"), maar het is één vinkje tussen een betaalde bibliotheek en een publieke.
 
-### 3.4 De echte zwakte: de bescherming zit in de template, niet in de data
+### 3.4 Afdwingen gebeurt op rendertijd, met één slimme uitzondering
 
-Net als bij LearnDash blijft de les een gewone gepubliceerde WordPress-post en staat de volledige inhoud onbeschermd in `wp_posts`. Alleen zit de poort bij Sensei niet in een `the_content`-filter maar **in het sjabloon zelf** (`templates/single-lesson.php`):
+Net als bij LearnDash blijft de les een gewone gepubliceerde WordPress-post en staat de volledige inhoud onbeschermd in `wp_posts`. Op de frontend zit de poort niet in een `the_content`-filter maar **in het sjabloon zelf** (`templates/single-lesson.php`, en op dezelfde manier in `templates/single-quiz.php` en in de Learning-Mode-blokken):
 
 ```php
 if ( sensei_can_user_view_lesson() ) {
@@ -257,7 +278,7 @@ if ( sensei_can_user_view_lesson() ) {
 }
 ```
 
-Dat is nog kwetsbaarder dan een filter, want een filter draait overal waar `the_content` langskomt en een sjabloon alleen op zijn eigen pagina. Sensei heeft dat zelf gemerkt en de RSS-route apart dichtgezet (`includes/class-sensei.php:1294`):
+Op zichzelf is dat kwetsbaarder dan een filter, want een filter draait overal waar `the_content` langskomt en een sjabloon alleen op zijn eigen pagina. Sensei heeft dat gemerkt en de RSS-route apart dichtgezet (`includes/class-sensei.php:1294`):
 
 ```php
 public function maybe_remove_feed_content( $content ) {
@@ -268,15 +289,34 @@ public function maybe_remove_feed_content( $content ) {
 }
 ```
 
-Eén pleister per lek. En daar zit een gat dat ik niet dicht zie: het post type `lesson` wordt geregistreerd met `'show_in_rest' => true, 'rest_base' => 'lessons'`, en `Sensei_REST_API_Lessons_Controller` erft van `WP_REST_Posts_Controller` **zonder `get_item_permissions_check()` of `prepare_item_for_response()` te overschrijven**. Er is nergens een `rest_prepare_lesson`-filter. Op code-niveau gelezen betekent dat: `/wp-json/wp/v2/lessons` geeft de `content.rendered` van gepubliceerde lessen aan iedereen. Zie de onzekerheden onderaan: dit is uit de code afgeleid, niet in een draaiende installatie gemeten.
+**Maar voor de REST-kant hebben ze iets beters bedacht, en dit is het slimste stukje toegangscode in de plugin.** Het post type `lesson` is `'show_in_rest' => true`, en `Sensei_REST_API_Lessons_Controller` erft van `WP_REST_Posts_Controller` zonder de permissie- of preparatiemethodes te overschrijven. Dat lijkt een lek. Het is het niet, want in `includes/class-sensei-posttypes.php:181` staat, gehaakt op `rest_api_init`:
 
-De eígen REST-laag is wél netjes: alle 37 endpoints in `includes/rest-api/` hebben een echte `permission_callback`, geen enkele `__return_true`, en de quizcontroller is docentonly:
+```php
+// Hide post content for students who aren't enrolled.
+add_filter( 'post_password_required', [ $this, 'lesson_is_protected' ], 10, 2 );
+```
+
+```php
+public function lesson_is_protected( $is_password_protected, $post ) {
+    if ( $post instanceof WP_Post && 'lesson' === $post->post_type
+        && ! sensei_can_user_view_lesson( $post->ID, get_current_user_id() ) ) {
+        return true;
+    }
+    return $is_password_protected;
+}
+```
+
+Sensei laat een les waarvoor je niet ingeschreven bent dus **doorgaan voor een met wachtwoord beveiligde post**. Dat is een WordPress-kernprimitief dat `WP_REST_Posts_Controller` al respecteert: bij `post_password_required()` levert hij lege `content.rendered` en `excerpt.rendered`. Eén haak op één core-concept dekt daarmee de hele REST-laag af, in plaats van een controle per endpoint. Dat is dezelfde gedachte als onze eigen "laat de grens het afdwingen in plaats van een controle op elke plek", en het is steviger dan LearnDash' `the_content`-filter die met een andere filter uit te zetten is.
+
+De eigen REST-laag is netjes: alle 37 endpoints in `includes/rest-api/` hebben een echte `permission_callback` en geen enkele `__return_true`. Er is bewust **geen student-gerichte REST-route om een quiz te maken**; quiz maken is puur een klassieke formulier-POST. De docentendpoints geven `_question_right_answer` wél terug, maar zitten achter auteurschap of `manage_options`:
 
 ```php
 return current_user_can( get_post_type_object( 'lesson' )->cap->edit_post, $lesson->ID ) || current_user_can( 'manage_options' );
 ```
 
-Proefjes zijn per les een vinkje: postmeta `_lesson_preview`, uitgelezen door `Sensei_Utils::is_preview_lesson()`, en een proefles zet ook de prerequisite-eis opzij.
+Eén restje dode code: `Sensei_Templates::get_no_permission_template()` bestaat nog (`includes/class-sensei-templates.php:332`, definieert de constante `SENSEI_NO_PERMISSION`) maar wordt nergens in 4.26.2 aangeroepen.
+
+Proefjes zijn per les een vinkje: postmeta `_lesson_preview`, uitgelezen door `Sensei_Utils::is_preview_lesson()`. Let op de semantiek: een proefles is een losse OR-term **én** zet `$pre_requisite_complete` op waar, dus hij passeert zowel de inschrijving als de volgorde-eis.
 
 ---
 
@@ -321,13 +361,46 @@ if ( 'on' === $pass_required ) {
 }
 ```
 
-### 4.3 Wordt een ingestuurde score gecontroleerd? Die vraag stelt zich niet
+### 4.3 Wordt een ingestuurde score gecontroleerd? Er ís geen ingestuurde score
 
-**Er is geen ingestuurde score.** De client stuurt alleen de gekozen antwoorden. Er is dus niets te ondertekenen, geen `p_nonce` of `a_nonce` zoals in de LearnDash-keten, en ook niets te vervalsen: de enige manier om een hoger cijfer te krijgen is betere antwoorden insturen.
+De client stuurt alleen de gekozen antwoorden. Er is dus niets te ondertekenen, geen `p_nonce` of `a_nonce` zoals in de LearnDash-keten, en geen score om te vervalsen: de enige manier om een hoger cijfer te krijgen is betere antwoorden insturen.
 
-Dat is het simpelste denkbare antwoord op het probleem dat hoofdstuk 11 bij LearnDash uitgebreid beschrijft, en het is bovendien het antwoord dat hoofdstuk 18 (punt 2) voor ons zelf voorstelt. Sensei bewijst dat de nonce-machinerie van LearnDash een gevolg is van hun architectuurkeuze (per vraag nakijken via AJAX, dus tussenresultaten die terug moeten), niet van het probleem zelf.
+Dat is het simpelste denkbare antwoord op het probleem dat hoofdstuk 11 bij LearnDash uitgebreid beschrijft, en het is bovendien het antwoord dat hoofdstuk 18 (punt 2) voor ons zelf voorstelt. Sensei bewijst dat de nonce-machinerie van LearnDash een gevolg is van hún architectuurkeuze (per vraag nakijken via AJAX, dus tussenresultaten die heen en weer moeten), niet van het probleem zelf.
 
-Automatisch nagekeken worden alleen `multiple-choice`, `boolean` en `gap-fill` (filterbaar via `sensei_autogradable_question_types`). `single-line`, `multi-line` en `file-upload` gaan naar de handmatige nakijkstand: de quiz krijgt status `ungraded` en de les schuift niet op tot een docent hem nakijkt op `/wp-admin` (`Sensei_Grading_User_Quiz`). Staat `_quiz_grade_type` op `manual`, dan gaat álles langs de docent.
+De inzending is verder degelijk afgeschermd: vier losse nonces (`woothemes_sensei_complete_quiz_nonce` voor inleveren, `woothemes_sensei_save_quiz_nonce` voor tussentijds opslaan, `woothemes_sensei_reset_quiz_nonce` voor opnieuw doen, `sensei_quiz_page_change_nonce` voor paginering), en bovenop de nonce nog een autorisatiecontrole: `is_quiz_available()` eist inschrijving plus afgeronde voorwaarden, `is_quiz_completed()` blokkeert herinzending, en resetten controleert `_enable_quiz_reset` opnieuw op de server, zodat een geknutselde knop niets oplevert.
+
+**Maar één ding komt wél ongecontroleerd uit de client, en dat is de vragenlijst zelf.** Het formulier stuurt `questions_asked[]` mee als verborgen velden, en de server neemt die lijst over zonder hem te toetsen aan de werkelijke vragen van de quiz. De docblock beweert nota bene het tegendeel:
+
+```php
+/**
+ * Merge quiz answers with questions asked.
+ *
+ * Also, remove any question_ids not part of
+ * the question set for this lesson quiz.
+ */
+private function merge_quiz_answers_with_questions_asked( array $questions_answered, array $questions_asked ): array {
+    $merged = [];
+    foreach ( array_unique( $questions_asked ) as $question_id ) {
+        $merged[ $question_id ] = $questions_answered[ $question_id ] ?? '';
+    }
+    return $merged;
+}
+```
+
+Die filterstap staat er niet. Ondertussen telt `grade_quiz_auto()` de behaalde punten op over precies die door de client gekozen vraag-id's, terwijl de noemer uit de échte quiz komt (`Sensei_Utils::sensei_get_quiz_total( $quiz_id )`), en `quotient_as_absolute_rounded_percentage()` klemt niets af op 100%. Dit is dus precies het gat waar LearnDash' ondertekende vragenlijst voor bestaat, en Sensei heeft er geen equivalent voor. **Ik heb dit uit de code gelezen en niet uitgebuit**, maar het is een concrete, benoembare zwakte en niet een theoretische.
+
+De les voor ons is dubbel: server-side nakijken is de goede keuze, maar *"de vragenlijst waarover je nakijkt"* hoort net zo goed van de server te komen als de antwoordsleutel. Bij ons is dat gratis, want de vragen staan al in `src/content` achter `server-only`.
+
+Automatisch nagekeken worden alleen `multiple-choice`, `boolean` en `gap-fill` (filterbaar via `sensei_autogradable_question_types`). `single-line`, `multi-line` en `file-upload` gaan naar de handmatige nakijkstand, en dat is alles-of-niets per quiz: één handmatige vraag maakt de héle quiz `ungraded` en de les schuift niet op tot een docent hem nakijkt (`Sensei_Grading_User_Quiz`). Staat `_quiz_grade_type` op `manual`, dan gaat álles langs de docent, en dat handmatige pad vertrouwt wél `$_POST`-cijfers, achter een nonce plus `current_user_can( edit_post )`.
+
+Twee kleinere slordigheden in de nakijklaag. `gap-fill` doet na de exacte vergelijking ook nog het opgeslagen antwoord **als reguliere expressie** los op wat de cursist typte, dus elk antwoord dat het juiste antwoord als deelstring bevat scoort vol:
+
+```php
+$regex_answer_check = '/' . addcslashes( $gapfill_array[1], '/' ) . '/' . $regex_modifier;
+if ( $is_exact_answer_match || 1 === @preg_match( $regex_answer_check, $user_answer ) ) {
+```
+
+En `file-upload` accepteert standaard elk bestandstype: `Sensei_Quiz::is_uploaded_file_valid()` geeft direct `true` terug tenzij iemand de filter `sensei_quiz_answer_file_upload_types` invult. WordPress' eigen extensielijst in `wp_handle_upload()` is dan de enige rem.
 
 Aanwezig in de gratis versie: slaagpercentage (`_quiz_passmark`), verplicht slagen (`_pass_required`), opnieuw proberen (`_enable_quiz_reset`), een limiet op het aantal getoonde vragen (`_show_questions`), willekeurige volgorde (`_random_question_order`), vraagcategorieën als vragenbank (via `multiple_question`). **Niet** aanwezig: een timer (dat is Sensei Pro, aldus `readme.txt`).
 
@@ -362,15 +435,28 @@ if ( class_exists( 'Sensei_WC' ) && Sensei_WC::is_woocommerce_active() ) {
 
 `Sensei_WC` bestaat nergens in deze zip. De klasse leeft in Sensei Pro (voorheen "WooCommerce Paid Courses"). En zelfs als hij er is, bepaalt hij alleen wélke knop je ziet; de toegang loopt via de enrolment-provider.
 
-De verkoopfunctionaliteit staat in `readme.txt` netjes opgesomd onder "Discover the power of Sensei Pro": WooCommerce-integratie met Subscriptions, Payments, Memberships en Affiliates, content drip, groepen en cohorten, toegangsperiodes, conditional content, quiztimer. In de beheerschermen zit een bijpassende taak (`includes/admin/home/tasks/task/class-sensei-home-task-sell-course-with-woocommerce.php`).
+De datum van de scheiding staat in de changelog, en het is een nette breuk geweest:
+
+```
+## 2.0.0 - 2019-04-02
+- New: Extract all WooCommerce integration functionality
+```
+
+met daaronder dertig regels die per methode aanwijzen waar hij naartoe verhuisd is. Wat er in de kern overbleef is 32 regels admin-comfort in `includes/3rd-party/woocommerce.php` (twee filters, geen handel) en de compatibiliteitsnoodrem uit §3.3. Zelfs de WooCommerce-verkooptaak in het beheerscherm is inmiddels `@deprecated 4.23.0` ten gunste van een algemene Sensei Pro-upsell.
+
+De verkoopfunctionaliteit staat in `readme.txt` netjes opgesomd onder "Discover the power of Sensei Pro": WooCommerce-integratie met Subscriptions, Payments, Memberships en Affiliates, content drip, groepen en cohorten, toegangsperiodes, conditional content, co-docenten en de quiztimer. Let op wat daar níét staat: **een eigen Stripe- of iDEAL-koppeling.** Sensei besteedt betalen volledig uit aan WooCommerce en bouwt zelf geen gateway. Dat is precies de omgekeerde keuze van LearnDash, dat drie gateways in eigen beheer heeft (hoofdstuk 10 §6).
 
 ### 5.2 Hoe een aankoop toegang wordt, in vorm
 
-Ook al zit de betaling in Pro, de **inhaakvorm** staat in de gratis kern en is het interessantste deel voor ons. Een betaalintegratie registreert een `Sensei_Course_Enrolment_Provider_Interface` via de filter `sensei_course_enrolment_providers`. Zo'n provider implementeert vier dingen: `get_id()`, `get_name()`, `get_version()` en `is_enrolled( $user_id, $course_id )`.
+Ook al zit de betaling in Pro, de **inhaakvorm** staat in de gratis kern en is het interessantste deel voor ons. Een betaalintegratie registreert een `Sensei_Course_Enrolment_Provider_Interface` via de filter `sensei_course_enrolment_providers`. Zo'n provider implementeert vijf dingen: `get_id()`, `get_name()`, `handles_enrolment( $course_id )`, `is_enrolled( $user_id, $course_id )` en `get_version()`.
+
+De inschrijving zelf in de gratis versie is een nonce-bewaakte POST op de cursuspagina (`Sensei_Frontend::sensei_course_start()`, met controles op `can_current_user_manually_enrol()`, afgeronde voorwaarden en wachtwoordbeveiliging), en de afhandeling loopt langs een tweede naad: `sensei_frontend_learner_enrolment_handler`. Dát is waar een betaalde plugin het "meld je gratis aan"-pad vervangt door een afrekenpad. En zodra er een andere provider is die `handles_enrolment()` waar teruggeeft, verbergt de kern de gratis inschrijfknop vanzelf.
 
 Dat draait de verantwoordelijkheid om ten opzichte van LearnDash. Daar *schrijft* de gateway een inschrijving weg (`ld_update_course_access()`), en moet elke intrekking apart bedacht worden. Hier *beantwoordt* de gateway een vraag, en de kern beslist. Een terugbetaling hoeft dus alleen de eigen bron aan te passen: de eerstvolgende herberekening ziet vanzelf dat de reden weg is. Twee redenen tegelijk (los gekocht én een abonnement) botsen niet, want de stemming is een OR.
 
 Dat is exact het probleem dat hoofdstuk 18 punt 1 voor ons voorspelt (opzeggen van College+ trekt stil een los gekochte cursus in), en Sensei's model is de nette oplossing ervan.
+
+Eerlijkheidshalve de keerzijde van diezelfde munt: **omdat de kern geen betaling kent, trekt er in de gratis versie ook nooit iets automatisch in.** Alle aanroepen van `withdraw_learner()` komen uit beheerschermen, bulkacties, de REST-controller voor cursisten of WP-CLI. Het herberekenmechanisme is prachtig, maar het herberekent alleen wat de providers zeggen; is er geen provider die betaling voorstelt, dan is er niets om van gedachten te veranderen.
 
 ### 5.3 Bedrag- en valutacontrole
 
@@ -390,10 +476,21 @@ Kort samengevat: **Sensei-kern doet aan communicatie en niet aan beloning.**
 
 - Een eigen post type **`sensei_email`**, zodat elke mail een post is die je **in de blokeditor bewerkt**, met patronen (`patterns/`) en een aparte paginasjabloon-repository.
 - Veertien generatoren in `includes/internal/emails/generators/`, één per gebeurtenis: `Course_Completed`, `Course_Welcome`, `Course_Created`, `Quiz_Graded`, `Student_Completes_Course`, `Student_Completes_Lesson`, `Student_Starts_Course`, `Student_Submits_Quiz`, `Student_Sends_Message`, `Student_Message_Reply`, `Teacher_Message_Reply`, `New_Course_Assigned` en twee hulpklassen.
-- Een `Email_Sender` die per ontvanger `wp_mail()` aanroept met tijdelijk overschreven `wp_mail_from` en `wp_mail_from_name`, een `Email_Preview`, een `Email_Seeder` die de standaardteksten aanmaakt, en `Email_Subscription` plus `Email_User_Profile_Settings` voor afmelden per maaltype.
-- Daarnáást staat het oude systeem er nog (`includes/class-sensei-emails.php` plus negen `class-sensei-email-*.php`) en een MailPoet-koppeling (`includes/mailpoet/`).
+- Een `Email_Sender` die per ontvanger `wp_mail()` aanroept met tijdelijk overschreven `wp_mail_from` en `wp_mail_from_name`, en die vóór verzending de CSS inlinet met een php-scoper-geprefixte Emogrifier. Plus `Email_Preview`, een `Email_Seeder` die de standaardteksten uit 18 blokpatronen opbouwt, en `Email_Subscription` met `Email_User_Profile_Settings` voor afmelden per maaltype.
+- Er worden ook **zeven Pro-only sjablonen geseed die nergens op aanslaan** (`content_drip`, `student_no_progress_{3,7,28}_days`, `course_expiration_*`): de teksten staan er, de generator zit in de betaalde plugin. Dat is een interessant verkoopmodel, want je ziet in je eigen beheerscherm wat je mist.
+- Daarnáást staat het oude systeem er nog (`includes/class-sensei-emails.php` plus negen `class-sensei-email-*.php`) en is er een MailPoet-koppeling (`includes/mailpoet/`) die per cursus een lijst aanmaakt en cursisten synchroniseert. Puur lijstsynchronisatie, geen campagnelogica.
 
-Twee eerlijke kanttekeningen: er is **geen wachtrij**, `wp_mail()` wordt synchroon aangeroepen tijdens het verzoek en er is geen herkansing bij mislukking. En de dubbele generatie (oud plus nieuw systeem) is dezelfde soort schuld als elders.
+Drie eerlijke kanttekeningen. Er is **geen wachtrij**: `wp_mail()` wordt synchroon aangeroepen tijdens het verzoek, zonder herkansing bij mislukking. De inactiviteitsmail die wij zouden willen (hoofdstuk 18 punt 6) zit hier dus in de betaalde doos, niet in de gratis. En het oude systeem wordt nog steeds bij elk verzoek geïnstantieerd en daarna actie voor actie weer losgekoppeld:
+
+```php
+public function disable_legacy_emails() {
+    remove_action( 'sensei_course_status_updated', [ Sensei()->emails, 'teacher_completed_course' ] );
+    remove_action( 'sensei_user_course_start',     [ Sensei()->emails, 'teacher_started_course' ] );
+    ...
+}
+```
+
+Dode code die eerst wordt opgebouwd en dan chirurgisch wordt uitgezet, in plaats van niet te worden aangemaakt.
 
 **Berichten:** het post type `sensei_message` is een privé-berichtenkanaal van cursist naar docent (`includes/class-sensei-messages.php`), met een eigen REST-controller. Geen forum, geen community: één-op-één en redactioneel, wat dichter bij onze "Vragen & antwoorden bij de les" ligt dan bij bbPress.
 
@@ -429,9 +526,18 @@ Dus dezelfde tweedeling als bij LearnDash (`src/` naast legacy), maar met een gu
 
 Er is een `Sensei\`-namespace, en die is consequent gebruikt in het nieuwe werk: `Sensei\Internal\Student_Progress\*`, `Sensei\Internal\Quiz_Submission\*`, `Sensei\Internal\Emails\*`, `Sensei\Internal\Services`, `Sensei\Internal\Migration`, `Sensei\Blocks\Course_Theme`, `Sensei\WPML`, `Sensei\Clock`. De oude helft is globaal en prefixed (`Sensei_Course`, `Sensei_Utils`).
 
-Autoloading loopt niet via Composer PSR-4 maar via een eigen `includes/class-sensei-autoloader.php` op WordPress' bestandsnaamconventie (`class-sensei-foo.php`), met een aparte `class-sensei-autoloader-bundle.php`. Composer wordt alleen gebruikt om `vendor/` te scopen (`vendor/scoper-autoload.php`).
+**Autoloading is geen PSR-4 maar een gegenereerde Composer-classmap.** `vendor/composer/autoload_psr4.php` geeft letterlijk een lege array terug; `autoload_classmap.php` bevat 610 Sensei-vermeldingen waarin namespaced en globale klassen door elkaar staan, allemaal op de WordPress-bestandsnaamconventie (`class-sensei-foo.php`). De oude handgeschreven autoloader is met pensioen:
 
-**Er is geen DI-container.** Geen `Container`, geen `ServiceProvider`. Alles hangt aan de globale singleton `Sensei()` (`Sensei_Main::instance()`), en de repositories worden daar met de hand in elkaar gezet in `includes/class-sensei.php` rond regel 765. De factories nemen wél hun afhankelijkheden via de constructor aan, dus de nieuwe laag is testbaar; de bedrading eromheen is dat niet.
+```php
+/**
+ * Old autoloader for Sensei. No longer used.
+ * @deprecated 4.13.1
+ */
+```
+
+Composer wordt verder gebruikt om externe bibliotheken te prefixen met php-scoper (`vendor/scoper-autoload.php`, alles onder `Sensei\ThirdParty\*`), zodat een andere plugin met dezelfde bibliotheek geen botsing geeft. Dat is volwassen vendoring. De enige echte productieafhankelijkheid is `woocommerce/action-scheduler`.
+
+**Er is geen DI-container.** Geen `Container`, geen `ServiceProvider`. Alles hangt aan de globale singleton `Sensei()` (`Sensei_Main::instance()`), en de repositories worden met de hand in elkaar gezet in de constructor van `includes/class-sensei.php` (1.929 regels), die daarmee de facto de compositieroot is. De nieuwe laag krijgt zijn afhankelijkheden wél via de constructor, dus die is testbaar; de bedrading eromheen niet. Waar de twee stijlen schuren zie je het meteen: `Email_Customization::instance( $this->settings, $this->assets, $this->lesson_progress_repository )`, een singleton met constructorargumenten.
 
 ### 7.3 REST API
 
@@ -439,33 +545,46 @@ Eén namespace: **`sensei-internal/v1`**. De naam is de documentatie: dit is gee
 
 Dat is een bewuste, verdedigbare keuze en het tegenovergestelde van LearnDash' hook-als-slotgracht: Sensei belooft niets aan derden op REST-niveau, dus kan het vrij verbouwen. Voor een integrator is dat lastiger; voor de codebase gezonder.
 
-### 7.4 Wat er níét in de zip zit
+### 7.4 Wat er wel en niet in de zip zit
 
-Geen `tests/`, geen `phpunit.xml`, geen `composer.json`, geen `package.json`, geen `.eslintrc`, geen webpack- of `phpcs`-configuratie. De distributie bevat uitsluitend gebouwde bestanden: `assets/dist/`, `templates/`, `includes/`, `lang/`, `sample-data/`. Dat is precies zoals het hoort voor een wordpress.org-plugin en het is netter dan menig concurrent die zijn hele buildomgeving meelevert.
+Niet meegeleverd: `composer.json`, `composer.lock`, `package.json`, `phpunit.xml`, `.eslintrc`, `phpcs.xml`, webpackconfiguratie, `.github/`, `bin/`. `vendor/` is een `--no-dev`-installatie. Dat is precies zoals het hoort voor een wordpress.org-plugin en netter dan menig concurrent die zijn hele buildomgeving meelevert.
 
-De ontwikkelkant is er wel, maar dan op GitHub: `CONTRIBUTING.md` verwijst naar `github.com/Automattic/sensei`, met een wiki over de ontwikkelomgeving, een issue tracker en een PR-flow. In de changelog van 4.26.2 heeft elke regel een publieke PR-link. (Kleine menselijke noot: in `CONTRIBUTING.md` staat "Automattician? Read more at: PCYsg-15ed-p2", een intern P2-nummer dat gewoon in de publieke release is meegereisd.)
+Twee dingen lekken toch mee, en die zijn het vermelden waard omdat ze de norm niet halen:
+
+- **Testcode reist mee**: `includes/lib/usage-tracking/tests/test-class-usage-tracking.php` plus twee hulpbestanden. Dat is de gevendorde Automattic-bibliotheek die in zijn geheel is overgenomen, testsuite en al.
+- **De onverkleinde JS-bronnen staan naast de bundels**: 426 ruwe `.js`-bestanden (ruim 43.000 regels) in `assets/blocks/`, `assets/admin/` en zo verder, terwijl alleen de 114 gebouwde bestanden in `assets/dist/` daadwerkelijk geladen worden. Dat verklaart waarom `assets/` met 16 MB drie keer zo groot is als alle PHP bij elkaar.
+
+De ontwikkelkant zit op GitHub: `CONTRIBUTING.md` verwijst naar `github.com/Automattic/sensei`, met een wiki over de ontwikkelomgeving, een issue tracker en een PR-flow. In de changelog van 4.26.2 heeft elke regel een publieke PR-link. (Kleine menselijke noot: in `CONTRIBUTING.md` staat "Automattician? Read more at: PCYsg-15ed-p2", een intern P2-nummer dat gewoon in de publieke release is meegereisd.)
 
 ### 7.5 Deprecation-schuld
 
-178 aanroepen van `_deprecated_function` verspreid over 58 bestanden, plus 30 `_doing_it_wrong`. De changelog telt 203 versies en loopt terug tot `1.0.0 - 2013-01-21`, met in de laatste regels nog `woothemes-sensei.php`: dit was oorspronkelijk een WooThemes-product, van vóór de Automattic-overname. Dertien jaar geschiedenis, met de bijbehorende laag afgeschreven functies.
+145 aanroepen van `_deprecated_function` in `includes/` (178 als je `vendor/` meetelt), 175 `@deprecated`-tags, 26 `_doing_it_wrong`. De changelog telt 203 versies en loopt terug tot `1.0.0 - 2013-01-21`, met in de laatste regels nog `woothemes-sensei.php`: dit was oorspronkelijk een WooThemes-product, van vóór de Automattic-overname. Dertien jaar geschiedenis, met de bijbehorende laag afgeschreven functies.
 
-De schuld is wel *gemarkeerd*, met versienummers erbij (`_deprecated_function( __METHOD__, '4.19.2', ... )`). Dat is beter dan stilzwijgend laten staan.
+Er is géén `deprecated/`-map: de schuld staat inline naast de levende code, wat mede verklaart waarom `class-sensei-course.php` 4.728 regels telt. De WooThemes-namen leven nog als lege subklassen onderaan de bestanden (`class WooThemes_Sensei_Messages extends Sensei_Messages{}`), en de tikfout in `woothemes_sensei_start_course_noonce` staat er nog steeds, bevroren omdat hem verbeteren formulieren van derden zou breken. Dat is exact het "backwards compatibility als datastructuur"-patroon uit hoofdstuk 9.
+
+De schuld is wel *gemarkeerd*, met versienummers erbij (`_deprecated_function( __METHOD__, '4.19.2', ... )`) en met `apply_filters_deprecated()` voor hooks. Dat is beter dan stilzwijgend laten staan, al loopt de shim voor `sensei_display_start_course_form` inmiddels zes jaar mee.
 
 ### 7.6 Wat wel en niet naar Automattic-normen ruikt
 
 **Wel:**
-- Een publieke GitHub-repo met issue tracker en CONTRIBUTING, een changelog met PR-links per regel, en `@since`-tags overal.
-- Gestructureerde hook-documentatie in een eigen formaat (`@hook`, `@param {type}`, `@return {type}`), wat betekent dat er een generator overheen loopt.
-- Een expliciete feature-flag-klasse (`Sensei_Feature_Flags`) met verschillende defaults per omgeving, en gebruiksstatistiek als opt-in (`Sensei_Usage_Tracking`).
+- Een publieke GitHub-repo met issue tracker en CONTRIBUTING, een changelog met PR-links per regel, en 2.226 `@since`-tags.
+- Gestructureerde hook-documentatie in een eigen formaat (651 `@hook`-tags met `@param {type}` en `@return {type}`), wat betekent dat er een generator overheen loopt die de publieke hook-referentie bouwt.
+- De codestandaard wordt duidelijk in CI afgedwongen, ook al ligt de config er niet bij: 510 `phpcs:ignore`-regels, en die zijn **specifiek en beargumenteerd** (`-- Intended, this is a placeholder script.`), niet de bulkonderdrukking bovenaan elk bestand die de WP Pro Quiz-fork van LearnDash kenmerkt (hoofdstuk 11 §1).
+- Een expliciete feature-flag-klasse (`Sensei_Feature_Flags`) met verschillende defaults per omgeving, overschrijfbaar per constante én per filter, en doorgegeven aan de browser als `window.sensei.featureFlags` zodat PHP en JS één bron delen.
+- Gebruiksstatistiek als opt-in, met een link naar de eigen documentatie over wat er precies gemeten wordt.
 - Een `Clock`-interface met een injecteerbare implementatie, puur om tijd testbaar te maken. Dat vind je niet in een doorsnee WordPress-plugin.
-- De repository-, factory- en migratie-opzet uit §2.3 is echt goed werk.
+- De repository-, factory- en migratie-opzet uit §2.3 is echt goed werk, inclusief WP-CLI-commando's die de migratie achteraf valideren (`sensei validate-progress`, `validate-quiz-submission`).
+- Bedrijfsklaar draaien: tien beheerdersgereedschappen, Site Health-integratie, een `Sensei_Dependency_Checker` die waarschuwt als de plugin niet gebouwd is, een uitschakelaar voor Action Scheduler, en WordPress.com-specifieke takken in de code. Dit draait op schaal en dat is te zien.
+- Vooruitkijkend: `includes/abilities/` registreert zich sinds 4.26.0 bij de WP 6.9 Abilities API en doet niets op oudere versies.
 - `uninstall.php` plus `Sensei_Data_Cleaner`: de plugin ruimt zichzelf op.
 
 **Niet:**
-- Bestanden van 5.500 regels.
+- Bestanden van 5.500 regels, met gemengde verantwoordelijkheden: `Sensei_Course` rendert HTML, doet database, logt telemetrie én bevat verkoopregels.
 - Status van een domeinmodel in `comment_approved`, met een SQL-`str_replace` als reparatie.
 - Nul transacties, terwijl er wel dubbel wordt geschreven.
 - Een migratie die na bijna drie jaar nog "experimenteel" heet.
+- Marketing die dwars door de domeinklassen loopt: een nep-menu-item "Groups" met een `Pro`-badge, een nep-tab "Showcase Courses", een upsell-scherm dat vanuit `Sensei_Course` wordt geëchood. Verdedigbaar als bedrijfsmodel, rommelig als architectuur.
+- Een docblock die een validatie beschrijft die de functie niet uitvoert (§4.3). Dat is erger dan geen docblock.
 - En het eerlijkste signaal van allemaal: **4.26.2 is een beveiligingsrelease met elf securityfixes tegelijk**, en lees waar ze over gaan:
 
   > *Only allow enrolled students to mark a course as complete.*
@@ -486,6 +605,8 @@ LearnDash heeft één *bedoelde* poort met een "consolidate"-TODO in de code, tw
 
 Sensei heeft `sensei_can_user_view_lesson()` als enige poort, en daarachter een providerregister waarin elke reden voor toegang zichzelf aanmeldt en alleen een vraag beantwoordt. De uitkomst is gecachet met een versiehash die zichzelf ongeldig maakt als een provider verandert, platgeslagen naar een taxonomie zodat "wie zit er in cursus X" één query is, en er is een journaal dat bijhoudt wanneer welke reden wegviel. Voor een platform dat ooit een abonnement naast losse verkoop zet, is dit het referentieontwerp. En het bewijs dat het werkt is negatief maar sterk: er staat in de gratis kern geen enkele betaalcode, en tóch is het volledig duidelijk hoe een aankoop toegang wordt.
 
+Daar hoort een tweede, kleiner punt bij dat dezelfde denkwijze verraadt: waar LearnDash zijn contentbescherming aan een eigen filter hangt die met een ándere filter uit te zetten is (hoofdstuk 17, punt 28 van hoofdstuk 18), haakt Sensei voor de REST-laag aan op `post_password_required`, een WordPress-kernconcept dat de rest van het systeem al respecteert (§3.4). Bescherming die meelift op een bestaande grens in plaats van er een nieuwe naast te leggen: dat is precies onze eigen regel.
+
 ### De duidelijkste zwakte: de voortgang zit nog steeds in `wp_comments`, en de uitweg staat al bijna drie jaar uit
 
 Het schema van de vervanging is er (§2.2), het is beter dan dat van LearnDash (echte `UNIQUE KEY`s, `datetime` in plaats van `int(11)`), de migratie is netjes gebouwd met batches en validatie, en de repository-abstractie is voorbeeldig. En toch: op een verse installatie van 4.26.2 op 5 augustus 2026 draait alles op de commentaartabel, met de status in `comment_approved`, met percentages en antwoorden als geserialiseerde blobs in `wp_commentmeta`, met een check-then-act zonder slot en zonder unieke sleutel, en zonder één transactie in de hele plugin. De tabellen worden niet eens aangemaakt.
@@ -502,7 +623,7 @@ Bij LearnDash is de dubbele boekhouding een *ontwerp* (usermeta als bron, activi
 
 3. **Een logboek van toegangsveranderingen.** `Sensei_Enrolment_Provider_Journal_Store` is een klein tabelletje met een groot supportrendement: als iemand mailt "mijn cursus is weg", kun je zien welke reden wanneer wegviel. Wij hebben `payment_attempts` append-only staan; hetzelfde principe op toegang toepassen kost weinig en beantwoordt de vraag die je anders niet kúnt beantwoorden.
 
-4. **De bevestiging dat de eenvoudige quizoplossing de juiste is.** Sensei stuurt geen score mee, dus hoeft er niets ondertekend te worden. Dat maakt het voorstel uit hoofdstuk 18 punt 2 concreter én goedkoper: wij hoeven LearnDash' nonce-machinerie niet na te bouwen, alleen te stoppen met `correct` uit de client te geloven. De client stuurt de gekozen indexen, `src/content` staat al server-side, de server telt na. Sensei is het bestaansbewijs.
+4. **De bevestiging dat de eenvoudige quizoplossing de juiste is, mét Sensei's eigen fout erbij.** Sensei stuurt geen score mee, dus hoeft er niets ondertekend te worden: het voorstel uit hoofdstuk 18 punt 2 is daarmee concreter én goedkoper dan gedacht. Wij hoeven LearnDash' nonce-machinerie niet na te bouwen, alleen te stoppen met `correct` uit de client te geloven. Maar neem §4.3 mee als waarschuwing: Sensei doet het nakijken goed en accepteert vervolgens de **vragenlijst** wél uit de client, met een docblock die beweert dat hij hem filtert. Onze regel wordt dus: de server bepaalt zowel de antwoordsleutel als welke vragen er meetellen, en de client levert uitsluitend keuzes. Bij ons kost dat niets, want beide staan al in `src/content` achter `server-only`.
 
 5. **De e-mail als bewerkbare inhoud in plaats van als code.** Het post type `sensei_email` met blokeditor plus een generator per gebeurtenis is de nette scheiding tussen "wanneer wordt er gemaild" en "wat staat erin". Als wij toe zijn aan een tweede of derde transactionele mail (voltooiingsmail, inactiviteitsmail), is dít de grens om te trekken: gebeurtenis in code, tekst als data, en de verzendwachtrij ertussen die Sensei juist níét heeft.
 
@@ -512,9 +633,11 @@ Bij LearnDash is de dubbele boekhouding een *ontwerp* (usermeta als bron, activi
 
 ## Onzekerheden
 
-- **De REST-bevinding in §3.4 is uit de code afgeleid, niet gemeten.** Ik heb `register_post_type( 'lesson', ... 'show_in_rest' => true )` gelezen, de controller nagelopen op overschreven permissie- en preparatiemethodes (die er niet zijn) en gezocht naar een `rest_prepare_lesson`-filter (die er niet is). Ik heb geen WordPress-installatie gedraaid om `/wp-json/wp/v2/lessons/<id>` als anonieme bezoeker op te halen. WordPress-core of een andere Sensei-haak kan dit alsnog afvangen. **Behandel dit als een sterke aanwijzing, niet als een bewezen lek**, en dat is precies het foutpatroon uit hoofdstuk 18: een conclusie uit één bron doortrekken naar een situatie die je niet hebt getoetst.
+- **Deze tekst heeft een fout van mij overleefd, en die is het waard om te noemen.** In de eerste versie stond dat `/wp-json/wp/v2/lessons` betaalde lesinhoud lekt: het post type is `show_in_rest`, de controller overschrijft geen permissie- of preparatiemethode, en er is geen `rest_prepare_lesson`-filter. Alle drie die waarnemingen klopten, en de conclusie was toch onjuist. Sensei zet de bescherming namelijk op een plek waar ik niet zocht: een `post_password_required`-filter, gehaakt op `rest_api_init` (§3.4). **Drie juiste waarnemingen, één verkeerde conclusie**, precies het foutpatroon dat hoofdstuk 18 beschrijft. De les is niet "kijk beter" maar: bij "ik zie de bescherming niet" hoort altijd de vraag *waar zou een ervaren bouwer hem hebben gezet die ik nog niet heb bekeken*. Het geldt ook voor wat er nu wél in staat.
+- **De zwakte in §4.3 (`questions_asked`) is gelezen, niet uitgebuit.** Ik heb vastgesteld dat de filterstap ontbreekt, dat de teller over cliëntgekozen vraag-id's loopt, dat de noemer uit de echte quiz komt en dat er geen klem op 100% zit. Ik heb geen verzoek verstuurd om te zien of het in de praktijk een score boven de 100 oplevert. Er kan verderop nog een controle zitten die ik niet gevonden heb, en dat is precies wat er in het vorige punt misging.
 - **Ik heb alleen de gratis wordpress.org-versie gelezen.** Alles over betalingen, groepen, drip, toegangsperiodes, conditional content en de quiztimer komt uit `readme.txt` en uit de vorm van de haken in de kern, niet uit Pro-code. Sensei Pro is niet open source; wat daar gebeurt met bedrag- en valutacontrole is onbekend en mag niet worden ingevuld.
 - **De "geen transacties"-uitspraak is een grep, geen audit.** Ik heb gezocht op `START TRANSACTION`, `COMMIT`, `ROLLBACK`, `FOR UPDATE` en `GET_LOCK` in `includes/`. Een atomair effect dat langs een andere weg bereikt wordt (een `INSERT ... ON DUPLICATE KEY`, een enkel `UPDATE` met een `WHERE`-voorwaarde) heb ik niet uitputtend geïnventariseerd; de `UNIQUE KEY`s in het HPPS-schema doen daar hun deel.
 - **Ik heb de happy path gevolgd.** Randgevallen zijn niet uitgekamd: de gastgebruiker (`Sensei_Guest_User`), de tijdelijke gebruiker (`Sensei_Temporary_User`), de preview-gebruiker (`Sensei_Preview_User`), het docentenmodel met meerdere auteurs (`Sensei_Teacher`), de import- en exportketen (`includes/data-port/`) en de WPML-laag zijn alleen oppervlakkig bekeken. Vooral de gast- en tijdelijke-gebruikerspaden raken toegang en verdienen apart onderzoek voordat je hier iets uit overneemt.
+- **Drie sporen, en dat was hier de moeite waard.** Dit hoofdstuk is gebouwd uit één hoofdlezing plus twee parallelle deelonderzoeken op niet-overlappende vragen. Het rendement zat opnieuw in de weerlegging: het REST-punt hierboven is door een tweede spoor omgedraaid, de autoloader-bewering ("eigen bestandsnaam-autoloader") bleek een Composer-classmap met een sinds 4.13.1 afgeschreven voorganger, en de `questions_asked`-zwakte had ik zelf niet gezien. Drie correcties op één hoofdstuk, allemaal in de richting "ik heb te snel geconcludeerd uit wat ik toevallig las".
 - **Regelnummers gelden voor 4.26.2** (29 juli 2026). De klassenamen en meta-sleutels zijn stabieler dan de nummers.
 - **De omvangcijfers zijn geteld, niet geschat**, maar de "regels PHP" tellen commentaar en lege regels mee. De verhouding 35% oud tegen 17% nieuw is dus indicatief voor de vorm van de codebase, niet voor de hoeveelheid gedrag.
