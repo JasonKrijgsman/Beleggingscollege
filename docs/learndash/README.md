@@ -21,7 +21,7 @@ De vraag die dit onderzoek beantwoordt: wat hebben zij in tien jaar productontwi
 | [07-ecosysteem-en-markt.md](07-ecosysteem-en-markt.md) | Bedrijf & prijzen, add-on-ecosysteem, architectuur voor ontwikkelaars, concurrenten, wanneer zelf bouwen wint |
 | [08-lessen-voor-beleggingscollege.md](08-lessen-voor-beleggingscollege.md) | **De synthese**: wat wij al beter doen, wat LearnDash beter doet, en wat we concreet zouden kunnen overnemen |
 
-Begin bij hoofdstuk 8 als je alleen de conclusies wilt; de rest is het bewijsmateriaal.
+Begin bij **hoofdstuk 18** als je alleen de conclusies wilt, en bij hoofdstuk 8 voor de onderbouwing daarvan; de rest is bewijsmateriaal.
 
 ### Uit de broncode zelf (hoofdstuk 9–11)
 
@@ -50,6 +50,21 @@ Kort: de quizmotor, de voortgangsopslag en het activity-schema zijn ongewijzigd;
 | [13-broncode-addons-commerce.md](13-broncode-addons-commerce.md) | Zeven officiële commerce- en toegangs-add-ons (2026-releases): hoe zij aankopen, terugbetalingen en memberships op toegang vertalen — inclusief de referentieteller die één recht meerdere bronnen geeft |
 | [14-broncode-addons-engagement.md](14-broncode-addons-engagement.md) | De engagement-add-ons: de Notifications-wachtrij van binnen, de "streak" die eigenlijk een logintelling is, en de certificaatketen |
 | [15-uncanny-toolkit-de-ontbrekende-instellingen.md](15-uncanny-toolkit-de-ontbrekende-instellingen.md) | **De Uncanny Toolkit (gratis, v3.8.0.3)** als telling van LearnDash's gaten zoals échte cursusverkopers ze voelen: alle 16 gratis modules, de ~35 Pro-modules, hun feature-flag-architectuur, en welke van die gaten wij ook hebben |
+
+### Door andere leveranciers onderzocht (hoofdstuk 16–17)
+
+Twee sporen buiten Claude om, bewust op niet-overlappende opdrachten — het tweede expliciet om onze eigen conclusies te weerleggen.
+
+| Doc | Onderwerp |
+|---|---|
+| [16-broncode-propanel-en-bundelde-addons.md](16-broncode-propanel-en-bundelde-addons.md) | **Door Codex.** ProPanel, Course Grid en Course Reviews — de drie ooit los betaalde add-ons die nu in de doos zitten — plus het Commerce-subsysteem. Het eerlijke beeld van hun rapportagelaag: één handgeschreven query, enkelkolomse indexen, een synchrone bulkmail, en een CSV-export die juist voorbeeldig is |
+| [17-restende-addons-en-verificatie.md](17-restende-addons-en-verificatie.md) | **Door Cursor.** De nog niet gelezen add-ons (Migration, Gravity Forms, bbPress, Elementor, Events Calendar, Multilingual) plus een adversariële hercontrole van zes van onze eigen uitspraken: vijf bevestigd, **één weerlegd** |
+
+### De conclusie (hoofdstuk 18)
+
+| Doc | Onderwerp |
+|---|---|
+| [18-wat-we-ermee-doen.md](18-wat-we-ermee-doen.md) | **Begin hier als je maar één document leest.** Wat de drie onderzoekssporen elk opleverden en waar ze elkaar tegenspraken, gevolgd door dertig kandidaten in vier bakjes: gewoon doen, sterk aanbevolen, het hangt ervan af, en niet aan beginnen |
 
 ## Leeswijzer
 
