@@ -439,6 +439,13 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
         Er lekt geen lesinhoud, maar badges en certificaten worden er waardeloos van.
         Echt dichtzetten betekent de antwoorden meesturen en op de server nakijken. Zie
         CODEX-105.
+        **Er is een derde weg, en die hoefden we niet zelf te bedenken** (5 aug 2026):
+        LearnDash lost precies dit op zonder een antwoordgeschiedenis te bewaren — de
+        server kijkt elk antwoord los na en geeft het resultaat terug mét een
+        handtekening over gebruiker + toets + vraag + punten; bij het inleveren
+        herverifieert hij die handtekeningen en herrekent zelf het percentage. De client
+        mag dus rekenen, maar niets beweren. Uitwerking en de plek in hun broncode:
+        `docs/learndash/08-lessen-voor-beleggingscollege.md` §2.1b.
       - **"Voortgang wissen" wist bij een ingelogde gebruiker alleen de lokale cache.** Er is
         geen server-delete en de import is bewust alleen-aanvullend, dus na de volgende
         paginalading staat alles er weer — terwijl de knop zegt "Dit kan niet ongedaan
