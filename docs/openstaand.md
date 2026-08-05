@@ -256,13 +256,6 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
       overgemaakt. Richting: een kleine client component die de status elke paar seconden
       naslaat (of de pagina herlaadt) zolang hij pending is, met de bestaande knop als
       terugval. Laag risico, hoge geruststellingswaarde.
-- [ ] **De HTML-versie van de orderbevestiging maakt kapotte links.** De linkify-regex in
-      `src/lib/mailteksten.ts` (`https?:\/\/[^\s]+`) neemt leestekens die ná een URL horen
-      mee de href in: in de testmail van 5 aug 2026 staan `…/account).`, `…/voorwaarden,`,
-      `…/herroepingsrecht.` en `…/privacy.` als klikbare links — allemaal 404. Juist de
-      verwijzingen naar de voorwaarden en het herroepingsformulier in de wettelijke
-      bevestiging horen te werken. Fix: sluitende leestekens (`.,;:!?)`) buiten de
-      capture houden; de platte-tekstversie is al goed.
 - [ ] **Het omzetbelastingnummer staat nog in de git-historie, en dat reist mee.** Het
       BSN-afgeleide nummer stond letterlijk in `CLAUDE.md`, `AGENTS.md`,
       `docs/e-mail-versturen.md` en dit document; op 3 aug 2026 is het er met commit
