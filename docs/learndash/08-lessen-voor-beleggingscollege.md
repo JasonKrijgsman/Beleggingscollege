@@ -1,6 +1,6 @@
 # 08 — Lessen voor Beleggingscollege: de synthese
 
-> Geschreven 5 aug 2026, op basis van de hoofdstukken 1–7. Dit is het enige hoofdstuk dat oordeelt: wat bevestigt LearnDash aan onze keuzes, wat doet het aantoonbaar beter, en wat zouden we concreet kunnen overnemen. De bewijsvoering staat in de andere hoofdstukken; hier staan alleen de conclusies met verwijzing.
+> Geschreven 5 aug 2026, op basis van de hoofdstukken 1–7 (documentatie) en 9–11 (de échte broncode, v4.6.0). Dit is het enige hoofdstuk dat oordeelt: wat bevestigt LearnDash aan onze keuzes, wat doet het aantoonbaar beter, en wat zouden we concreet kunnen overnemen. De bewijsvoering staat in de andere hoofdstukken; hier staan alleen de conclusies met verwijzing.
 >
 > **Dit hoofdstuk is analyse, geen backlog.** Wat er ooit echt gebouwd wordt beslist Jason; kandidaten die hij overneemt horen thuis in `docs/openstaand.md` of `docs/ideeen.md`, niet hier bijgehouden.
 
@@ -22,7 +22,10 @@ Elk punt hieronder is een keuze die wij al maakten en die LearnDash — meestal 
 | **Getypte content in TypeScript** | Hun CPT-model koopt het WordPress-ecosysteem maar geen integriteit: de eigen docs waarschuwen tegen duplicatie-plugins, klonen dat quizinstellingen laat vallen, en associaties die alleen via de builder veilig te wijzigen zijn. | 01 §2, §11 |
 | **Eigen checkout met Mollie** (iDEAL, factuur, btw) | LearnDash's ingebouwde betalingen kennen **geen factuur en geen btw-begrip**; iDEAL alleen via Stripe. Serieuze EU-shops zetten cursussen op `Closed` en verkopen via WooCommerce — architectonisch exact ons model (LMS bewaakt, externe commerce verkoopt, een koppeling schrijft het recht). Ons hele ontwerp is dus wat hun ecosysteem als best practice beschouwt. | 03 §1, §5, §10 |
 | **College+ als entitlements-verlenend abonnement** (niet per cursus) | Sitebrede memberships lopen bij LearnDash áltijd via een membership-plugin die toegang verleent en intrekt; het per-cursus-`Recurring`-model knelt zichtbaar (geen coupons, PayPal-abonnees niet migreerbaar). | 03 §6 |
-| **Quizantwoorden reizen niet naar de server** | Ook LearnDash kijkt client-side na (WP Pro Quiz-JS); de juiste antwoorden zijn bij hen net zo goed in het verkeer te vinden. Voor high-stakes toetsing is geen van beide geschikt — ons "gat" is dus een positie, geen achterstand. Wat zij er wél voor terugkrijgen: per-vraag-statistiek (zie §2.5 hieronder). | 02 §7, §10 |
+| **Quizantwoorden reizen niet naar de server** | Half bevestigd, en de broncode corrigeert de documentatie-indruk: LearnDash kijkt wél **server-side** na en ondertekent elke deelscore (zie §2.1b). Wat wij goed doen blijft staan — zij bewaren per gebruiker elk gegeven antwoord, wij niet — maar hun score is betrouwbaar en die van ons niet. Dit is het enige punt in deze tabel dat eerder een waarschuwing dan een felicitatie is. | 02 §7, **11** |
+| **`entitlements` als enige toegangspoort** | Hun bedoelde equivalent `sfwd_lms_has_access_fn()` draagt in zijn eigen docblock de opmerking dat het een duplicaat is dat geconsolideerd moet worden, er bestaan twee inschrijvingsrepresentaties náást het groepspad, en afscherming gebeurt via een `the_content`-filter — de lesinhoud staat onbeschermd in de database. Precies waarom wij één functie en geen tweede check willen. | 10 |
+| **Webhook verifieert bedrag én valuta** | Hun Stripe-webhook haalt de betaling zelf op aan de hand van het id (goed, net als wij), maar **geen enkele gateway hercontroleert het bedrag tegen de catalogusprijs** op het moment van toekennen. Onze tweede ijzeren regel is bij de marktleider dus niet geïmplementeerd. | 10 |
+| **Databasegarantie boven conventie** | Hun activiteitentabel heeft negen indexen maar **geen UNIQUE-sleutel**: uniciteit is een PHP-afspraak. Onze partiële unique index op openstaande betalingen is het tegenovergestelde besluit. | 10 |
 | **Native gamification** (XP, 8 levels, streaks, 10 badges) | Core-LearnDash heeft *niets* hiervan; alles komt uit add-ons, en echte streaks bestaan zelfs daar nauwelijks (alleen een login-streak-badge). Onze engine is een reëel differentiatiepunt. | 05 §3 |
 | **Lespagina als dedicated leerscherm** | LearnDash moest hiervoor `Focus Mode` uitvinden (thema volledig vervangen, navigatie + voortgang + afrondknop altijd in beeld) en framet het expliciet als retentie-/conversiefeature. Wij hebben het gratis, permanent. | 01 §6, 05 §5 |
 | **Redactionele lesvragen i.p.v. forum** | LearnDash heeft geen equivalent; hun community-verhaal is de zware bbPress/BuddyBoss-stack ernaast. Ons model (context bij de les, geen realtime-verwachting) is uniek terrein. | 05 §6 |
@@ -43,6 +46,21 @@ Sinds 5 aug 2026 kán onze site mailen (`verstuurMail()` via Migadu). LearnDash'
 4. **Welkom na eerste les** — bevestigt de gewoonte.
 
 Hun twee gedocumenteerde valkuilen gelden ook voor ons: vertraagde mail vereist een echte scheduler (bij hen WP-cron-ellende; bij ons zou het een Vercel cron of een kolom "te versturen op" zijn), en bezorging staat of valt met de SMTP-reputatie — DMARC staat net goed, dus volume rustig opbouwen.
+
+### 2.1b Ondertekende quizantwoorden — de oplossing voor ons bekende gat
+
+**Dit is de waardevolste vondst uit de broncode, en het is er een die geen enkele documentatiepagina noemt.** Ons `POST /api/voortgang` heeft een bekend, gedocumenteerd lek (`docs/openstaand.md` §6): `correct` komt uit de client, dus wie `correct = total` post pakt de quizbonus én de foutloos-badge zonder één vraag te beantwoorden. We wisten dat we het niet konden dichten zonder de antwoorden alsnog naar de server te sturen — precies wat we niet wilden.
+
+LearnDash lost exact dat probleem op, en anders dan wij dacht ik dat zij het niet oplosten. Wat de code doet (11 §client-side nakijken, geverifieerd in `includes/lib/wp-pro-quiz/lib/controller/WpProQuiz_Controller_Admin.php`):
+
+1. De juiste antwoorden worden **uit de pagina-JSON gestript** vóór verzending naar de browser.
+2. Elk antwoord wordt **per stuk server-side beoordeeld** via een AJAX-aanroep.
+3. De server geeft het resultaat terug **met een handtekening**: een WordPress-nonce berekend over gebruiker, quiz, vraagindex én de puntenwaarde (`p_nonce` voor punten, `a_nonce` voor het antwoord).
+4. Bij het inleveren **herverifieert de server elke handtekening** en herberekent het eindpercentage zelf; klopt een handtekening niet, dan worden de punten op 0 gezet.
+
+Het patroon is dus: *de client mag rekenen, maar mag het resultaat niet beweren*. Elke deelscore is een door de server ondertekende claim.
+
+Voor ons vertaalbaar zonder ons privacyprincipe op te geven: laat de client bij het afronden van een quiz een korte, aan sessie + les + score gebonden HMAC meesturen die de server eerder heeft afgegeven — of, simpeler en waarschijnlijk voldoende voor de inzet (XP en een badge, geen diploma): laat de server de quizvragen kennen en alleen de gekozen indexen ontvangen, zonder ze op te slaan. Dan reist er geen antwoordgeschiedenis, maar is de score wel echt. **Welke van de twee is een ontwerpbeslissing voor Jason** — het punt hier is dat "client-side nakijken" en "een betrouwbare score" elkaar niet uitsluiten, wat we tot nu toe aannamen.
 
 ### 2.2 De minimale beheerset: vier tellers, een feed, een filter, en handmatige correctie
 

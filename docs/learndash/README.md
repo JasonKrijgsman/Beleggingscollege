@@ -23,6 +23,18 @@ De vraag die dit onderzoek beantwoordt: wat hebben zij in tien jaar productontwi
 
 Begin bij hoofdstuk 8 als je alleen de conclusies wilt; de rest is het bewijsmateriaal.
 
+### Uit de broncode zelf (hoofdstuk 9–11)
+
+Hoofdstuk 1–8 komen uit documentatie. Daarna is de **échte plugincode** gelezen: `sfwd-lms-v4.6.0.zip` (mei 2023) uit Jasons eigen licentiearchief op de NAS.
+
+| Doc | Onderwerp |
+|---|---|
+| [09-broncode-architectuur.md](09-broncode-architectuur.md) | Bootstrap, de halfvoltooide `src/`-herschrijving naast 206k regels legacy, hooks als meetbare moat, backwards compatibility als datastructuur |
+| [10-broncode-datamodel-en-betalingen.md](10-broncode-datamodel-en-betalingen.md) | Het echte schema, `_sfwd-course_progress` ontleed, wat één "mark complete" schrijft, toegangscontrole op renderniveau, en hoe hun betaalwebhooks verifiëren |
+| [11-broncode-quizmotor.md](11-broncode-quizmotor.md) | De WP Pro Quiz-fork van binnen — inclusief het antwoord op de vraag of ze quizscores server-side verifiëren (ja, met ondertekende antwoorden) |
+
+**Let op de versie.** Dit is 4.6.0 uit mei 2023, niet de huidige 5.x (feb 2026). Het is precies wat er gekocht is, en daarmee een eerlijke momentopname — maar reken er niet op dat elk detail nu nog zo is. Een actuelere kopie ophalen kan alleen Jason zelf: het klantportaal (`software.liquidweb.com`) vraagt om inloggen, en een agent mag geen inloggegevens invoeren.
+
 ## Leeswijzer
 
 - Featurenamen staan in het Engels tussen backticks (`Focus Mode`, `Buy Now`) zodat ze terug te vinden zijn in LearnDash's eigen documentatie.
