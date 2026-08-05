@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+/** Zie de toelichting in voorwaarden/page.tsx: adres uit de omgeving, nooit
+ *  uit de repo; leeg telt als niet gezet. */
+const ADRES = process.env.BEDRIJF_ADRES || null;
+
 export default function PrivacyPage() {
   /**
    * Deze verklaring beschrijft de meting alleen als er ook écht gemeten wordt.
@@ -114,8 +118,10 @@ export default function PrivacyPage() {
           <dd>71856633</dd>
           <dt className="font-bold text-ink">Eigenaar</dt>
           <dd>Jason Krijgsman</dd>
-          <dt className="font-bold text-ink">Vestigingsplaats</dt>
-          <dd>Den Haag, Nederland</dd>
+          <dt className="font-bold text-ink">
+            {ADRES ? "Vestigingsadres" : "Vestigingsplaats"}
+          </dt>
+          <dd>{ADRES ?? "Den Haag, Nederland"}</dd>
           <dt className="font-bold text-ink">E-mail</dt>
           <dd>
             <a

@@ -115,19 +115,25 @@ juridisch niet mag verkopen, of kun je een geschil niet winnen.
       en `70a0621`): `src/lib/mail.ts`, `src/lib/mailteksten.ts`, `src/lib/orderbevestiging.ts`,
       afgevuurd vanuit de Mollie-webhook. Bevat wat de wet eist, mét de onderbouwing in
       `docs/juridisch-orderbevestiging.md`.
-      **Staat nog uit, en dat is nu nog maar één stap.** Verzendkeuze is Migadu (niet
-      Resend); de DNS-verhuizing en de postbus zijn op 3 aug 2026 rond gekomen. Wat rest is
-      `MAIL_SMTP_GEBRUIKER` en `MAIL_SMTP_WACHTWOORD` in Vercel zetten — zie §8. De hele
-      afweging staat in `docs/e-mail-versturen.md`.
+      **WERKT sinds 5 aug 2026.** De SMTP-variabelen staan in Vercel, en een
+      testmodus-aankoop leverde de bevestiging af in de Gmail-inbox met spf/dkim/dmarc
+      alle drie pass; DMARC staat sindsdien weer op `p=reject`. De hele afweging en het
+      bewijs staan in `docs/e-mail-versturen.md`.
 - [x] ~~**`src/lib/mail.ts` omzetten van de Resend-API naar Migadu SMTP.**~~ **Gedaan 3 aug
       2026.** Via nodemailer (exact 8.0.11 — Auth.js accepteert geen 9). De rest van de keten
       is inderdaad niet aangeraakt: die roept alleen `verstuurMail()` aan.
 - [ ] **Twee gegevens die er nog niet zijn (KOR is beantwoord):**
       - ~~KOR?~~ **Beantwoord op 2 aug 2026: geen KOR.** De 21%-regel in de mail klopt dus.
-      - **Vestigingsadres.** Jason wil zijn woonadres niet op internet. Onderzoek naar de
-        opties (postbus, virtueel bedrijfsadres, adres van de boekhouder) loopt. Tot er
-        gekozen is: het adres komt uit de omgevingsvariabele `BEDRIJF_ADRES` en staat bewust
-        nérgens in de repo. **Schrijf het woonadres ook niet in documentatie.**
+      - **Vestigingsadres — besloten op 5 aug 2026: het woonadres.** Jason heeft de opties
+        gewogen (postbus telt juridisch niet als geografisch adres; een virtueel
+        bedrijfsadres kost €20–60/mnd tegen nul omzet) en gekozen voor het woonadres — dat
+        staat als vestigingsadres van de eenmanszaak toch al openbaar in het
+        Handelsregister. De juridische pagina's en het modelformulier renderen het adres
+        sinds deze commit uit `BEDRIJF_ADRES` (met "Den Haag, Nederland" als terugval
+        zolang de variabele leeg is). **Wat nog moet: de variabele vullen in Vercel
+        (Production + Preview) en redeployen.** Het adres blijft bewust nérgens in de repo
+        staan — alleen in de omgevingsvariabele. **Schrijf het woonadres ook niet in
+        documentatie.** Heroverweeg een huuradres zodra er structurele omzet is.
       - ~~Btw-identificatienummer~~ **Opgelost op 2 aug 2026: `NL004813328B30`.** Staat in de
         voettekst en in de orderbevestiging. **Let op:** Jason heeft twee nummers. Het
         omzetbelastingnummer (afgeleid van zijn BSN, staat bewust niet in de repo) mag nergens
