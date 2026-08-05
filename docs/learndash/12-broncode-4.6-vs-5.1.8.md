@@ -546,7 +546,7 @@ De rest van de groei is wél inhoudelijk: `vendor-prefixed` (+7,1) is Stripe en 
 
 **Wat wij hieruit meenemen, kort:**
 
-1. **Onze webhookregel blijft strenger.** LearnDash haalt het event id-only op (goed, en nog steeds ons patroon) maar hercontroleert bedrag en valuta bij géén enkele gateway. Wij wel. Niet aanpassen.
+1. ~~**Onze webhookregel blijft strenger.**~~ ⚠️ **Deze conclusie is in de verificatieronde onderuitgehaald — zie hoofdstuk 17.** LearnDash haalt het event id-only op (goed, en nog steeds ons patroon), maar het is níét waar dat geen enkele gateway bedrag en valuta hercontroleert: de PayPal-keten doet dat sinds 4.20.1 wél, inclusief `revoke_access()` bij verschil. Bij Stripe/Razorpay ontbreekt het omdat het bedrag daar nooit langs de klant komt. Onze regel is dus **gelijkwaardig**, niet strenger — en blijft precies zoals hij is.
 2. **Hun experimenten-laag is beter dan onze `/lab`-pagina's.** Een zichtbare opt-in met een naam, beschrijving en feedbacklink is een nettere vorm dan een noindex-pagina die je moet kennen.
 3. **Hun REST-vernieuwing gebeurt via een nieuwe namespace plus een opt-in-header, niet via een `v3`.** Dat is goedkoper dan wat hoofdstuk 09 §7 aanbeval en het geeft je een terugweg.
 4. **Een gebakken licentietoken in de download** is een reden om LearnDash-ZIP's nooit ergens te delen of te committen.
