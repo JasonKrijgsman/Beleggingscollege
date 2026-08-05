@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { paymentAttempts } from "@/db/schema";
 import { courses, flatLessons, getCourse } from "@/content";
 import { heeftToegangTot } from "@/lib/entitlements";
+import GekochtStatusPoller from "@/components/GekochtStatusPoller";
 
 export const dynamic = "force-dynamic";
 
@@ -167,18 +168,14 @@ export default async function GekochtPage({
         </h1>
         <p className="mt-3 leading-relaxed text-body">
           Je betaling is onderweg. Sommige betaalmethodes hebben even nodig —
-          meestal is het binnen een minuut rond. Ververs deze pagina zo nog even.
+          meestal is het binnen een minuut rond. Deze pagina houdt het zelf in de
+          gaten en opent de cursus zodra de betaling binnen is.
         </p>
         <p className="mt-2 text-sm text-body">
           Duurt het langer dan een kwartier? Mail dan gerust naar
           beheer@beleggingscollege.nl, dan zoeken we het uit.
         </p>
-        <Link
-          href={`/cursussen/${slug}/gekocht`}
-          className="mt-8 inline-block rounded-full bg-brand-600 px-7 py-3 text-sm font-bold text-white hover:bg-brand-700"
-        >
-          Opnieuw controleren
-        </Link>
+        <GekochtStatusPoller slug={slug} />
       </div>
     );
   }
