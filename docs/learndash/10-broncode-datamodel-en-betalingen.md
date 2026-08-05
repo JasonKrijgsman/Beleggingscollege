@@ -3,6 +3,12 @@
 > Deze notitie analyseert de **échte plugincode van LearnDash v4.6.0 (mei 2023)**, uitgepakt uit Jasons eigen licentiearchief (`sfwd-lms/`). De huidige generatie is 5.x, dus details kunnen verschoven zijn — maar het fundament (usermeta-voortgang, de activity-tabellen, `sfwd_lms_has_access()`, de gateway-webhooks) is al jaren stabiel en herkenbaar in latere releases. Geschreven 5 aug 2026. Bestandspaden zijn relatief aan `sfwd-lms/`. Codefragmenten zijn kort en dienen als bewijs — dit is propriëtaire code, dus we analyseren en herpubliceren niet.
 >
 > Dit stuk vult de op documentatie gebaseerde kennisbank (`01`–`08`) aan met wat alleen de code prijsgeeft. Waar het raakt aan onze eigen keuzes staat er een korte "Vergelijk met ons".
+>
+> ⚠️ **Twee correcties uit de hercontrole tegen 5.1.8 (`12-broncode-4.6-vs-5.1.8.md`), lees die ernaast:**
+> 1. De `@todo duplicate function … consolidate` bij `sfwd_lms_has_access_fn()` **bestaat niet meer**: die opruiming is in 5.0.0 gedaan en `Product::user_has_access` is nu de aangewezen route. Het punt dat dit hoofdstuk daarmee maakte (een versnipperde toegangspoort) gold voor 4.6.0, niet meer voor nu.
+> 2. "Een refund trekt geen toegang in" moet preciezer: **bij Stripe niet, in de nieuwe PayPal Checkout-keten wél.**
+>
+> De rest van dit hoofdstuk is in 5.1.8 nog steeds waar — twee bronnen van waarheid, bescherming op renderniveau, geen unieke sleutel op de activity-tabel, en **geen enkele gateway die bedrag en valuta hercontroleert** vóór het toekennen van toegang.
 
 ---
 

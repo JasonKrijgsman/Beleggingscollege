@@ -33,7 +33,15 @@ Hoofdstuk 1–8 komen uit documentatie. Daarna is de **échte plugincode** gelez
 | [10-broncode-datamodel-en-betalingen.md](10-broncode-datamodel-en-betalingen.md) | Het echte schema, `_sfwd-course_progress` ontleed, wat één "mark complete" schrijft, toegangscontrole op renderniveau, en hoe hun betaalwebhooks verifiëren |
 | [11-broncode-quizmotor.md](11-broncode-quizmotor.md) | De WP Pro Quiz-fork van binnen — inclusief het antwoord op de vraag of ze quizscores server-side verifiëren (ja, met ondertekende antwoorden) |
 
-**Let op de versie.** Dit is 4.6.0 uit mei 2023, niet de huidige 5.x (feb 2026). Het is precies wat er gekocht is, en daarmee een eerlijke momentopname — maar reken er niet op dat elk detail nu nog zo is. Een actuelere kopie ophalen kan alleen Jason zelf: het klantportaal (`software.liquidweb.com`) vraagt om inloggen, en een agent mag geen inloggegevens invoeren.
+**Let op de versie.** Hoofdstuk 9–11 lezen 4.6.0 uit mei 2023 — precies wat er gekocht is, en daarmee een eerlijke momentopname van dat moment.
+
+### De hercontrole tegen 5.1.8 (hoofdstuk 12)
+
+| Doc | Onderwerp |
+|---|---|
+| [12-broncode-4.6-vs-5.1.8.md](12-broncode-4.6-vs-5.1.8.md) | **Lees dit naast 9–11.** Elke bevinding uit 4.6.0 opnieuw getoetst tegen 5.1.8 (juli 2026), plus wat er nieuw is: de MCP-server voor Elementor's Angie, de Virtual Instructor, het Commerce-subsysteem, en waar de groei van 38 naar 68 MB in zit |
+
+Kort: de quizmotor, de voortgangsopslag en het activity-schema zijn ongewijzigd; de `src/`-laag groeide van 6,5% naar 29,3%; hoofdstuk 10 heeft twee correcties nodig (zie §"Wat dit betekent voor onze kennisbank" in hoofdstuk 12).
 
 ## Leeswijzer
 
