@@ -1,13 +1,26 @@
 # E-mail versturen
 
-Laatst bijgewerkt: 3 augustus 2026.
+Laatst bijgewerkt: 5 augustus 2026.
 
 ## Waar we geland zijn
 
-**Migadu, de code praat ermee, het domein is actief en de postbus bestaat.** Er staat nog
-precies één ding tussen ons en een werkende bevestigingsmail: de inloggegevens in Vercel.
+**HET WERKT — bewezen op 5 augustus 2026.** De SMTP-variabelen staan in Vercel
+(Production + Preview, wachtwoord als Sensitive), er is geherdeployed, en een
+testmodus-aankoop (Introductie Technische Analyse, order `BC-2026-0001`) leverde binnen
+een minuut de orderbevestiging af in de **inbox** van Gmail — niet in spam — met
+`spf=pass`, `dkim=pass` (key1) én `dmarc=pass` in de `Authentication-Results`. De hele
+keten (checkout → Mollie-webhook → atomaire claim → Migadu SMTP → bezorging) is daarmee
+end-to-end aangetoond; een testmodus-betaling doorloopt exact dezelfde mailcode als een
+echte.
 
-> **Stand eind 3 augustus 2026 — alles behalve de laatste stap is gedaan:**
+**De enige actie die nog uit dit document volgt: DMARC terug van `p=quarantine` naar
+`p=reject`** — zie de checklist onderaan. Daarnaast twee bevindingen uit de testmail, die
+elders belegd zijn: de HTML-versie linkt met leestekens erin (kapotte links, zie
+`docs/openstaand.md` §6) en het verkopersblok toont `[vestigingsadres nog niet ingevuld]`
+zolang `BEDRIJF_ADRES` leeg is (bekend punt, ook `docs/openstaand.md`).
+
+> **Stand eind 3 augustus 2026 — alles behalve de laatste stap is gedaan** *(historisch;
+> de laatste stap is op 5 aug gezet, zie boven)*:
 >
 > - De naamservers van `beleggingscollege.nl` staan bij Cloudflare (`joan`/`rene.ns.cloudflare.com`);
 >   DNSSEC is eraf en de delegatie was binnen tien minuten bij SIDN.
@@ -243,6 +256,9 @@ weigert expliciet om zelf een nummer te verzinnen en logt in plaats daarvan een 
 - [ ] Een echte factuur met btw-uitsplitsing. De bevestiging is geen factuur.
 - [x] ~~Een SPF-record toevoegen.~~ Staat er sinds 3 aug 2026:
       `v=spf1 include:spf.migadu.com -all`, samen met de drie DKIM-CNAME's.
-- [ ] **DMARC terugzetten van `p=quarantine` naar `p=reject`** — pas ná een geslaagde
-      echte bestelling. Dit is het punt dat het makkelijkst blijft liggen, want niets
-      breekt als je het vergeet; het domein staat dan alleen permanent zwakker.
+- [ ] **DMARC terugzetten van `p=quarantine` naar `p=reject`** — de voorwaarde is op
+      5 aug 2026 vervuld: verzenden is aantoonbaar goed (testaankoop bezorgd in de
+      Gmail-inbox met spf/dkim/dmarc alle drie pass). Dit is nu gewoon een
+      Cloudflare-DNS-wijziging die kan. Het blijft het punt dat het makkelijkst blijft
+      liggen, want niets breekt als je het vergeet; het domein staat dan alleen
+      permanent zwakker.
