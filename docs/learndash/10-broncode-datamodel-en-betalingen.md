@@ -3,6 +3,16 @@
 > Deze notitie analyseert de **échte plugincode van LearnDash v4.6.0 (mei 2023)**, uitgepakt uit Jasons eigen licentiearchief (`sfwd-lms/`). De huidige generatie is 5.x, dus details kunnen verschoven zijn — maar het fundament (usermeta-voortgang, de activity-tabellen, `sfwd_lms_has_access()`, de gateway-webhooks) is al jaren stabiel en herkenbaar in latere releases. Geschreven 5 aug 2026. Bestandspaden zijn relatief aan `sfwd-lms/`. Codefragmenten zijn kort en dienen als bewijs — dit is propriëtaire code, dus we analyseren en herpubliceren niet.
 >
 > Dit stuk vult de op documentatie gebaseerde kennisbank (`01`–`08`) aan met wat alleen de code prijsgeeft. Waar het raakt aan onze eigen keuzes staat er een korte "Vergelijk met ons".
+>
+> ⚠️ **Twee correcties uit de hercontrole tegen 5.1.8 (`12-broncode-4.6-vs-5.1.8.md`), lees die ernaast:**
+> 1. De `@todo duplicate function … consolidate` bij `sfwd_lms_has_access_fn()` **bestaat niet meer**: die opruiming is in 5.0.0 gedaan en `Product::user_has_access` is nu de aangewezen route. Het punt dat dit hoofdstuk daarmee maakte (een versnipperde toegangspoort) gold voor 4.6.0, niet meer voor nu.
+> 2. "Een refund trekt geen toegang in" moet preciezer: **bij Stripe niet, in de nieuwe PayPal Checkout-keten wél.**
+>
+> 3. **De bewering "geen enkele gateway hercontroleert bedrag en valuta" is voor 5.1.8 onjuist** (gevonden in de verificatieronde, hoofdstuk 17). In `includes/payments/gateways/class-learndash-paypal-ipn-gateway.php` vergelijkt `verify_user_purchase_hash()` de valuta met `mc_currency` en toetst `validate_price_paid_by_user()` `mc_gross` tegen de vastgelegde prijs; bij verschil wordt niet alleen toegang geweigerd maar `revoke_access()` aangeroepen. De `@since 4.20.1`-tags laten zien dat LearnDash dit zelf heeft gerepareerd ná de versie die dit hoofdstuk leest.
+>
+> Het juiste beeld is bovendien scherper dan "wij zijn strenger": LearnDash controleert bedrag en valuta **daar waar het bedrag door de browser van de klant komt** (het klassieke PayPal-formulier) en niet waar dat nooit gebeurt (Stripe en Razorpay bouwen de afschrijving server-side uit de catalogusprijs — er is dan niets om te hercontroleren). Dat is verdedigbaar ontwerp, geen gat. **Onze Mollie-regel is daarmee gelijkwaardig aan de marktleider op het pad dat ertoe doet, niet strenger.**
+>
+> De rest van dit hoofdstuk is in 5.1.8 nog steeds waar: twee bronnen van waarheid, bescherming op renderniveau en geen unieke sleutel op de activity-tabel.
 
 ---
 
@@ -181,7 +191,9 @@ Maar de **webhook zelf vergelijkt `amount_total`/`currency` niet opnieuw tegen d
 
 Dus PayPal IPN verifieert *afzender* en *status*, maar niet *bedrag=prijs* of *valuta*. Iemand die te weinig betaalt maar een geldige "completed"-IPN naar de juiste ontvanger genereert, wordt ingeschreven.
 
-> **Vergelijk met ons:** onze Mollie-webhook haalt de status zelf op (id-only, zoals Stripe hier) én controleert **bedrag en valuta** tegen wat wij hadden vastgelegd, in de gateway-laag, atomair met het verlenen van het entitlement. LearnDash doet de id-only-ophaal goed bij Stripe, maar laat de bedrag/valuta-hercontrole bij álle drie de gateways achterwege.
+> **Vergelijk met ons:** onze Mollie-webhook haalt de status zelf op (id-only, zoals Stripe hier) én controleert **bedrag en valuta** tegen wat wij hadden vastgelegd, in de gateway-laag, atomair met het verlenen van het entitlement.
+>
+> ⚠️ **Correctie (hoofdstuk 17).** Hierboven staat dat LearnDash die hercontrole bij álle gateways achterwege laat. Dat gold voor 4.6.0, maar **niet meer**: sinds 4.20.1 vergelijkt de PayPal-IPN-keten zowel valuta (`mc_currency`) als bedrag (`mc_gross`, en `mc_amount1`/`mc_amount3` voor abonnementen) met de vastgelegde prijs, en trekt bij verschil actief toegang in. Dat ze het bij Stripe en Razorpay niet doen is logisch en geen nalatigheid: daar wordt het bedrag server-side uit de catalogus opgebouwd en komt het nooit langs de klant. Wij zijn hier dus **gelijkwaardig**, niet strenger — al blijft onze atomaire koppeling van verificatie en toekenning een nettere vorm.
 
 ### Terugbetalingen
 
@@ -212,7 +224,7 @@ In deze versie is de webhook-afhandeling gericht op verlenen (`checkout.session.
 2. **Toegang en drip zijn render-only.** De post-content staat onbeschermd in de database; alleen het `the_content`/`learndash_content`-filter vervangt hem. Elk pad dat die filters mist, lekt betaalde inhoud. De docs zeggen "les is vergrendeld", de code zegt "les wordt bij het tonen weggefilterd".
 3. **De single access gate heeft een `TODO: consolidate` in de broncode** en er zijn twee enrollment-representaties (legacy `course_access_list` blob vs. per-user `course_{id}_access_from` meta) plus een parallel groepspad. Het is minder één-poort dan de docs suggereren.
 4. **Uniciteit van activity-rijen is een PHP-afspraak, geen db-constraint** — er is geen unieke sleutel op `(user_id, course_id, post_id, activity_type)`.
-5. **Betaalverificatie is asymmetrisch.** Stripe doet id-only server-side ophalen (goed, gelijk aan onze regel), maar géén enkele gateway hercontroleert bedrag+valuta tegen de catalogus in de webhook; PayPal IPN verifieert afzender en status maar niet het bedrag. Een refund van een losse aankoop trekt in deze versie geen toegang in.
+5. **Betaalverificatie is asymmetrisch.** Stripe doet id-only server-side ophalen (goed, gelijk aan onze regel). In 4.6.0 hercontroleerde géén enkele gateway bedrag+valuta tegen de catalogus, en verifieerde PayPal IPN alleen afzender en status. ⚠️ **Dat is in 5.1.8 hersteld voor de PayPal-keten** (sinds 4.20.1: valuta én bedrag, met `revoke_access()` bij verschil) — zie de correctie boven aan dit hoofdstuk en hoofdstuk 17. Een refund van een losse aankoop trekt in *deze* versie geen toegang in.
 6. **`course_completed_{course_id}` losse usermeta** is de feitelijke "cursus af"-vlag én de join-sleutel voor de puntenberekening — een detail dat nergens in de featuredocs staat maar bepalend is voor certificaten en punten.
 
 ### Onzekerheden

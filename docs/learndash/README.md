@@ -21,7 +21,7 @@ De vraag die dit onderzoek beantwoordt: wat hebben zij in tien jaar productontwi
 | [07-ecosysteem-en-markt.md](07-ecosysteem-en-markt.md) | Bedrijf & prijzen, add-on-ecosysteem, architectuur voor ontwikkelaars, concurrenten, wanneer zelf bouwen wint |
 | [08-lessen-voor-beleggingscollege.md](08-lessen-voor-beleggingscollege.md) | **De synthese**: wat wij al beter doen, wat LearnDash beter doet, en wat we concreet zouden kunnen overnemen |
 
-Begin bij hoofdstuk 8 als je alleen de conclusies wilt; de rest is het bewijsmateriaal.
+Begin bij **hoofdstuk 18** als je alleen de conclusies wilt, en bij hoofdstuk 8 voor de onderbouwing daarvan; de rest is bewijsmateriaal.
 
 ### Uit de broncode zelf (hoofdstuk 9–11)
 
@@ -33,7 +33,38 @@ Hoofdstuk 1–8 komen uit documentatie. Daarna is de **échte plugincode** gelez
 | [10-broncode-datamodel-en-betalingen.md](10-broncode-datamodel-en-betalingen.md) | Het echte schema, `_sfwd-course_progress` ontleed, wat één "mark complete" schrijft, toegangscontrole op renderniveau, en hoe hun betaalwebhooks verifiëren |
 | [11-broncode-quizmotor.md](11-broncode-quizmotor.md) | De WP Pro Quiz-fork van binnen — inclusief het antwoord op de vraag of ze quizscores server-side verifiëren (ja, met ondertekende antwoorden) |
 
-**Let op de versie.** Dit is 4.6.0 uit mei 2023, niet de huidige 5.x (feb 2026). Het is precies wat er gekocht is, en daarmee een eerlijke momentopname — maar reken er niet op dat elk detail nu nog zo is. Een actuelere kopie ophalen kan alleen Jason zelf: het klantportaal (`software.liquidweb.com`) vraagt om inloggen, en een agent mag geen inloggegevens invoeren.
+**Let op de versie.** Hoofdstuk 9–11 lezen 4.6.0 uit mei 2023 — precies wat er gekocht is, en daarmee een eerlijke momentopname van dat moment.
+
+### De hercontrole tegen 5.1.8 (hoofdstuk 12)
+
+| Doc | Onderwerp |
+|---|---|
+| [12-broncode-4.6-vs-5.1.8.md](12-broncode-4.6-vs-5.1.8.md) | **Lees dit naast 9–11.** Elke bevinding uit 4.6.0 opnieuw getoetst tegen 5.1.8 (juli 2026), plus wat er nieuw is: de MCP-server voor Elementor's Angie, de Virtual Instructor, het Commerce-subsysteem, en waar de groei van 38 naar 68 MB in zit |
+
+Kort: de quizmotor, de voortgangsopslag en het activity-schema zijn ongewijzigd; de `src/`-laag groeide van 6,5% naar 29,3%; hoofdstuk 10 heeft twee correcties nodig (zie §"Wat dit betekent voor onze kennisbank" in hoofdstuk 12).
+
+### De add-ons en het ecosysteem eromheen (hoofdstuk 13–15)
+
+| Doc | Onderwerp |
+|---|---|
+| [13-broncode-addons-commerce.md](13-broncode-addons-commerce.md) | Zeven officiële commerce- en toegangs-add-ons (2026-releases): hoe zij aankopen, terugbetalingen en memberships op toegang vertalen — inclusief de referentieteller die één recht meerdere bronnen geeft |
+| [14-broncode-addons-engagement.md](14-broncode-addons-engagement.md) | De engagement-add-ons: de Notifications-wachtrij van binnen, de "streak" die eigenlijk een logintelling is, en de certificaatketen |
+| [15-uncanny-toolkit-de-ontbrekende-instellingen.md](15-uncanny-toolkit-de-ontbrekende-instellingen.md) | **De Uncanny Toolkit (gratis, v3.8.0.3)** als telling van LearnDash's gaten zoals échte cursusverkopers ze voelen: alle 16 gratis modules, de ~35 Pro-modules, hun feature-flag-architectuur, en welke van die gaten wij ook hebben |
+
+### Door andere leveranciers onderzocht (hoofdstuk 16–17)
+
+Twee sporen buiten Claude om, bewust op niet-overlappende opdrachten — het tweede expliciet om onze eigen conclusies te weerleggen.
+
+| Doc | Onderwerp |
+|---|---|
+| [16-broncode-propanel-en-bundelde-addons.md](16-broncode-propanel-en-bundelde-addons.md) | **Door Codex.** ProPanel, Course Grid en Course Reviews — de drie ooit los betaalde add-ons die nu in de doos zitten — plus het Commerce-subsysteem. Het eerlijke beeld van hun rapportagelaag: één handgeschreven query, enkelkolomse indexen, een synchrone bulkmail, en een CSV-export die juist voorbeeldig is |
+| [17-restende-addons-en-verificatie.md](17-restende-addons-en-verificatie.md) | **Door Cursor.** De nog niet gelezen add-ons (Migration, Gravity Forms, bbPress, Elementor, Events Calendar, Multilingual) plus een adversariële hercontrole van zes van onze eigen uitspraken: vijf bevestigd, **één weerlegd** |
+
+### De conclusie (hoofdstuk 18)
+
+| Doc | Onderwerp |
+|---|---|
+| [18-wat-we-ermee-doen.md](18-wat-we-ermee-doen.md) | **Begin hier als je maar één document leest.** Wat de drie onderzoekssporen elk opleverden en waar ze elkaar tegenspraken, gevolgd door dertig kandidaten in vier bakjes: gewoon doen, sterk aanbevolen, het hangt ervan af, en niet aan beginnen |
 
 ## Leeswijzer
 

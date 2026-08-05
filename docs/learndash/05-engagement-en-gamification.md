@@ -44,6 +44,8 @@ Certificaten worden **server-side als PDF gegenereerd met de meegeleverde TCPDF-
 
 TCPDF is meteen ook de bron van de klassieke frustraties: het ondersteunt maar een deel van HTML/CSS, waardoor wat er in de editor staat niet 1-op-1 in de PDF verschijnt. De Certificate Builder bestaat grotendeels om die kloof te verkleinen.
 
+> **Correctie na broncode-analyse (hoofdstuk 14).** Bovenstaande klopt voor de **kern**, maar niet voor de `Certificate Builder`-add-on: die brengt zijn **eigen PDF-motor mee, mPDF 8.2.7 in plaats van TCPDF**, en neemt core's `learndash_tcpdf_init` alleen over wanneer het eerste blok het builder-blok is. Dat verklaart ook de omvang (113 MB uitgepakt, waarvan 88 MB CJK-fonts, en de bibliotheek zit er twee keer in). De kloof met TCPDF is dus niet verkleind — hij is omzeild door een tweede motor ernaast te zetten. Precies het patroon dat je bij LearnDash vaker ziet: nieuw naast oud, niet in plaats van.
+
 Bron: https://developers.learndash.com/package/pdf/ · https://developers.learndash.com/constant/learndash_tcpdf_legacy_ld322/
 
 ### 1.4 Toekenningsregels
