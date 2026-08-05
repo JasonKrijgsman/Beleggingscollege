@@ -252,9 +252,12 @@ function alsHtml(tekst: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
+  // Houd sluitende leestekens buiten de href: een URL gevolgd door `).` of `,`
+  // (zoals de verwijzingen in de wettelijke bevestiging) mag geen 404-link
+  // worden. $1 is de URL, $2 zijn de leestekens die erachter blijven staan.
   const metLinks = veilig.replace(
-    /(https?:\/\/[^\s]+)/g,
-    '<a href="$1" style="color:#0072CE">$1</a>'
+    /(https?:\/\/[^\s]+?)([.,;:!?)\]]*)(?=\s|$)/g,
+    '<a href="$1" style="color:#0072CE">$1</a>$2'
   );
 
   return `<!doctype html><html lang="nl"><body style="margin:0;padding:24px;background:#f5f6f8">
