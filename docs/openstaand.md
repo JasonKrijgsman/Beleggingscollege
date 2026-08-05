@@ -247,15 +247,14 @@ Beleggingspsychologie en Indexbeleggen & ETF's, met samen twaalf nieuwe tools. Z
 
 ## 6. Techniek en bedrijfsvoering
 
-- [ ] **De "we wachten nog op de bevestiging"-pagina ververst zichzelf niet.** Gezien bij
-      de testaankoop van 5 aug 2026: wie na het betalen op `/cursussen/[slug]/gekocht`
-      landt terwijl de webhook nog onderweg is, ziet de pending-tekst — en die blíjft
-      staan tot je zelf op "Opnieuw controleren" klikt. De pagina is een server component
-      (`force-dynamic`) zonder polling of refresh; technisch klopt alles, maar het vóélt
-      als een mislukte betaling, precies op het moment dat de klant net geld heeft
-      overgemaakt. Richting: een kleine client component die de status elke paar seconden
-      naslaat (of de pagina herlaadt) zolang hij pending is, met de bestaande knop als
-      terugval. Laag risico, hoge geruststellingswaarde.
+- [x] ~~**De "we wachten nog op de bevestiging"-pagina ververst zichzelf niet.**~~ **Gedaan
+      op 5 aug 2026.** `src/components/GekochtStatusPoller.tsx` ververst de pending-tak zelf
+      elke ~4 s en stopt na 2 minuten met de bestaande knop als terugval. Het verversen gaat
+      via `router.refresh()`, dus de bestaande server-component met `heeftToegangTot()` blijft
+      de enige toegangspoort — er is bewust géén tweede statusroute bijgekomen. De stopgrens
+      zit in de pure `src/lib/gekocht-polling.ts` en is vastgepind in
+      `test/gekocht-polling.test.ts`; de knop is een echte link naar dezelfde pagina zodat hij
+      ook zónder JavaScript werkt (volledige herlaadbeurt).
 - [ ] **De HTML-versie van de orderbevestiging maakt kapotte links.** De linkify-regex in
       `src/lib/mailteksten.ts` (`https?:\/\/[^\s]+`) neemt leestekens die ná een URL horen
       mee de href in: in de testmail van 5 aug 2026 staan `…/account).`, `…/voorwaarden,`,
