@@ -22,6 +22,12 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+/** Het vestigingsadres van de eenmanszaak (besluit 5 aug 2026: het woonadres,
+ *  dat toch al openbaar in het Handelsregister staat). Bewust een
+ *  omgevingsvariabele en geen constante: het adres hoort nérgens in de repo.
+ *  `||` en niet `??`: een lege variabele telt als niet gezet. */
+const ADRES = process.env.BEDRIJF_ADRES || null;
+
 export default function VoorwaardenPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
@@ -66,8 +72,10 @@ export default function VoorwaardenPage() {
           <dd>71856633</dd>
           <dt className="font-bold text-ink">Eigenaar</dt>
           <dd>Jason Krijgsman</dd>
-          <dt className="font-bold text-ink">Vestigingsplaats</dt>
-          <dd>Den Haag, Nederland</dd>
+          <dt className="font-bold text-ink">
+            {ADRES ? "Vestigingsadres" : "Vestigingsplaats"}
+          </dt>
+          <dd>{ADRES ?? "Den Haag, Nederland"}</dd>
           <dt className="font-bold text-ink">E-mail</dt>
           <dd>
             <a

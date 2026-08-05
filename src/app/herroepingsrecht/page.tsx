@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+/** Zie de toelichting in voorwaarden/page.tsx: adres uit de omgeving, nooit
+ *  uit de repo; leeg telt als niet gezet. Het EU-modelformulier vraagt naam én
+ *  adres van de ondernemer in de aanhef. */
+const ADRES = process.env.BEDRIJF_ADRES || null;
+
 export default function HerroepingsrechtPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
@@ -307,7 +312,8 @@ export default function HerroepingsrechtPage() {
       </p>
       <div className="mt-4 rounded-2xl border border-lijn bg-white p-6 shadow-card">
         <p className="text-sm leading-relaxed text-body">
-          Aan: Beleggingscollege, beheer@beleggingscollege.nl
+          Aan: Beleggingscollege{ADRES ? `, ${ADRES}` : ""},
+          beheer@beleggingscollege.nl
         </p>
         <p className="mt-4 text-sm leading-relaxed text-body">
           Ik/wij deel/delen u hierbij mede dat ik/wij onze overeenkomst

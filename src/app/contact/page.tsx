@@ -16,6 +16,10 @@ import {
 const EMAIL = "beheer@beleggingscollege.nl";
 const MAILTO = `mailto:${EMAIL}?subject=Vraag%20via%20beleggingscollege.nl`;
 
+/** Zie de toelichting in voorwaarden/page.tsx: adres uit de omgeving, nooit
+ *  uit de repo; leeg telt als niet gezet. */
+const ADRES = process.env.BEDRIJF_ADRES || null;
+
 export const metadata: Metadata = {
   title: "Contact",
   description:
@@ -214,8 +218,12 @@ export default function ContactPage() {
           <div className="flex items-start gap-3">
             <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
             <div>
-              <dt className="text-sm font-semibold text-body">Vestigingsplaats</dt>
-              <dd className="font-bold text-ink">Den Haag, Nederland</dd>
+              <dt className="text-sm font-semibold text-body">
+                {ADRES ? "Vestigingsadres" : "Vestigingsplaats"}
+              </dt>
+              <dd className="font-bold text-ink">
+                {ADRES ?? "Den Haag, Nederland"}
+              </dd>
             </div>
           </div>
           <div className="flex items-start gap-3">
